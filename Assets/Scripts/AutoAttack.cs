@@ -31,6 +31,7 @@ public class AutoAttack : MonoBehaviour
     private int baseProjectilePierce = 0;
 
     private float _fireInterval;
+    private float _baseInterval;
     private float _projectileSpeed;
     private float _projectileDamage;
     private float _range;
@@ -40,25 +41,30 @@ public class AutoAttack : MonoBehaviour
     private int _projectilePierce;
     private int _projectilePierceBonus;
     private float _weaponDamageMult = 1f;
-    private float _straightDamageMult = 1f;
-    private float _boomerangDamageMult = 1f;
-    private float _novaDamageMult = 1f;
-    private float _straightRangeMult = 1f;
-    private float _boomerangRangeMult = 1f;
-    private float _novaRangeMult = 1f;
-    private int _novaBonusCount;
+
+    private struct WeaponConfig
+    {
+        public bool Enabled;
+        public float DamageMult;
+        public float FireRateMult;
+        public float RangeMult;
+        public int BonusCount;
+    }
+
+    private WeaponConfig _straight;
+    private WeaponConfig _boomerang;
+    private WeaponConfig _nova;
 
     private float _nextFireStraight;
     private float _nextFireBoomerang;
     private float _nextFireNova;
 
-    private bool _straightEnabled = true;
-    private bool _boomerangEnabled;
-    private bool _novaEnabled;
-
     private void Awake()
     {
         ApplyStats(1f, 1f, 1f, 1f, 1f, 1, 0, 1f);
+        _straight = CreateDefaultConfig(true);
+        _boomerang = CreateDefaultConfig(false);
+        _nova = CreateDefaultConfig(false);
     }
 
     private void Update()
@@ -68,7 +74,7 @@ public class AutoAttack : MonoBehaviour
             return;
         }
 
-        bool needsTarget = _straightEnabled || _boomerangEnabled;
+        bool needsTarget = _straight.Enabled || _boomerang.Enabled;
         Transform target = null;
         Vector2 dir = Vector2.zero;
 
@@ -81,22 +87,22 @@ public class AutoAttack : MonoBehaviour
             }
         }
 
-        if (_straightEnabled && Time.time >= _nextFireStraight && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_straight.Enabled && Time.time >= _nextFireStraight && target != null && dir.sqrMagnitude > 0.0001f)
         {
             FireStraight(dir.normalized);
-            _nextFireStraight = Time.time + _fireInterval;
+            _nextFireStraight = Time.time + GetIntervalForWeapon(_straight.FireRateMult);
         }
 
-        if (_boomerangEnabled && Time.time >= _nextFireBoomerang && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_boomerang.Enabled && Time.time >= _nextFireBoomerang && target != null && dir.sqrMagnitude > 0.0001f)
         {
             FireBoomerang(dir.normalized);
-            _nextFireBoomerang = Time.time + _fireInterval;
+            _nextFireBoomerang = Time.time + GetIntervalForWeapon(_boomerang.FireRateMult);
         }
 
-        if (_novaEnabled && Time.time >= _nextFireNova && target != null)
+        if (_nova.Enabled && Time.time >= _nextFireNova && target != null)
         {
             FireNova();
-            _nextFireNova = Time.time + _fireInterval;
+            _nextFireNova = Time.time + GetIntervalForWeapon(_nova.FireRateMult);
         }
     }
 
@@ -104,7 +110,8 @@ public class AutoAttack : MonoBehaviour
     {
         _weaponDamageMult = Mathf.Max(0.1f, weaponDamageMult);
         _projectileDamage = baseProjectileDamage * Mathf.Max(0.1f, damageMult) * _weaponDamageMult;
-        _fireInterval = Mathf.Max(0.05f, baseFireInterval / Mathf.Max(0.1f, fireRateMult));
+        _baseInterval = Mathf.Max(0.05f, baseFireInterval / Mathf.Max(0.1f, fireRateMult));
+        _fireInterval = _baseInterval;
         _range = baseRange * Mathf.Max(0.1f, rangeMult);
         _projectileSpeed = baseProjectileSpeed;
         _projectileSize = Mathf.Max(2, Mathf.RoundToInt(baseProjectileSize * Mathf.Max(0.2f, sizeMult)));
@@ -114,39 +121,21 @@ public class AutoAttack : MonoBehaviour
         _projectilePierce = Mathf.Max(0, baseProjectilePierce + _projectilePierceBonus);
     }
 
-    public void SetWeaponEnabled(WeaponType type, bool enabled)
+    public void SetWeaponStats(WeaponType type, WeaponStatsData stats)
     {
+        var cfg = CreateConfigFromStats(stats);
         switch (type)
         {
             case WeaponType.Boomerang:
-                _boomerangEnabled = enabled;
+                _boomerang = cfg;
                 break;
             case WeaponType.Nova:
-                _novaEnabled = enabled;
+                _nova = cfg;
                 break;
             default:
-                _straightEnabled = enabled;
+                _straight = cfg;
                 break;
         }
-    }
-
-    public void SetWeaponDamageMultipliers(float straight, float boomerang, float nova)
-    {
-        _straightDamageMult = Mathf.Max(0.1f, straight);
-        _boomerangDamageMult = Mathf.Max(0.1f, boomerang);
-        _novaDamageMult = Mathf.Max(0.1f, nova);
-    }
-
-    public void SetWeaponRangeMultipliers(float straight, float boomerang, float nova)
-    {
-        _straightRangeMult = Mathf.Max(0.1f, straight);
-        _boomerangRangeMult = Mathf.Max(0.1f, boomerang);
-        _novaRangeMult = Mathf.Max(0.1f, nova);
-    }
-
-    public void SetNovaBonusCount(int value)
-    {
-        _novaBonusCount = Mathf.Max(0, value);
     }
 
 
@@ -176,12 +165,12 @@ public class AutoAttack : MonoBehaviour
     private void FireStraight(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _straightRangeMult;
+        _range *= _straight.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
 
         if (_projectileCount <= 1)
         {
-            SpawnProjectile(direction, _projectileDamage * _straightDamageMult, 0f, lifetime);
+            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime);
             _range = savedRange;
             return;
         }
@@ -192,7 +181,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnProjectile(dir, _projectileDamage * _straightDamageMult, 0f, lifetime);
+            SpawnProjectile(dir, _projectileDamage * _straight.DamageMult, 0f, lifetime);
         }
 
         _range = savedRange;
@@ -201,12 +190,12 @@ public class AutoAttack : MonoBehaviour
     private void FireBoomerang(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _boomerangRangeMult;
+        _range *= _boomerang.RangeMult;
         float lifetime = CalculateBoomerangLifetimeForRange(_range);
 
         if (_projectileCount <= 1)
         {
-            SpawnBoomerang(direction, _projectileDamage * _boomerangDamageMult, lifetime);
+            SpawnBoomerang(direction, _projectileDamage * _boomerang.DamageMult, lifetime);
             _range = savedRange;
             return;
         }
@@ -217,7 +206,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnBoomerang(dir, _projectileDamage * _boomerangDamageMult, lifetime);
+            SpawnBoomerang(dir, _projectileDamage * _boomerang.DamageMult, lifetime);
         }
 
         _range = savedRange;
@@ -226,10 +215,10 @@ public class AutoAttack : MonoBehaviour
     private void FireNova()
     {
         float savedRange = _range;
-        _range *= _novaRangeMult;
+        _range *= _nova.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
 
-        int count = 8 + _novaBonusCount;
+        int count = 8 + _nova.BonusCount;
         float angleStep = 360f / count;
         for (int i = 0; i < count; i++)
         {
@@ -283,7 +272,7 @@ public class AutoAttack : MonoBehaviour
         col.radius = 0.5f;
 
         var proj = go.AddComponent<Projectile>();
-        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, 4f, _projectileDamage * _novaDamageMult, lifetime, _projectilePierce, 720f);
+        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, 4f, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
     }
 
     private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime)
@@ -316,6 +305,40 @@ public class AutoAttack : MonoBehaviour
     private float CalculateBoomerangLifetimeForRange(float range)
     {
         return Mathf.Max(0.2f, (range * 2f) / Mathf.Max(0.1f, _projectileSpeed));
+    }
+
+    private float GetIntervalForWeapon(float weaponFireRateMult)
+    {
+        return Mathf.Max(0.05f, _baseInterval / Mathf.Max(0.1f, weaponFireRateMult));
+    }
+
+    private static WeaponConfig CreateDefaultConfig(bool enabled)
+    {
+        return new WeaponConfig
+        {
+            Enabled = enabled,
+            DamageMult = 1f,
+            FireRateMult = 1f,
+            RangeMult = 1f,
+            BonusCount = 0
+        };
+    }
+
+    private static WeaponConfig CreateConfigFromStats(WeaponStatsData stats)
+    {
+        if (stats == null)
+        {
+            return CreateDefaultConfig(false);
+        }
+
+        return new WeaponConfig
+        {
+            Enabled = stats.unlocked && stats.level > 0,
+            DamageMult = Mathf.Max(0.1f, stats.damageMult),
+            FireRateMult = Mathf.Max(0.1f, stats.fireRateMult),
+            RangeMult = Mathf.Max(0.1f, stats.rangeMult),
+            BonusCount = Mathf.Max(0, stats.bonusProjectiles)
+        };
     }
 
     private static Sprite CreateCircleSprite(int size)

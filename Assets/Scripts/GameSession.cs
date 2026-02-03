@@ -69,34 +69,40 @@ public class GameSession : MonoBehaviour
     private float weaponDamageMult = 1f;
 
     [SerializeField]
-    private float straightWeaponDamageMult = 1f;
+    private WeaponStatsData gunStats = new WeaponStatsData
+    {
+        displayName = "총",
+        level = 1,
+        unlocked = true,
+        damageMult = 1f,
+        fireRateMult = 1.2f,
+        rangeMult = 1f,
+        bonusProjectiles = 0
+    };
 
     [SerializeField]
-    private float boomerangWeaponDamageMult = 1f;
+    private WeaponStatsData boomerangStats = new WeaponStatsData
+    {
+        displayName = "부메랑",
+        level = 0,
+        unlocked = false,
+        damageMult = 1f,
+        fireRateMult = 0.8f,
+        rangeMult = 0.7f,
+        bonusProjectiles = 0
+    };
 
     [SerializeField]
-    private float novaWeaponDamageMult = 1f;
-
-    [SerializeField]
-    private float straightWeaponRangeMult = 1f;
-
-    [SerializeField]
-    private float boomerangWeaponRangeMult = 0.7f;
-
-    [SerializeField]
-    private float novaWeaponRangeMult = 0.5f;
-
-    [SerializeField]
-    private int straightWeaponLevel = 1;
-
-    [SerializeField]
-    private int boomerangWeaponLevel = 0;
-
-    [SerializeField]
-    private int novaWeaponLevel = 0;
-
-    [SerializeField]
-    private int novaBonusCount = 0;
+    private WeaponStatsData novaStats = new WeaponStatsData
+    {
+        displayName = "노바",
+        level = 0,
+        unlocked = false,
+        damageMult = 1f,
+        fireRateMult = 0.6f,
+        rangeMult = 0.5f,
+        bonusProjectiles = 0
+    };
 
     [SerializeField]
     private float moveSpeedMult = 1f;
@@ -107,13 +113,16 @@ public class GameSession : MonoBehaviour
     [SerializeField]
     private float regenPerSecond = 0f;
 
+    [Header("Start Weapon")]
     [SerializeField]
-    private bool boomerangUnlocked = false;
+    private bool requireStartWeaponChoice = true;
 
     [SerializeField]
-    private bool novaUnlocked = false;
+    private StartWeapon startWeapon = StartWeapon.Gun;
 
     public Vector2 MapHalfSize => mapHalfSize;
+
+    private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
 
     public bool IsGameOver { get; private set; }
     public float ElapsedTime { get; private set; }
@@ -128,6 +137,14 @@ public class GameSession : MonoBehaviour
     private bool _choosingUpgrade;
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
     private Vector2 _upgradeScroll;
+    private bool _waitingStartWeaponChoice;
+
+    private enum StartWeapon
+    {
+        Gun,
+        Boomerang,
+        Nova
+    }
 
     private void Awake()
     {
@@ -143,7 +160,14 @@ public class GameSession : MonoBehaviour
 
         if (autoStartLocal)
         {
-            StartLocalGame();
+            if (requireStartWeaponChoice)
+            {
+                _waitingStartWeaponChoice = true;
+            }
+            else
+            {
+                StartLocalGame();
+            }
         }
 
         EnsureCameraFollow();
@@ -323,23 +347,26 @@ public class GameSession : MonoBehaviour
         _options.Add(new UpgradeOption("지속시간 +25%", () => BuildPercentStatText("지속시간", lifetimeMult, lifetimeMult * 1.25f), () => lifetimeMult *= 1.25f));
         _options.Add(new UpgradeOption("사거리 +10%", () => BuildPercentStatText("사거리", rangeMult, rangeMult * 1.10f), () => rangeMult *= 1.10f));
         _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult * 1.35f), () => xpGainMult *= 1.35f));
-        if (!boomerangUnlocked)
+        if (boomerangStats != null && !boomerangStats.unlocked)
         {
-            _options.Add(new UpgradeOption("무기 획득: 부메랑", () => BuildWeaponAcquireText("부메랑", boomerangWeaponLevel), () => UnlockBoomerang()));
+            _options.Add(new UpgradeOption("무기 획득: 부메랑", () => BuildWeaponAcquireText(boomerangStats), () => UnlockBoomerang()));
         }
 
-        if (!novaUnlocked)
+        if (novaStats != null && !novaStats.unlocked)
         {
-            _options.Add(new UpgradeOption("무기 획득: 노바", () => BuildWeaponAcquireText("노바", novaWeaponLevel), () => UnlockNova()));
+            _options.Add(new UpgradeOption("무기 획득: 노바", () => BuildWeaponAcquireText(novaStats), () => UnlockNova()));
         }
-        _options.Add(new UpgradeOption("기본 무기 강화", () => BuildStraightUpgradeText(), () => LevelUpStraightWeapon()));
+        if (StraightUnlocked)
+        {
+            _options.Add(new UpgradeOption("총 강화", () => BuildStraightUpgradeText(), () => LevelUpStraightWeapon()));
+        }
 
-        if (boomerangUnlocked)
+        if (boomerangStats != null && boomerangStats.unlocked)
         {
             _options.Add(new UpgradeOption("부메랑 강화", () => BuildBoomerangUpgradeText(), () => LevelUpBoomerangWeapon()));
         }
 
-        if (novaUnlocked)
+        if (novaStats != null && novaStats.unlocked)
         {
             _options.Add(new UpgradeOption("노바 강화", () => BuildNovaUpgradeText(), () => LevelUpNovaWeapon()));
         }
@@ -390,12 +417,9 @@ public class GameSession : MonoBehaviour
         }
 
         _attack.ApplyStats(damageMult, fireRateMult, rangeMult, sizeMult, lifetimeMult, projectileCount, projectilePierceBonus, weaponDamageMult);
-        _attack.SetWeaponDamageMultipliers(straightWeaponDamageMult, boomerangWeaponDamageMult, novaWeaponDamageMult);
-        _attack.SetWeaponRangeMultipliers(straightWeaponRangeMult, boomerangWeaponRangeMult, novaWeaponRangeMult);
-        _attack.SetNovaBonusCount(novaBonusCount);
-        _attack.SetWeaponEnabled(AutoAttack.WeaponType.Straight, true);
-        _attack.SetWeaponEnabled(AutoAttack.WeaponType.Boomerang, boomerangUnlocked);
-        _attack.SetWeaponEnabled(AutoAttack.WeaponType.Nova, novaUnlocked);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Straight, gunStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Boomerang, boomerangStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Nova, novaStats);
     }
 
     private void ApplyDifficultyScaling()
@@ -470,15 +494,21 @@ public class GameSession : MonoBehaviour
 
     private void LevelUpStraightWeapon()
     {
-        straightWeaponLevel += 1;
-        straightWeaponDamageMult *= 1.20f;
+        if (gunStats == null)
+        {
+            return;
+        }
 
-        if (straightWeaponLevel % 3 == 0)
+        gunStats.level += 1;
+        gunStats.damageMult *= 1.20f;
+        gunStats.fireRateMult *= 1.08f;
+
+        if (gunStats.level % 3 == 0)
         {
             projectileCount += 1;
         }
 
-        if (straightWeaponLevel % 4 == 0)
+        if (gunStats.level % 4 == 0)
         {
             projectilePierceBonus += 1;
         }
@@ -486,15 +516,21 @@ public class GameSession : MonoBehaviour
 
     private void LevelUpBoomerangWeapon()
     {
-        if (!boomerangUnlocked)
+        if (boomerangStats == null)
+        {
+            return;
+        }
+
+        if (!boomerangStats.unlocked)
         {
             UnlockBoomerang();
         }
 
-        boomerangWeaponLevel += 1;
-        boomerangWeaponDamageMult *= 1.20f;
+        boomerangStats.level += 1;
+        boomerangStats.damageMult *= 1.20f;
+        boomerangStats.fireRateMult *= 1.10f;
 
-        if (boomerangWeaponLevel % 4 == 0)
+        if (boomerangStats.level % 4 == 0)
         {
             projectilePierceBonus += 1;
         }
@@ -502,68 +538,110 @@ public class GameSession : MonoBehaviour
 
     private void LevelUpNovaWeapon()
     {
-        if (!novaUnlocked)
+        if (novaStats == null)
+        {
+            return;
+        }
+
+        if (!novaStats.unlocked)
         {
             UnlockNova();
         }
 
-        novaWeaponLevel += 1;
-        novaWeaponDamageMult *= 1.20f;
+        novaStats.level += 1;
+        novaStats.damageMult *= 1.20f;
+        novaStats.fireRateMult *= 1.12f;
 
-        if (novaWeaponLevel % 3 == 0)
+        if (novaStats.level % 3 == 0)
         {
-            novaBonusCount += 2;
+            novaStats.bonusProjectiles += 2;
         }
     }
 
     private void UnlockBoomerang()
     {
-        boomerangUnlocked = true;
-        if (boomerangWeaponLevel < 1)
+        if (boomerangStats == null)
         {
-            boomerangWeaponLevel = 1;
+            return;
+        }
+
+        boomerangStats.unlocked = true;
+        if (boomerangStats.level < 1)
+        {
+            boomerangStats.level = 1;
         }
     }
 
     private void UnlockNova()
     {
-        novaUnlocked = true;
-        if (novaWeaponLevel < 1)
+        if (novaStats == null)
         {
-            novaWeaponLevel = 1;
+            return;
+        }
+
+        novaStats.unlocked = true;
+        if (novaStats.level < 1)
+        {
+            novaStats.level = 1;
         }
     }
 
-    private string BuildWeaponAcquireText(string name, int currentLevel)
+    private string BuildWeaponAcquireText(WeaponStatsData stats)
     {
+        if (stats == null)
+        {
+            return string.Empty;
+        }
+
+        int currentLevel = stats.level;
         int nextLevel = Mathf.Max(1, currentLevel + 1);
-        return $"{name}\n레벨 {currentLevel} -> {nextLevel}\n피해량 1 -> 1\n속도 1 -> 1\n투사체 1 -> 1\n관통 0 -> 0";
+        float dmg = stats.damageMult;
+        float rate = stats.fireRateMult;
+        return $"{stats.displayName}\n레벨 {currentLevel} -> {nextLevel}\n피해량 {dmg:0.##} -> {dmg:0.##}\n속도 {rate:0.##} -> {rate:0.##}\n투사체 1 -> 1\n관통 0 -> 0";
     }
 
     private string BuildStraightUpgradeText()
     {
-        int nextLevel = straightWeaponLevel + 1;
-        float nextDamage = straightWeaponDamageMult * 1.20f;
+        if (gunStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = gunStats.level + 1;
+        float nextDamage = gunStats.damageMult * 1.20f;
         int nextProjectile = projectileCount + (nextLevel % 3 == 0 ? 1 : 0);
         int nextPierce = projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        return BuildWeaponUpgradeText("기본 무기", straightWeaponLevel, nextLevel, straightWeaponDamageMult, nextDamage, 1f, 1f, projectileCount, nextProjectile, projectilePierceBonus, nextPierce);
+        float nextRate = gunStats.fireRateMult * 1.08f;
+        return BuildWeaponUpgradeText(gunStats.displayName, gunStats.level, nextLevel, gunStats.damageMult, nextDamage, gunStats.fireRateMult, nextRate, projectileCount, nextProjectile, projectilePierceBonus, nextPierce);
     }
 
     private string BuildBoomerangUpgradeText()
     {
-        int nextLevel = boomerangWeaponLevel + 1;
-        float nextDamage = boomerangWeaponDamageMult * 1.20f;
+        if (boomerangStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = boomerangStats.level + 1;
+        float nextDamage = boomerangStats.damageMult * 1.20f;
         int nextPierce = projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        return BuildWeaponUpgradeText("부메랑", boomerangWeaponLevel, nextLevel, boomerangWeaponDamageMult, nextDamage, 1f, 1f, projectileCount, projectileCount, projectilePierceBonus, nextPierce);
+        float nextRate = boomerangStats.fireRateMult * 1.10f;
+        return BuildWeaponUpgradeText(boomerangStats.displayName, boomerangStats.level, nextLevel, boomerangStats.damageMult, nextDamage, boomerangStats.fireRateMult, nextRate, projectileCount, projectileCount, projectilePierceBonus, nextPierce);
     }
 
     private string BuildNovaUpgradeText()
     {
-        int nextLevel = novaWeaponLevel + 1;
-        float nextDamage = novaWeaponDamageMult * 1.20f;
-        int currentCount = 8 + novaBonusCount;
+        if (novaStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = novaStats.level + 1;
+        float nextDamage = novaStats.damageMult * 1.20f;
+        int currentCount = 8 + novaStats.bonusProjectiles;
         int nextCount = currentCount + (nextLevel % 3 == 0 ? 2 : 0);
-        return BuildWeaponUpgradeText("노바", novaWeaponLevel, nextLevel, novaWeaponDamageMult, nextDamage, 1f, 1f, currentCount, nextCount, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = novaStats.fireRateMult * 1.12f;
+        return BuildWeaponUpgradeText(novaStats.displayName, novaStats.level, nextLevel, novaStats.damageMult, nextDamage, novaStats.fireRateMult, nextRate, currentCount, nextCount, projectilePierceBonus, projectilePierceBonus);
     }
 
     private string BuildWeaponUpgradeText(string name, int currentLevel, int nextLevel, float currentDamage, float nextDamage, float currentRate, float nextRate, int currentProjectile, int nextProjectile, int currentPierce, int nextPierce)
@@ -583,6 +661,12 @@ public class GameSession : MonoBehaviour
 
     private void OnGUI()
     {
+        if (_waitingStartWeaponChoice && !_gameStarted)
+        {
+            DrawStartWeaponChoice();
+            return;
+        }
+
         if (!_choosingUpgrade)
         {
             return;
@@ -641,5 +725,59 @@ public class GameSession : MonoBehaviour
             DescProvider = descProvider;
             Apply = apply;
         }
+    }
+
+    private void DrawStartWeaponChoice()
+    {
+        const float boxWidth = 560f;
+        const float boxHeight = 220f;
+        float x = (Screen.width - boxWidth) * 0.5f;
+        float y = (Screen.height - boxHeight) * 0.5f;
+
+        GUI.Box(new Rect(x, y, boxWidth, boxHeight), "시작 무기 선택");
+
+        float buttonWidth = 160f;
+        float buttonHeight = 120f;
+        float gap = 20f;
+        float bx = x + (boxWidth - (buttonWidth * 3f + gap * 2f)) * 0.5f;
+        float by = y + 70f;
+
+        if (GUI.Button(new Rect(bx, by, buttonWidth, buttonHeight), "총"))
+        {
+            SelectStartWeapon(StartWeapon.Gun);
+        }
+        if (GUI.Button(new Rect(bx + buttonWidth + gap, by, buttonWidth, buttonHeight), "부메랑"))
+        {
+            SelectStartWeapon(StartWeapon.Boomerang);
+        }
+        if (GUI.Button(new Rect(bx + (buttonWidth + gap) * 2f, by, buttonWidth, buttonHeight), "노바"))
+        {
+            SelectStartWeapon(StartWeapon.Nova);
+        }
+    }
+
+    private void SelectStartWeapon(StartWeapon weapon)
+    {
+        startWeapon = weapon;
+        if (gunStats != null)
+        {
+            gunStats.unlocked = weapon == StartWeapon.Gun;
+            gunStats.level = weapon == StartWeapon.Gun ? 1 : 0;
+        }
+
+        if (boomerangStats != null)
+        {
+            boomerangStats.unlocked = weapon == StartWeapon.Boomerang;
+            boomerangStats.level = weapon == StartWeapon.Boomerang ? 1 : 0;
+        }
+
+        if (novaStats != null)
+        {
+            novaStats.unlocked = weapon == StartWeapon.Nova;
+            novaStats.level = weapon == StartWeapon.Nova ? 1 : 0;
+        }
+
+        _waitingStartWeaponChoice = false;
+        StartLocalGame();
     }
 }
