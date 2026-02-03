@@ -1,0 +1,96 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BoomerangProjectile : MonoBehaviour
+{
+    [SerializeField]
+    private float speed = 8f;
+
+    [SerializeField]
+    private float damage = 8f;
+
+    [SerializeField]
+    private float lifetime = 2f;
+
+    [SerializeField]
+    private int pierce = 0;
+
+    private Vector2 _direction;
+    private Transform _owner;
+    private float _elapsed;
+    private int _remainingHits;
+    private Collider2D _collider;
+    private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
+
+    public void Initialize(Transform owner, Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount)
+    {
+        _owner = owner;
+        _direction = direction.normalized;
+        speed = speedValue;
+        damage = damageValue;
+        lifetime = lifetimeValue;
+        pierce = Mathf.Max(0, pierceCount);
+        _remainingHits = pierce + 1;
+    }
+
+    private void Awake()
+    {
+        _collider = GetComponent<Collider2D>();
+        _remainingHits = pierce + 1;
+    }
+
+    private void Update()
+    {
+        _elapsed += Time.deltaTime;
+        float half = lifetime * 0.5f;
+        Vector2 dir = _elapsed <= half ? _direction : -_direction;
+        transform.position += (Vector3)(dir * speed * Time.deltaTime);
+
+        if (_elapsed >= lifetime)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (_remainingHits <= 0)
+        {
+            return;
+        }
+
+        if (_owner != null && other.transform == _owner)
+        {
+            return;
+        }
+
+        if (other.GetComponent<PlayerController>() != null)
+        {
+            return;
+        }
+
+        var health = other.GetComponent<Health>();
+        if (health == null)
+        {
+            return;
+        }
+
+        if (_hitTargets.Contains(health))
+        {
+            return;
+        }
+
+        _hitTargets.Add(health);
+        health.Damage(damage);
+
+        _remainingHits -= 1;
+        if (_remainingHits <= 0)
+        {
+            if (_collider != null)
+            {
+                _collider.enabled = false;
+            }
+            Destroy(gameObject);
+        }
+    }
+}
