@@ -19,6 +19,7 @@ public class BoomerangProjectile : MonoBehaviour
     private Transform _owner;
     private float _elapsed;
     private int _remainingHits;
+    private bool _infinitePierce;
     private Collider2D _collider;
     private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
 
@@ -30,13 +31,29 @@ public class BoomerangProjectile : MonoBehaviour
         damage = damageValue;
         lifetime = lifetimeValue;
         pierce = Mathf.Max(0, pierceCount);
-        _remainingHits = pierce + 1;
+        if (pierce >= 9999)
+        {
+            _infinitePierce = true;
+            _remainingHits = int.MaxValue;
+        }
+        else
+        {
+            _remainingHits = pierce + 1;
+        }
     }
 
     private void Awake()
     {
         _collider = GetComponent<Collider2D>();
-        _remainingHits = pierce + 1;
+        if (pierce >= 9999)
+        {
+            _infinitePierce = true;
+            _remainingHits = int.MaxValue;
+        }
+        else
+        {
+            _remainingHits = pierce + 1;
+        }
     }
 
     private void Update()
@@ -83,14 +100,17 @@ public class BoomerangProjectile : MonoBehaviour
         _hitTargets.Add(health);
         health.Damage(damage);
 
-        _remainingHits -= 1;
-        if (_remainingHits <= 0)
+        if (!_infinitePierce)
         {
-            if (_collider != null)
+            _remainingHits -= 1;
+            if (_remainingHits <= 0)
             {
-                _collider.enabled = false;
+                if (_collider != null)
+                {
+                    _collider.enabled = false;
+                }
+                Destroy(gameObject);
             }
-            Destroy(gameObject);
         }
     }
 }

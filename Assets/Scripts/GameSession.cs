@@ -78,6 +78,15 @@ public class GameSession : MonoBehaviour
     private float novaWeaponDamageMult = 1f;
 
     [SerializeField]
+    private float straightWeaponRangeMult = 1f;
+
+    [SerializeField]
+    private float boomerangWeaponRangeMult = 0.7f;
+
+    [SerializeField]
+    private float novaWeaponRangeMult = 0.5f;
+
+    [SerializeField]
     private int straightWeaponLevel = 1;
 
     [SerializeField]
@@ -118,6 +127,7 @@ public class GameSession : MonoBehaviour
 
     private bool _choosingUpgrade;
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
+    private Vector2 _upgradeScroll;
 
     private void Awake()
     {
@@ -381,6 +391,7 @@ public class GameSession : MonoBehaviour
 
         _attack.ApplyStats(damageMult, fireRateMult, rangeMult, sizeMult, lifetimeMult, projectileCount, projectilePierceBonus, weaponDamageMult);
         _attack.SetWeaponDamageMultipliers(straightWeaponDamageMult, boomerangWeaponDamageMult, novaWeaponDamageMult);
+        _attack.SetWeaponRangeMultipliers(straightWeaponRangeMult, boomerangWeaponRangeMult, novaWeaponRangeMult);
         _attack.SetNovaBonusCount(novaBonusCount);
         _attack.SetWeaponEnabled(AutoAttack.WeaponType.Straight, true);
         _attack.SetWeaponEnabled(AutoAttack.WeaponType.Boomerang, boomerangUnlocked);
@@ -577,9 +588,19 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        const float w = 420f;
-        const float buttonHeight = 84f;
-        float h = 60f + _options.Count * (buttonHeight + 6f);
+        const int columns = 3;
+        const float boxHeight = 200f;
+        const float gap = 12f;
+        const float topPadding = 36f;
+        const float sidePadding = 12f;
+
+        int count = _options.Count;
+        int rows = Mathf.CeilToInt(count / (float)columns);
+
+        float maxWidth = Screen.width - 40f;
+        float boxWidth = Mathf.Floor((maxWidth - sidePadding * 2f - (columns - 1) * gap) / columns);
+        float w = columns * boxWidth + (columns - 1) * gap + sidePadding * 2f;
+        float h = topPadding + rows * boxHeight + (rows - 1) * gap + sidePadding;
         float x = (Screen.width - w) * 0.5f;
         float y = (Screen.height - h) * 0.5f;
 
@@ -588,13 +609,18 @@ public class GameSession : MonoBehaviour
         var style = new GUIStyle(GUI.skin.button);
         style.alignment = TextAnchor.UpperLeft;
         style.wordWrap = true;
-        style.fontSize = 12;
+        style.fontSize = 13;
 
-        for (int i = 0; i < _options.Count; i++)
+        for (int i = 0; i < count; i++)
         {
+            int row = i / columns;
+            int col = i % columns;
+
+            float bx = x + sidePadding + col * (boxWidth + gap);
+            float by = y + topPadding + row * (boxHeight + gap);
+
             var opt = _options[i];
-            float by = y + 30f + i * (buttonHeight + 6f);
-            if (GUI.Button(new Rect(x + 12f, by, w - 24f, buttonHeight), $"{i + 1}. {opt.Title}\n{opt.Desc}", style))
+            if (GUI.Button(new Rect(bx, by, boxWidth, boxHeight), $"{i + 1}. {opt.Title}\n{opt.Desc}", style))
             {
                 ApplyUpgrade(i);
             }

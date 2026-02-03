@@ -19,7 +19,7 @@ public class AutoAttack : MonoBehaviour
     private float baseProjectileDamage = 10f;
 
     [SerializeField]
-    private float baseRange = 2f;
+    private float baseRange = 6f;
 
     [SerializeField]
     private int baseProjectileSize = 50;
@@ -43,6 +43,9 @@ public class AutoAttack : MonoBehaviour
     private float _straightDamageMult = 1f;
     private float _boomerangDamageMult = 1f;
     private float _novaDamageMult = 1f;
+    private float _straightRangeMult = 1f;
+    private float _boomerangRangeMult = 1f;
+    private float _novaRangeMult = 1f;
     private int _novaBonusCount;
 
     private float _nextFireStraight;
@@ -134,6 +137,13 @@ public class AutoAttack : MonoBehaviour
         _novaDamageMult = Mathf.Max(0.1f, nova);
     }
 
+    public void SetWeaponRangeMultipliers(float straight, float boomerang, float nova)
+    {
+        _straightRangeMult = Mathf.Max(0.1f, straight);
+        _boomerangRangeMult = Mathf.Max(0.1f, boomerang);
+        _novaRangeMult = Mathf.Max(0.1f, nova);
+    }
+
     public void SetNovaBonusCount(int value)
     {
         _novaBonusCount = Mathf.Max(0, value);
@@ -165,9 +175,14 @@ public class AutoAttack : MonoBehaviour
 
     private void FireStraight(Vector2 direction)
     {
+        float savedRange = _range;
+        _range *= _straightRangeMult;
+        float lifetime = CalculateLifetimeForRange(_range);
+
         if (_projectileCount <= 1)
         {
-            SpawnProjectile(direction, _projectileDamage * _straightDamageMult);
+            SpawnProjectile(direction, _projectileDamage * _straightDamageMult, 0f, lifetime);
+            _range = savedRange;
             return;
         }
 
@@ -177,15 +192,22 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnProjectile(dir, _projectileDamage * _straightDamageMult);
+            SpawnProjectile(dir, _projectileDamage * _straightDamageMult, 0f, lifetime);
         }
+
+        _range = savedRange;
     }
 
     private void FireBoomerang(Vector2 direction)
     {
+        float savedRange = _range;
+        _range *= _boomerangRangeMult;
+        float lifetime = CalculateBoomerangLifetimeForRange(_range);
+
         if (_projectileCount <= 1)
         {
-            SpawnBoomerang(direction, _projectileDamage * _boomerangDamageMult);
+            SpawnBoomerang(direction, _projectileDamage * _boomerangDamageMult, lifetime);
+            _range = savedRange;
             return;
         }
 
@@ -195,23 +217,31 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnBoomerang(dir, _projectileDamage * _boomerangDamageMult);
+            SpawnBoomerang(dir, _projectileDamage * _boomerangDamageMult, lifetime);
         }
+
+        _range = savedRange;
     }
 
     private void FireNova()
     {
+        float savedRange = _range;
+        _range *= _novaRangeMult;
+        float lifetime = CalculateLifetimeForRange(_range);
+
         int count = 8 + _novaBonusCount;
         float angleStep = 360f / count;
         for (int i = 0; i < count; i++)
         {
             float angle = angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
-            SpawnProjectile(dir, _projectileDamage * _novaDamageMult);
+            SpawnNovaProjectile(dir, lifetime);
         }
+
+        _range = savedRange;
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed = 0f, float lifetimeOverride = -1f)
     {
         var go = new GameObject("Projectile");
         go.transform.position = transform.position;
@@ -230,10 +260,33 @@ public class AutoAttack : MonoBehaviour
         col.radius = 0.5f;
 
         var proj = go.AddComponent<Projectile>();
-        proj.Initialize(direction, _projectileSpeed, damageOverride, _projectileLifetime, _projectilePierce);
+        float life = lifetimeOverride > 0f ? lifetimeOverride : _projectileLifetime;
+        proj.Initialize(direction, _projectileSpeed, damageOverride, life, _projectilePierce, spinSpeed);
     }
 
-    private void SpawnBoomerang(Vector2 direction, float damageOverride)
+    private void SpawnNovaProjectile(Vector2 direction, float lifetime)
+    {
+        var go = new GameObject("NovaProjectile");
+        go.transform.position = transform.position;
+        go.transform.localScale = Vector3.one * 0.4f;
+
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = CreateCircleSprite(_projectileSize);
+        renderer.color = new Color(0.6f, 0.8f, 1f, 1f);
+
+        var rb = go.AddComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.gravityScale = 0f;
+
+        var col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.5f;
+
+        var proj = go.AddComponent<Projectile>();
+        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, 4f, _projectileDamage * _novaDamageMult, lifetime, _projectilePierce, 720f);
+    }
+
+    private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime)
     {
         var go = new GameObject("Boomerang");
         go.transform.position = transform.position;
@@ -252,7 +305,17 @@ public class AutoAttack : MonoBehaviour
         col.radius = 0.5f;
 
         var boom = go.AddComponent<BoomerangProjectile>();
-        boom.Initialize(transform, direction, _projectileSpeed, damageOverride, _projectileLifetime, _projectilePierce);
+        boom.Initialize(transform, direction, _projectileSpeed, damageOverride, lifetime, 9999);
+    }
+
+    private float CalculateLifetimeForRange(float range)
+    {
+        return Mathf.Max(0.1f, range / Mathf.Max(0.1f, _projectileSpeed));
+    }
+
+    private float CalculateBoomerangLifetimeForRange(float range)
+    {
+        return Mathf.Max(0.2f, (range * 2f) / Mathf.Max(0.1f, _projectileSpeed));
     }
 
     private static Sprite CreateCircleSprite(int size)
