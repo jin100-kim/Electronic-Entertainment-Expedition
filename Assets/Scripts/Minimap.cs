@@ -17,6 +17,12 @@ public class Minimap : MonoBehaviour
     [SerializeField]
     private float weaponDotSize = 3f;
 
+    [SerializeField]
+    private float borderThickness = 2f;
+
+    [SerializeField]
+    private Color borderColor = new Color(1f, 1f, 1f, 0.5f);
+
     private Texture2D _dotTex;
     private Texture2D _bgTex;
 
@@ -47,6 +53,7 @@ public class Minimap : MonoBehaviour
 
         GUI.DrawTexture(rect, _bgTex);
         GUI.Box(rect, "MINIMAP");
+        DrawBorder(rect);
 
         Vector2 half = session.MapHalfSize;
         if (half.x <= 0f || half.y <= 0f)
@@ -57,6 +64,24 @@ public class Minimap : MonoBehaviour
         DrawPlayerDot(rect, half);
         DrawEnemyDots(rect, half);
         DrawWeaponDots(rect, half);
+    }
+
+    private void DrawBorder(Rect rect)
+    {
+        if (_dotTex == null)
+        {
+            return;
+        }
+
+        var prev = GUI.color;
+        GUI.color = borderColor;
+
+        GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, borderThickness), _dotTex);
+        GUI.DrawTexture(new Rect(rect.x, rect.yMax - borderThickness, rect.width, borderThickness), _dotTex);
+        GUI.DrawTexture(new Rect(rect.x, rect.y, borderThickness, rect.height), _dotTex);
+        GUI.DrawTexture(new Rect(rect.xMax - borderThickness, rect.y, borderThickness, rect.height), _dotTex);
+
+        GUI.color = prev;
     }
 
     private void DrawPlayerDot(Rect rect, Vector2 half)

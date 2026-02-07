@@ -20,6 +20,15 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Auto Play")]
     [SerializeField]
+    private bool autoSeekXp = true;
+
+    [SerializeField]
+    private bool autoXpPriority = false;
+
+    [SerializeField]
+    private float autoXpSeekRange = 5f;
+
+    [SerializeField]
     private float autoMinDistance = 2.5f;
 
     [SerializeField]
@@ -49,6 +58,7 @@ public class PlayerController : NetworkBehaviour
         EnsureVisual();
         EnsurePhysics();
         EnsureHealth();
+        EnsureStatusBars();
     }
 
     private void Update()
@@ -141,21 +151,67 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        Vector2 desired = Vector2.zero;
-        bool hasTarget = false;
+        ExperiencePickup closestXp = null;
+        float bestXpSqr = float.MaxValue;
+        if (autoSeekXp)
+        {
+            float rangeSqr = autoXpSeekRange * autoXpSeekRange;
+            var pickups = FindObjectsOfType<ExperiencePickup>();
+            for (int i = 0; i < pickups.Length; i++)
+            {
+                var pickup = pickups[i];
+                if (pickup == null)
+                {
+                    continue;
+                }
+
+                float sqr = (pickup.transform.position - transform.position).sqrMagnitude;
+                if (sqr <= rangeSqr && sqr < bestXpSqr)
+                {
+                    bestXpSqr = sqr;
+                    closestXp = pickup;
+                }
+            }
+        }
+
+        bool hasEnemy = false;
+        bool enemyInBand = false;
+        Vector2 toEnemy = Vector2.zero;
+        float enemyDist = 0f;
         if (closest != null)
         {
+            toEnemy = (closest.transform.position - transform.position);
+            enemyDist = toEnemy.magnitude;
+            if (enemyDist > 0.001f)
+            {
+                hasEnemy = true;
+                enemyInBand = enemyDist >= autoMinDistance && enemyDist <= autoMaxDistance;
+            }
+        }
+
+        Vector2 desired = Vector2.zero;
+        bool hasTarget = false;
+        if (closestXp != null && (autoXpPriority || !hasEnemy || enemyInBand))
+        {
             hasTarget = true;
-            Vector2 toTarget = (closest.transform.position - transform.position);
-            float dist = toTarget.magnitude;
+            Vector2 toXp = (closestXp.transform.position - transform.position);
+            float dist = toXp.magnitude;
             if (dist > 0.001f)
             {
-                Vector2 dir = toTarget / dist;
-                if (dist < autoMinDistance)
+                desired = toXp / dist;
+            }
+        }
+        else if (hasEnemy)
+        {
+            hasTarget = true;
+            if (enemyDist > 0.001f)
+            {
+                Vector2 dir = toEnemy / enemyDist;
+                if (enemyDist < autoMinDistance)
                 {
                     desired = -dir;
                 }
-                else if (dist > autoMaxDistance)
+                else if (enemyDist > autoMaxDistance)
                 {
                     desired = dir;
                 }
@@ -254,6 +310,14 @@ public class PlayerController : NetworkBehaviour
         if (GetComponent<Health>() == null)
         {
             gameObject.AddComponent<Health>();
+        }
+    }
+
+    private void EnsureStatusBars()
+    {
+        if (GetComponent<PlayerStatusBars>() == null)
+        {
+            gameObject.AddComponent<PlayerStatusBars>();
         }
     }
 

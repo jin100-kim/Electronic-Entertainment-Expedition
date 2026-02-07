@@ -25,6 +25,7 @@ public class MapBorder : MonoBehaviour
         _line.material = new Material(Shader.Find("Sprites/Default"));
         _line.startColor = color;
         _line.endColor = color;
+        _line.sortingOrder = 100;
     }
 
     public void SetBounds(Vector2 halfSize)

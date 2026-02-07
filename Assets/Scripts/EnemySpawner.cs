@@ -50,6 +50,24 @@ public class EnemySpawner : MonoBehaviour
         set => spawnRadius = value;
     }
 
+    public float EnemyMoveSpeed
+    {
+        get => enemyMoveSpeed;
+        set => enemyMoveSpeed = Mathf.Max(0.1f, value);
+    }
+
+    public float EnemyDamage
+    {
+        get => enemyDamage;
+        set => enemyDamage = Mathf.Max(0f, value);
+    }
+
+    public float EnemyDamageCooldown
+    {
+        get => enemyDamageCooldown;
+        set => enemyDamageCooldown = Mathf.Max(0.05f, value);
+    }
+
     public int EnemyXpReward
     {
         get => enemyXpReward;

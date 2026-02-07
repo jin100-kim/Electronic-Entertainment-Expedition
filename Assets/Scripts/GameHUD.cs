@@ -5,6 +5,9 @@ public class GameHUD : MonoBehaviour
     [SerializeField]
     private Vector2 position = new Vector2(12f, 12f);
 
+    private GUIStyle _labelStyle;
+    private GUIStyle _smallStyle;
+
     private void OnGUI()
     {
         var session = GameSession.Instance;
@@ -13,9 +16,16 @@ public class GameHUD : MonoBehaviour
             return;
         }
 
-        var style = new GUIStyle(GUI.skin.label);
-        style.fontSize = 16;
-        style.normal.textColor = Color.white;
+        if (_labelStyle == null || _smallStyle == null)
+        {
+            _labelStyle = new GUIStyle(GUI.skin.label);
+            _labelStyle.fontSize = 16;
+            _labelStyle.normal.textColor = Color.white;
+
+            _smallStyle = new GUIStyle(GUI.skin.label);
+            _smallStyle.fontSize = 12;
+            _smallStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
+        }
 
         float hp = session.PlayerHealth != null ? session.PlayerHealth.CurrentHealth : 0f;
         float maxHp = session.PlayerHealth != null ? session.PlayerHealth.MaxHealth : 0f;
@@ -23,12 +33,11 @@ public class GameHUD : MonoBehaviour
         float xp = session.PlayerExperience != null ? session.PlayerExperience.CurrentXp : 0f;
         float xpNext = session.PlayerExperience != null ? session.PlayerExperience.XpToNext : 0f;
 
-        string text = $"HP: {hp:0}/{maxHp:0}   LV: {level}   XP: {xp:0.0}/{xpNext:0.0}   Time: {session.ElapsedTime:0.0}";
+        string info = $"HP: {hp:0}/{maxHp:0}   XP: {xp:0.0}/{xpNext:0.0}   LV: {level}   몬스터 LV: {session.MonsterLevel}   Time: {session.ElapsedTime:0.0}";
         if (session.IsGameOver)
         {
-            text += "   GAME OVER";
+            info += "   GAME OVER";
         }
-
-        GUI.Label(new Rect(position.x, position.y, 520f, 30f), text, style);
+        GUI.Label(new Rect(position.x, position.y, 900f, 22f), info, _labelStyle);
     }
 }

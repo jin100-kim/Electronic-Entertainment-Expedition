@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Netcode.Components;
+using UnityEngine.SceneManagement;
 
 public class GameSession : MonoBehaviour
 {
@@ -34,6 +35,21 @@ public class GameSession : MonoBehaviour
 
     [SerializeField]
     private int maxEnemiesPerMinute = 10;
+
+    [SerializeField]
+    private float monsterLevelInterval = 60f;
+
+    [SerializeField]
+    private float enemyHealthPerLevel = 0.15f;
+
+    [SerializeField]
+    private float enemyDamagePerLevel = 0.10f;
+
+    [SerializeField]
+    private float enemySpeedPerLevel = 0.05f;
+
+    [SerializeField]
+    private float enemyXpPerLevel = 0f;
 
     [Header("Player")]
     [SerializeField]
@@ -121,6 +137,7 @@ public class GameSession : MonoBehaviour
     private StartWeapon startWeapon = StartWeapon.Gun;
 
     public Vector2 MapHalfSize => mapHalfSize;
+    public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
 
     private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
 
@@ -130,12 +147,19 @@ public class GameSession : MonoBehaviour
     public Experience PlayerExperience { get; private set; }
 
     private EnemySpawner _spawner;
+    private float _baseEnemyMoveSpeed;
+    private float _baseEnemyDamage;
+    private float _baseEnemyMaxHealth;
+    private int _baseEnemyXp;
+    private bool _cachedSpawnerBase;
     private AutoAttack _attack;
     private PlayerController _player;
     private bool _gameStarted;
 
     private bool _choosingUpgrade;
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
+    private readonly Dictionary<string, int> _upgradeCounts = new Dictionary<string, int>();
+    private readonly List<string> _upgradeOrder = new List<string>();
     private Vector2 _upgradeScroll;
     private bool _waitingStartWeaponChoice;
     private bool _autoPlayEnabled;
@@ -342,6 +366,9 @@ public class GameSession : MonoBehaviour
         _spawner.SpawnInterval = spawnInterval;
         _spawner.MaxEnemies = maxEnemies;
         _spawner.SpawnRadius = spawnRadius;
+
+        CacheSpawnerBaseStats();
+        ApplyDifficultyScaling();
     }
 
     private PlayerController CreateLocalPlayer(Vector3 position)
@@ -449,6 +476,7 @@ public class GameSession : MonoBehaviour
 
         var opt = _options[index];
         opt.Apply?.Invoke();
+        TrackUpgrade(opt.Title);
 
         _choosingUpgrade = false;
         Time.timeScale = 1f;
@@ -459,6 +487,22 @@ public class GameSession : MonoBehaviour
         PlayerExperience?.SetXpMultiplier(xpGainMult);
         PlayerHealth?.SetRegenPerSecond(regenPerSecond);
         ApplyAttackStats();
+    }
+
+    private void TrackUpgrade(string title)
+    {
+        if (string.IsNullOrEmpty(title))
+        {
+            return;
+        }
+
+        if (!_upgradeCounts.ContainsKey(title))
+        {
+            _upgradeCounts[title] = 0;
+            _upgradeOrder.Add(title);
+        }
+
+        _upgradeCounts[title] += 1;
     }
 
     private int PickAutoUpgradeIndex()
@@ -535,11 +579,34 @@ public class GameSession : MonoBehaviour
             return;
         }
 
+        CacheSpawnerBaseStats();
+
         float newInterval = Mathf.Max(minSpawnInterval, spawnInterval - ElapsedTime * spawnIntervalDecayPerSec);
         _spawner.SpawnInterval = newInterval;
 
         int extra = Mathf.FloorToInt((ElapsedTime / 60f) * maxEnemiesPerMinute);
         _spawner.MaxEnemies = maxEnemies + extra;
+
+        int level = MonsterLevel;
+        float levelFactor = Mathf.Max(0f, level - 1f);
+        _spawner.EnemyMoveSpeed = _baseEnemyMoveSpeed * (1f + enemySpeedPerLevel * levelFactor);
+        _spawner.EnemyDamage = _baseEnemyDamage * (1f + enemyDamagePerLevel * levelFactor);
+        _spawner.EnemyMaxHealth = _baseEnemyMaxHealth * (1f + enemyHealthPerLevel * levelFactor);
+        _spawner.EnemyXpReward = Mathf.Max(1, Mathf.RoundToInt(_baseEnemyXp * (1f + enemyXpPerLevel * levelFactor)));
+    }
+
+    private void CacheSpawnerBaseStats()
+    {
+        if (_spawner == null || _cachedSpawnerBase)
+        {
+            return;
+        }
+
+        _baseEnemyMoveSpeed = _spawner.EnemyMoveSpeed;
+        _baseEnemyDamage = _spawner.EnemyDamage;
+        _baseEnemyMaxHealth = _spawner.EnemyMaxHealth;
+        _baseEnemyXp = _spawner.EnemyXpReward;
+        _cachedSpawnerBase = true;
     }
 
     private void DisableNetworkUI()
@@ -785,6 +852,12 @@ public class GameSession : MonoBehaviour
 
     private void OnGUI()
     {
+        if (IsGameOver)
+        {
+            DrawGameOverPanel();
+            return;
+        }
+
         if (_waitingStartWeaponChoice)
         {
             DrawStartWeaponChoice();
@@ -796,6 +869,64 @@ public class GameSession : MonoBehaviour
         }
 
         DrawAutoPlayToggle();
+        DrawUpgradeHistory();
+    }
+
+    private void DrawUpgradeHistory()
+    {
+        if (_upgradeOrder.Count == 0)
+        {
+            return;
+        }
+
+        const float panelWidth = 220f;
+        const float panelHeight = 260f;
+        float x = 12f;
+        float y = 90f;
+
+        GUI.Box(new Rect(x, y, panelWidth, panelHeight), "획득한 업그레이드");
+
+        float lineHeight = 18f;
+        float startY = y + 28f;
+        float maxLines = Mathf.Floor((panelHeight - 36f) / lineHeight);
+        int count = _upgradeOrder.Count;
+        int startIndex = Mathf.Max(0, count - (int)maxLines);
+
+        for (int i = startIndex; i < count; i++)
+        {
+            string key = _upgradeOrder[i];
+            int value = _upgradeCounts.TryGetValue(key, out var c) ? c : 0;
+            float ly = startY + (i - startIndex) * lineHeight;
+            GUI.Label(new Rect(x + 10f, ly, panelWidth - 20f, lineHeight), $"{key} x{value}");
+        }
+    }
+
+    private void DrawGameOverPanel()
+    {
+        const float width = 360f;
+        const float height = 180f;
+        float x = (Screen.width - width) * 0.5f;
+        float y = (Screen.height - height) * 0.5f;
+
+        GUI.Box(new Rect(x, y, width, height), "게임 오버");
+        GUI.Label(new Rect(x + 20f, y + 40f, width - 40f, 24f), $"생존 시간 {ElapsedTime:0.0}s");
+
+        if (GUI.Button(new Rect(x + 80f, y + 100f, width - 160f, 40f), "처음 화면으로"))
+        {
+            ResetToStart();
+        }
+    }
+
+    private void ResetToStart()
+    {
+        Time.timeScale = 1f;
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        var scene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(scene.buildIndex);
     }
 
     private void DrawUpgradeChoices()
