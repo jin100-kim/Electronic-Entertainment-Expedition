@@ -238,9 +238,18 @@ public class GameSession : MonoBehaviour
 
     private void StartNetworkSession()
     {
+        bool isNetworked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+
+        if (!isNetworked && requireStartWeaponChoice && !_waitingStartWeaponChoice)
+        {
+            _waitingStartWeaponChoice = true;
+            _gameStarted = false;
+            return;
+        }
+
         _gameStarted = true;
 
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        if (isNetworked)
         {
             StartCoroutine(WaitForOwnerPlayer());
         }
@@ -278,6 +287,7 @@ public class GameSession : MonoBehaviour
 
     private void StartLocalGame()
     {
+        _gameStarted = true;
         var player = FindObjectOfType<PlayerController>();
         if (player == null)
         {
@@ -700,6 +710,20 @@ public class GameSession : MonoBehaviour
         }
     }
 
+    private void UnlockStraight()
+    {
+        if (gunStats == null)
+        {
+            return;
+        }
+
+        gunStats.unlocked = true;
+        if (gunStats.level < 1)
+        {
+            gunStats.level = 1;
+        }
+    }
+
     private string BuildWeaponAcquireText(WeaponStatsData stats)
     {
         if (stats == null)
@@ -775,7 +799,7 @@ public class GameSession : MonoBehaviour
 
     private void OnGUI()
     {
-        if (_waitingStartWeaponChoice && !_gameStarted)
+        if (_waitingStartWeaponChoice)
         {
             DrawStartWeaponChoice();
         }
