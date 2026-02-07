@@ -25,6 +25,9 @@ public class Projectile : MonoBehaviour
     private float _orbitRadius;
     private float _orbitAngularSpeed;
     private float _orbitRadialSpeed;
+    private bool _applySlow;
+    private float _slowMultiplier = 1f;
+    private float _slowDuration;
 
     public void Initialize(Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount, float spinSpeed = 0f)
     {
@@ -53,6 +56,13 @@ public class Projectile : MonoBehaviour
         pierce = Mathf.Max(0, pierceCount);
         _remainingHits = pierce + 1;
         _spinSpeed = spinSpeed;
+    }
+
+    public void SetSlowEffect(float multiplier, float duration)
+    {
+        _applySlow = duration > 0f;
+        _slowMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
+        _slowDuration = Mathf.Max(0f, duration);
     }
 
     private void Awake()
@@ -110,6 +120,15 @@ public class Projectile : MonoBehaviour
 
         _hitTargets.Add(health);
         health.Damage(damage);
+
+        if (_applySlow)
+        {
+            var enemy = other.GetComponent<EnemyController>();
+            if (enemy != null)
+            {
+                enemy.ApplySlow(_slowMultiplier, _slowDuration);
+            }
+        }
 
         _remainingHits -= 1;
         if (_remainingHits <= 0)

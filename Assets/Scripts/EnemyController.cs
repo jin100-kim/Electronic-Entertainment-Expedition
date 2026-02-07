@@ -19,6 +19,8 @@ public class EnemyController : MonoBehaviour
 
     private float _nextDamageTime;
     private Health _health;
+    private float _slowMultiplier = 1f;
+    private float _slowTimer;
 
     public Transform Target { get; set; }
 
@@ -105,8 +107,18 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
+        if (_slowTimer > 0f)
+        {
+            _slowTimer -= Time.deltaTime;
+            if (_slowTimer <= 0f)
+            {
+                _slowMultiplier = 1f;
+            }
+        }
+
         Vector3 dir = toTarget.normalized;
-        transform.position += dir * moveSpeed * Time.deltaTime;
+        float speed = moveSpeed * _slowMultiplier;
+        transform.position += dir * speed * Time.deltaTime;
 
         if (GameSession.Instance != null)
         {
@@ -141,6 +153,25 @@ public class EnemyController : MonoBehaviour
     {
         SpawnXp();
         Destroy(gameObject);
+    }
+
+    public void ApplySlow(float multiplier, float duration)
+    {
+        if (duration <= 0f)
+        {
+            return;
+        }
+
+        float clamped = Mathf.Clamp(multiplier, 0.1f, 1f);
+        if (clamped < _slowMultiplier)
+        {
+            _slowMultiplier = clamped;
+        }
+
+        if (duration > _slowTimer)
+        {
+            _slowTimer = duration;
+        }
     }
 
     private void SpawnXp()

@@ -61,6 +61,9 @@ public class GameSession : MonoBehaviour
 
     [Header("Upgrades")]
     [SerializeField]
+    private int maxUpgradeLevel = 10;
+
+    [SerializeField]
     private float damageMult = 1f;
 
     [SerializeField]
@@ -121,6 +124,90 @@ public class GameSession : MonoBehaviour
     };
 
     [SerializeField]
+    private WeaponStatsData shotgunStats = new WeaponStatsData
+    {
+        displayName = "샷건",
+        level = 0,
+        unlocked = false,
+        damageMult = 0.9f,
+        fireRateMult = 0.7f,
+        rangeMult = 0.75f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
+    private WeaponStatsData laserStats = new WeaponStatsData
+    {
+        displayName = "레이저",
+        level = 0,
+        unlocked = false,
+        damageMult = 1.1f,
+        fireRateMult = 0.8f,
+        rangeMult = 1.4f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
+    private WeaponStatsData chainStats = new WeaponStatsData
+    {
+        displayName = "체인 라이트닝",
+        level = 0,
+        unlocked = false,
+        damageMult = 0.9f,
+        fireRateMult = 0.75f,
+        rangeMult = 1.1f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
+    private WeaponStatsData droneStats = new WeaponStatsData
+    {
+        displayName = "드론",
+        level = 0,
+        unlocked = false,
+        damageMult = 0.8f,
+        fireRateMult = 0.5f,
+        rangeMult = 1.0f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
+    private WeaponStatsData shurikenStats = new WeaponStatsData
+    {
+        displayName = "수리검",
+        level = 0,
+        unlocked = false,
+        damageMult = 0.9f,
+        fireRateMult = 0.9f,
+        rangeMult = 1.0f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
+    private WeaponStatsData frostStats = new WeaponStatsData
+    {
+        displayName = "빙결 구체",
+        level = 0,
+        unlocked = false,
+        damageMult = 0.85f,
+        fireRateMult = 0.8f,
+        rangeMult = 1.0f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
+    private WeaponStatsData lightningStats = new WeaponStatsData
+    {
+        displayName = "번개",
+        level = 0,
+        unlocked = false,
+        damageMult = 1.0f,
+        fireRateMult = 0.7f,
+        rangeMult = 1.0f,
+        bonusProjectiles = 0
+    };
+
+    [SerializeField]
     private float moveSpeedMult = 1f;
 
     [SerializeField]
@@ -128,6 +215,28 @@ public class GameSession : MonoBehaviour
 
     [SerializeField]
     private float regenPerSecond = 0f;
+
+    [Header("Upgrade Levels")]
+    [SerializeField]
+    private int damageLevel = 0;
+
+    [SerializeField]
+    private int fireRateLevel = 0;
+
+    [SerializeField]
+    private int moveSpeedLevel = 0;
+
+    [SerializeField]
+    private int maxHealthLevel = 0;
+
+    [SerializeField]
+    private int regenLevel = 0;
+
+    [SerializeField]
+    private int rangeLevel = 0;
+
+    [SerializeField]
+    private int xpGainLevel = 0;
 
     [Header("Start Weapon")]
     [SerializeField]
@@ -208,6 +317,19 @@ public class GameSession : MonoBehaviour
                 gunStats.unlocked = true;
                 gunStats.level = Mathf.Max(1, gunStats.level);
             }
+        }
+
+        if (requireStartWeaponChoice)
+        {
+            ResetWeaponToLocked(shotgunStats);
+            ResetWeaponToLocked(laserStats);
+            ResetWeaponToLocked(chainStats);
+            ResetWeaponToLocked(droneStats);
+            ResetWeaponToLocked(shurikenStats);
+            ResetWeaponToLocked(frostStats);
+            ResetWeaponToLocked(lightningStats);
+            ResetWeaponToLocked(boomerangStats);
+            ResetWeaponToLocked(novaStats);
         }
 
         if (autoStartLocal)
@@ -453,16 +575,55 @@ public class GameSession : MonoBehaviour
 
         _options.Clear();
 
-        _options.Add(new UpgradeOption("공격력 +25%", () => BuildPercentStatText("공격력", damageMult, damageMult + 0.25f), () => damageMult += 0.25f));
-        _options.Add(new UpgradeOption("공격속도 +20%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult + 0.20f), () => fireRateMult += 0.20f));
-        _options.Add(new UpgradeOption("이동속도 +20%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult + 0.20f), () => moveSpeedMult += 0.20f));
-        _options.Add(new UpgradeOption("체력 +40", () => BuildValueStatText("최대 체력", PlayerHealth != null ? PlayerHealth.MaxHealth : 0f, (PlayerHealth != null ? PlayerHealth.MaxHealth : 0f) + 40f), () => PlayerHealth?.AddMaxHealth(40f, true)));
-        _options.Add(new UpgradeOption("체력재생 +1", () => BuildValueStatText("체력재생", regenPerSecond, regenPerSecond + 1f), () => regenPerSecond += 1f));
-        _options.Add(new UpgradeOption("사거리 +25%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.25f), () => rangeMult += 0.25f));
-        _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.35f), () => xpGainMult += 0.35f));
+        if (damageLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("공격력 +25%", () => BuildPercentStatText("공격력", damageMult, damageMult + 0.25f), () => { damageMult += 0.25f; damageLevel += 1; }));
+        }
+        if (fireRateLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("공격속도 +20%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult + 0.20f), () => { fireRateMult += 0.20f; fireRateLevel += 1; }));
+        }
+        if (moveSpeedLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("이동속도 +20%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult + 0.20f), () => { moveSpeedMult += 0.20f; moveSpeedLevel += 1; }));
+        }
+        if (maxHealthLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("체력 +40", () => BuildValueStatText("최대 체력", PlayerHealth != null ? PlayerHealth.MaxHealth : 0f, (PlayerHealth != null ? PlayerHealth.MaxHealth : 0f) + 40f), () => { PlayerHealth?.AddMaxHealth(40f, true); maxHealthLevel += 1; }));
+        }
+        if (regenLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("체력재생 +1", () => BuildValueStatText("체력재생", regenPerSecond, regenPerSecond + 1f), () => { regenPerSecond += 1f; regenLevel += 1; }));
+        }
+        if (rangeLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("사거리 +25%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.25f), () => { rangeMult += 0.25f; rangeLevel += 1; }));
+        }
+        if (xpGainLevel < maxUpgradeLevel)
+        {
+            _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.35f), () => { xpGainMult += 0.35f; xpGainLevel += 1; }));
+        }
         AddWeaponChoice(gunStats, BuildStraightUpgradeText, UnlockStraight, LevelUpStraightWeapon);
         AddWeaponChoice(boomerangStats, BuildBoomerangUpgradeText, UnlockBoomerang, LevelUpBoomerangWeapon);
         AddWeaponChoice(novaStats, BuildNovaUpgradeText, UnlockNova, LevelUpNovaWeapon);
+        AddWeaponChoice(shotgunStats, BuildShotgunUpgradeText, UnlockShotgun, LevelUpShotgunWeapon);
+        AddWeaponChoice(laserStats, BuildLaserUpgradeText, UnlockLaser, LevelUpLaserWeapon);
+        AddWeaponChoice(chainStats, BuildChainUpgradeText, UnlockChain, LevelUpChainWeapon);
+        AddWeaponChoice(droneStats, BuildDroneUpgradeText, UnlockDrone, LevelUpDroneWeapon);
+        AddWeaponChoice(shurikenStats, BuildShurikenUpgradeText, UnlockShuriken, LevelUpShurikenWeapon);
+        AddWeaponChoice(frostStats, BuildFrostUpgradeText, UnlockFrost, LevelUpFrostWeapon);
+        AddWeaponChoice(lightningStats, BuildLightningUpgradeText, UnlockLightning, LevelUpLightningWeapon);
+
+        if (_options.Count == 0)
+        {
+            _options.Add(new UpgradeOption("HP 회복 (100%)", () => "현재 체력을 모두 회복합니다.", () =>
+            {
+                if (PlayerHealth != null)
+                {
+                    PlayerHealth.Heal(PlayerHealth.MaxHealth);
+                }
+            }));
+        }
 
         // random pick 3
         for (int i = _options.Count - 1; i > 0; i--)
@@ -576,6 +737,10 @@ public class GameSession : MonoBehaviour
         {
             return;
         }
+        if (stats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
 
         _options.Add(new UpgradeOption(
             $"무기: {stats.displayName}",
@@ -604,6 +769,13 @@ public class GameSession : MonoBehaviour
         _attack.SetWeaponStats(AutoAttack.WeaponType.Straight, gunStats);
         _attack.SetWeaponStats(AutoAttack.WeaponType.Boomerang, boomerangStats);
         _attack.SetWeaponStats(AutoAttack.WeaponType.Nova, novaStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Shotgun, shotgunStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Laser, laserStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.ChainLightning, chainStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Drone, droneStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Shuriken, shurikenStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.FrostOrb, frostStats);
+        _attack.SetWeaponStats(AutoAttack.WeaponType.Lightning, lightningStats);
     }
 
     private void ApplyDifficultyScaling()
@@ -705,6 +877,10 @@ public class GameSession : MonoBehaviour
         {
             return;
         }
+        if (gunStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
 
         gunStats.level += 1;
         gunStats.damageMult += 0.20f;
@@ -724,6 +900,10 @@ public class GameSession : MonoBehaviour
     private void LevelUpBoomerangWeapon()
     {
         if (boomerangStats == null)
+        {
+            return;
+        }
+        if (boomerangStats.level >= maxUpgradeLevel)
         {
             return;
         }
@@ -750,6 +930,10 @@ public class GameSession : MonoBehaviour
         {
             return;
         }
+        if (novaStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
 
         if (!novaStats.unlocked)
         {
@@ -763,6 +947,188 @@ public class GameSession : MonoBehaviour
         if (novaStats.level % 3 == 0)
         {
             novaStats.bonusProjectiles += 2;
+        }
+    }
+
+    private void LevelUpShotgunWeapon()
+    {
+        if (shotgunStats == null)
+        {
+            return;
+        }
+        if (shotgunStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!shotgunStats.unlocked)
+        {
+            UnlockShotgun();
+        }
+
+        shotgunStats.level += 1;
+        shotgunStats.damageMult += 0.18f;
+        shotgunStats.fireRateMult += 0.05f;
+
+        if (shotgunStats.level % 2 == 0)
+        {
+            shotgunStats.bonusProjectiles += 1;
+        }
+    }
+
+    private void LevelUpLaserWeapon()
+    {
+        if (laserStats == null)
+        {
+            return;
+        }
+        if (laserStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!laserStats.unlocked)
+        {
+            UnlockLaser();
+        }
+
+        laserStats.level += 1;
+        laserStats.damageMult += 0.20f;
+        laserStats.fireRateMult += 0.04f;
+
+        if (laserStats.level % 3 == 0)
+        {
+            laserStats.bonusProjectiles += 1;
+        }
+    }
+
+    private void LevelUpChainWeapon()
+    {
+        if (chainStats == null)
+        {
+            return;
+        }
+        if (chainStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!chainStats.unlocked)
+        {
+            UnlockChain();
+        }
+
+        chainStats.level += 1;
+        chainStats.damageMult += 0.18f;
+        chainStats.fireRateMult += 0.05f;
+
+        if (chainStats.level % 2 == 0)
+        {
+            chainStats.bonusProjectiles += 1;
+        }
+    }
+
+    private void LevelUpDroneWeapon()
+    {
+        if (droneStats == null)
+        {
+            return;
+        }
+        if (droneStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!droneStats.unlocked)
+        {
+            UnlockDrone();
+        }
+
+        droneStats.level += 1;
+        droneStats.damageMult += 0.15f;
+        droneStats.fireRateMult += 0.04f;
+
+        if (droneStats.level % 3 == 0)
+        {
+            droneStats.bonusProjectiles += 1;
+        }
+    }
+
+    private void LevelUpShurikenWeapon()
+    {
+        if (shurikenStats == null)
+        {
+            return;
+        }
+        if (shurikenStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!shurikenStats.unlocked)
+        {
+            UnlockShuriken();
+        }
+
+        shurikenStats.level += 1;
+        shurikenStats.damageMult += 0.18f;
+        shurikenStats.fireRateMult += 0.06f;
+
+        if (shurikenStats.level % 3 == 0)
+        {
+            shurikenStats.bonusProjectiles += 1;
+        }
+    }
+
+    private void LevelUpFrostWeapon()
+    {
+        if (frostStats == null)
+        {
+            return;
+        }
+        if (frostStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!frostStats.unlocked)
+        {
+            UnlockFrost();
+        }
+
+        frostStats.level += 1;
+        frostStats.damageMult += 0.16f;
+        frostStats.fireRateMult += 0.05f;
+
+        if (frostStats.level % 3 == 0)
+        {
+            frostStats.bonusProjectiles += 1;
+        }
+    }
+
+    private void LevelUpLightningWeapon()
+    {
+        if (lightningStats == null)
+        {
+            return;
+        }
+        if (lightningStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!lightningStats.unlocked)
+        {
+            UnlockLightning();
+        }
+
+        lightningStats.level += 1;
+        lightningStats.damageMult += 0.20f;
+        lightningStats.fireRateMult += 0.06f;
+
+        if (lightningStats.level % 2 == 0)
+        {
+            lightningStats.bonusProjectiles += 1;
         }
     }
 
@@ -794,6 +1160,104 @@ public class GameSession : MonoBehaviour
         }
     }
 
+    private void UnlockShotgun()
+    {
+        if (shotgunStats == null)
+        {
+            return;
+        }
+
+        shotgunStats.unlocked = true;
+        if (shotgunStats.level < 1)
+        {
+            shotgunStats.level = 1;
+        }
+    }
+
+    private void UnlockLaser()
+    {
+        if (laserStats == null)
+        {
+            return;
+        }
+
+        laserStats.unlocked = true;
+        if (laserStats.level < 1)
+        {
+            laserStats.level = 1;
+        }
+    }
+
+    private void UnlockChain()
+    {
+        if (chainStats == null)
+        {
+            return;
+        }
+
+        chainStats.unlocked = true;
+        if (chainStats.level < 1)
+        {
+            chainStats.level = 1;
+        }
+    }
+
+    private void UnlockDrone()
+    {
+        if (droneStats == null)
+        {
+            return;
+        }
+
+        droneStats.unlocked = true;
+        if (droneStats.level < 1)
+        {
+            droneStats.level = 1;
+        }
+    }
+
+    private void UnlockShuriken()
+    {
+        if (shurikenStats == null)
+        {
+            return;
+        }
+
+        shurikenStats.unlocked = true;
+        if (shurikenStats.level < 1)
+        {
+            shurikenStats.level = 1;
+        }
+    }
+
+    private void UnlockFrost()
+    {
+        if (frostStats == null)
+        {
+            return;
+        }
+
+        frostStats.unlocked = true;
+        if (frostStats.level < 1)
+        {
+            frostStats.level = 1;
+        }
+    }
+
+    private void UnlockLightning()
+    {
+        if (lightningStats == null)
+        {
+            return;
+        }
+
+        lightningStats.unlocked = true;
+        if (lightningStats.level < 1)
+        {
+            lightningStats.level = 1;
+        }
+    }
+
     private void UnlockStraight()
     {
         if (gunStats == null)
@@ -819,7 +1283,8 @@ public class GameSession : MonoBehaviour
         int nextLevel = Mathf.Max(1, currentLevel + 1);
         float dmg = stats.damageMult;
         float rate = stats.fireRateMult;
-        return $"{stats.displayName}\n레벨 {currentLevel} -> {nextLevel}\n피해량 {dmg:0.##} -> {dmg:0.##}\n속도 {rate:0.##} -> {rate:0.##}\n투사체 1 -> 1\n관통 0 -> 0";
+        int baseProjectiles = GetBaseProjectileCount(stats);
+        return $"{stats.displayName}\n레벨 {currentLevel} -> {nextLevel}\n피해량 {dmg:0.##} -> {dmg:0.##}\n속도 {rate:0.##} -> {rate:0.##}\n투사체 {baseProjectiles} -> {baseProjectiles}\n관통 0 -> 0";
     }
 
     private string BuildStraightUpgradeText()
@@ -867,6 +1332,161 @@ public class GameSession : MonoBehaviour
         int nextCount = currentCount + (nextLevel % 3 == 0 ? 2 : 0);
         float nextRate = novaStats.fireRateMult + 0.12f;
         return BuildWeaponUpgradeText(novaStats.displayName, novaStats.level, nextLevel, novaStats.damageMult, nextDamage, novaStats.fireRateMult, nextRate, currentCount, nextCount, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildShotgunUpgradeText()
+    {
+        if (shotgunStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = shotgunStats.level + 1;
+        float nextDamage = shotgunStats.damageMult + 0.18f;
+        int currentProjectile = 5 + shotgunStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
+        float nextRate = shotgunStats.fireRateMult + 0.05f;
+        return BuildWeaponUpgradeText(shotgunStats.displayName, shotgunStats.level, nextLevel, shotgunStats.damageMult, nextDamage, shotgunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildLaserUpgradeText()
+    {
+        if (laserStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = laserStats.level + 1;
+        float nextDamage = laserStats.damageMult + 0.20f;
+        int currentProjectile = 1 + laserStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
+        float nextRate = laserStats.fireRateMult + 0.04f;
+        return BuildWeaponUpgradeText(laserStats.displayName, laserStats.level, nextLevel, laserStats.damageMult, nextDamage, laserStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildChainUpgradeText()
+    {
+        if (chainStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = chainStats.level + 1;
+        float nextDamage = chainStats.damageMult + 0.18f;
+        int currentProjectile = 3 + chainStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
+        float nextRate = chainStats.fireRateMult + 0.05f;
+        return BuildWeaponUpgradeText(chainStats.displayName, chainStats.level, nextLevel, chainStats.damageMult, nextDamage, chainStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildDroneUpgradeText()
+    {
+        if (droneStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = droneStats.level + 1;
+        float nextDamage = droneStats.damageMult + 0.15f;
+        int currentProjectile = 1 + droneStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
+        float nextRate = droneStats.fireRateMult + 0.04f;
+        return BuildWeaponUpgradeText(droneStats.displayName, droneStats.level, nextLevel, droneStats.damageMult, nextDamage, droneStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildShurikenUpgradeText()
+    {
+        if (shurikenStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = shurikenStats.level + 1;
+        float nextDamage = shurikenStats.damageMult + 0.18f;
+        int currentProjectile = 1 + shurikenStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
+        float nextRate = shurikenStats.fireRateMult + 0.06f;
+        return BuildWeaponUpgradeText(shurikenStats.displayName, shurikenStats.level, nextLevel, shurikenStats.damageMult, nextDamage, shurikenStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildFrostUpgradeText()
+    {
+        if (frostStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = frostStats.level + 1;
+        float nextDamage = frostStats.damageMult + 0.16f;
+        int currentProjectile = 1 + frostStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
+        float nextRate = frostStats.fireRateMult + 0.05f;
+        return BuildWeaponUpgradeText(frostStats.displayName, frostStats.level, nextLevel, frostStats.damageMult, nextDamage, frostStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private string BuildLightningUpgradeText()
+    {
+        if (lightningStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = lightningStats.level + 1;
+        float nextDamage = lightningStats.damageMult + 0.20f;
+        int currentProjectile = 1 + lightningStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
+        float nextRate = lightningStats.fireRateMult + 0.06f;
+        return BuildWeaponUpgradeText(lightningStats.displayName, lightningStats.level, nextLevel, lightningStats.damageMult, nextDamage, lightningStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+    }
+
+    private int GetBaseProjectileCount(WeaponStatsData stats)
+    {
+        if (stats == null)
+        {
+            return 1;
+        }
+
+        if (stats == novaStats)
+        {
+            return 8;
+        }
+        if (stats == shotgunStats)
+        {
+            return 5;
+        }
+        if (stats == chainStats)
+        {
+            return 3;
+        }
+        if (stats == droneStats)
+        {
+            return 1;
+        }
+        if (stats == shurikenStats)
+        {
+            return 1;
+        }
+        if (stats == frostStats)
+        {
+            return 1;
+        }
+        if (stats == lightningStats)
+        {
+            return 1;
+        }
+
+        return 1;
+    }
+
+    private static void ResetWeaponToLocked(WeaponStatsData stats)
+    {
+        if (stats == null)
+        {
+            return;
+        }
+
+        stats.unlocked = false;
+        stats.level = 0;
     }
 
     private string BuildWeaponUpgradeText(string name, int currentLevel, int nextLevel, float currentDamage, float nextDamage, float currentRate, float nextRate, int currentProjectile, int nextProjectile, int currentPierce, int nextPierce)
@@ -1152,6 +1772,14 @@ public class GameSession : MonoBehaviour
             novaStats.unlocked = weapon == StartWeapon.Nova;
             novaStats.level = weapon == StartWeapon.Nova ? 1 : 0;
         }
+
+        ResetWeaponToLocked(shotgunStats);
+        ResetWeaponToLocked(laserStats);
+        ResetWeaponToLocked(chainStats);
+        ResetWeaponToLocked(droneStats);
+        ResetWeaponToLocked(shurikenStats);
+        ResetWeaponToLocked(frostStats);
+        ResetWeaponToLocked(lightningStats);
 
         if (weapon == StartWeapon.Gun && gunStats != null)
         {
