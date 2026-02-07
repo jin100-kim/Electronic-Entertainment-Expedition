@@ -329,6 +329,7 @@ public class GameSession : MonoBehaviour
         _player = player;
         _player.SetMoveSpeedMultiplier(moveSpeedMult);
         _player.SetAutoPlay(_autoPlayEnabled);
+        ApplyPlayerVisuals(startWeapon);
 
         PlayerHealth = player.GetComponent<Health>();
         if (PlayerHealth != null)
@@ -354,6 +355,33 @@ public class GameSession : MonoBehaviour
 
         ApplyAttackStats();
         PlayerHealth?.SetRegenPerSecond(regenPerSecond);
+    }
+
+    private void ApplyPlayerVisuals(StartWeapon weapon)
+    {
+        if (_player == null)
+        {
+            return;
+        }
+
+        var visuals = _player.GetComponent<PlayerVisuals>();
+        if (visuals == null)
+        {
+            visuals = _player.gameObject.AddComponent<PlayerVisuals>();
+        }
+
+        switch (weapon)
+        {
+            case StartWeapon.Boomerang:
+                visuals.SetVisual(PlayerVisuals.PlayerVisualType.Warrior);
+                break;
+            case StartWeapon.Nova:
+                visuals.SetVisual(PlayerVisuals.PlayerVisualType.DemonLord);
+                break;
+            default:
+                visuals.SetVisual(PlayerVisuals.PlayerVisualType.Mage);
+                break;
+        }
     }
 
     private void SetupSpawner(Transform target)

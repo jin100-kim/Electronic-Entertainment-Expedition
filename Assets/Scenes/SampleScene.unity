@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!29 &1
 OcclusionCullingSettings:
@@ -470,12 +470,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2300000000}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2300000002
 MonoBehaviour:
@@ -494,7 +495,53 @@ MonoBehaviour:
   spawnInterval: 2
   maxEnemies: 20
   spawnRadius: 8
+  minSpawnInterval: 0.4
+  spawnIntervalDecayPerSec: 0.01
+  maxEnemiesPerMinute: 10
+  monsterLevelInterval: 60
+  enemyHealthPerLevel: 0.15
+  enemyDamagePerLevel: 0.1
+  enemySpeedPerLevel: 0.05
+  enemyXpPerLevel: 0
   localSpawnPosition: {x: 0, y: 0, z: 0}
+  mapHalfSize: {x: 12, y: 12}
+  damageMult: 1
+  fireRateMult: 1
+  rangeMult: 1
+  sizeMult: 1
+  lifetimeMult: 1
+  projectileCount: 1
+  projectilePierceBonus: 0
+  weaponDamageMult: 1
+  gunStats:
+    displayName: "\uCD1D"
+    level: 1
+    unlocked: 1
+    damageMult: 1
+    fireRateMult: 1.2
+    rangeMult: 1
+    bonusProjectiles: 0
+  boomerangStats:
+    displayName: "\uBD80\uBA54\uB791"
+    level: 0
+    unlocked: 0
+    damageMult: 1
+    fireRateMult: 0.8
+    rangeMult: 0.7
+    bonusProjectiles: 0
+  novaStats:
+    displayName: "\uB178\uBC14"
+    level: 0
+    unlocked: 0
+    damageMult: 1
+    fireRateMult: 0.6
+    rangeMult: 0.5
+    bonusProjectiles: 0
+  moveSpeedMult: 1
+  xpGainMult: 1
+  regenPerSecond: 0
+  requireStartWeaponChoice: 1
+  startWeapon: 0
 --- !u!114 &2300000003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -532,12 +579,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2400000000}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2400000002
 MonoBehaviour:
@@ -556,6 +604,7 @@ MonoBehaviour:
   lobbyPrivate: 1
   connectionType: dtls
   showImGui: 1
+  lobbyPollInterval: 3
 --- !u!1 &2500000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -580,12 +629,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2500000000}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2500000002
 MonoBehaviour:
@@ -601,7 +651,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 1280
   height: 720
-  fullscreenMode: 1--- !u!1660057539 &9223372036854775807
+  fullscreenMode: 1
+--- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:

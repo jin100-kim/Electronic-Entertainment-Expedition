@@ -27,6 +27,9 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField]
     private float enemyMaxHealth = 40f;
 
+    [SerializeField]
+    private float enemyVisualScale = 4f;
+
     private float _nextSpawnTime;
     private readonly List<GameObject> _enemies = new List<GameObject>();
 
@@ -114,10 +117,9 @@ public class EnemySpawner : MonoBehaviour
         enemy.transform.position = position;
 
         var renderer = enemy.AddComponent<SpriteRenderer>();
-        renderer.sprite = CreateCircleSprite(50);
-        renderer.color = new Color(0.9f, 0.2f, 0.2f, 1f);
+        renderer.enabled = false;
 
-        enemy.transform.localScale = Vector3.one * 0.7f;
+        enemy.transform.localScale = Vector3.one;
 
         var rb = enemy.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
@@ -135,6 +137,10 @@ public class EnemySpawner : MonoBehaviour
         controller.XpReward = enemyXpReward;
         controller.MaxHealth = enemyMaxHealth;
 
+        var visuals = enemy.AddComponent<EnemyVisuals>();
+        visuals.SetType(EnemyVisuals.EnemyVisualType.Slime);
+        visuals.SetVisualScale(enemyVisualScale);
+
         _enemies.Add(enemy);
     }
 
@@ -149,27 +155,5 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    private static Sprite CreateCircleSprite(int size)
-    {
-        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        var colors = new Color32[size * size];
-        float r = (size - 1) * 0.5f;
-        float cx = r;
-        float cy = r;
-
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - cx;
-                float dy = y - cy;
-                bool inside = (dx * dx + dy * dy) <= r * r;
-                colors[y * size + x] = inside ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
-            }
-        }
-
-        texture.SetPixels32(colors);
-        texture.Apply();
-        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-    }
+    // Visuals are now handled by EnemyVisuals + Animator.
 }

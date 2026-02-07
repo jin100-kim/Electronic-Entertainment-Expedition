@@ -18,6 +18,9 @@ public class PlayerController : NetworkBehaviour
     [SerializeField]
     private bool autoPlayEnabled = false;
 
+    [SerializeField]
+    private float visualScale = 4f;
+
     [Header("Auto Play")]
     [SerializeField]
     private bool autoSeekXp = true;
@@ -59,6 +62,7 @@ public class PlayerController : NetworkBehaviour
         EnsurePhysics();
         EnsureHealth();
         EnsureStatusBars();
+        EnsureVisuals();
     }
 
     private void Update()
@@ -268,13 +272,27 @@ public class PlayerController : NetworkBehaviour
 
     private void EnsureVisual()
     {
-        var renderer = GetComponent<SpriteRenderer>();
-        if (renderer == null)
+        var rootRenderer = GetComponent<SpriteRenderer>();
+        if (rootRenderer != null)
         {
-            renderer = gameObject.AddComponent<SpriteRenderer>();
+            rootRenderer.enabled = false;
         }
 
-        transform.localScale = Vector3.one;
+        Transform visualRoot = GetOrCreateVisualRoot();
+        visualRoot.localScale = Vector3.one * visualScale;
+
+        var renderer = visualRoot.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = visualRoot.gameObject.AddComponent<SpriteRenderer>();
+        }
+
+        var animator = visualRoot.GetComponent<Animator>();
+        if (animator != null && animator.runtimeAnimatorController != null)
+        {
+            renderer.color = Color.white;
+            return;
+        }
 
         if (renderer.sprite == null)
         {
@@ -318,6 +336,38 @@ public class PlayerController : NetworkBehaviour
         if (GetComponent<PlayerStatusBars>() == null)
         {
             gameObject.AddComponent<PlayerStatusBars>();
+        }
+    }
+
+    private void EnsureVisuals()
+    {
+        if (GetComponent<PlayerVisuals>() == null)
+        {
+            gameObject.AddComponent<PlayerVisuals>();
+        }
+    }
+
+    private Transform GetOrCreateVisualRoot()
+    {
+        var existing = transform.Find("Visuals");
+        if (existing != null)
+        {
+            EnsureAligner(existing.gameObject);
+            return existing;
+        }
+
+        var root = new GameObject("Visuals");
+        root.transform.SetParent(transform, false);
+        root.transform.localPosition = Vector3.zero;
+        EnsureAligner(root);
+        return root.transform;
+    }
+
+    private static void EnsureAligner(GameObject root)
+    {
+        if (root.GetComponent<VisualsAligner>() == null)
+        {
+            root.AddComponent<VisualsAligner>();
         }
     }
 

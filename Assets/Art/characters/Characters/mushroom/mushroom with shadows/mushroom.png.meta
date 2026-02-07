@@ -1,67 +1,52 @@
 fileFormatVersion: 2
-guid: 0af5f79d6712da645aa16d44e40cbfcd
+guid: 238f17072f9a28a4ab89a046b3bdd512
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7773372987895070736
-    second: shields-unfinished_0
+      213: 357749872346554099
+    second: mushroom_0
   - first:
-      213: 4645885937788913635
-    second: shields-unfinished_1
+      213: -5258563328673448698
+    second: mushroom_1
   - first:
-      213: -5137433424866521974
-    second: shields-unfinished_2
+      213: 6128355420223079576
+    second: mushroom_2
   - first:
-      213: -4528415366081131401
-    second: shields-unfinished_3
+      213: -2297234925451825094
+    second: mushroom_3
   - first:
-      213: -4206887209508850493
-    second: shields-unfinished_4
+      213: 3655647839126442129
+    second: mushroom_4
   - first:
-      213: 3454731193949477858
-    second: shields-unfinished_5
+      213: -6328443897901363223
+    second: mushroom_5
   - first:
-      213: 5574999973180147540
-    second: shields-unfinished_6
+      213: -3826669641526063985
+    second: mushroom_6
   - first:
-      213: -7956623562666110028
-    second: shields-unfinished_7
+      213: 2539908995447422810
+    second: mushroom_7
   - first:
-      213: -8539790580029702931
-    second: shields-unfinished_8
+      213: -3790590587191571280
+    second: mushroom_8
   - first:
-      213: -4382470480705984055
-    second: shields-unfinished_9
+      213: -2172875739833287846
+    second: mushroom_9
   - first:
-      213: -7091143914479034179
-    second: shields-unfinished_10
+      213: 4702436647171746199
+    second: mushroom_10
   - first:
-      213: -324801952568933965
-    second: shields-unfinished_11
+      213: 6138415883661964997
+    second: mushroom_11
   - first:
-      213: -5306171651597100249
-    second: shields-unfinished_12
+      213: -7346820380752417780
+    second: mushroom_12
   - first:
-      213: -7076416280325171407
-    second: shields-unfinished_13
+      213: -1277060919584784733
+    second: mushroom_13
   - first:
-      213: 1725621515136436354
-    second: shields-unfinished_14
-  - first:
-      213: 4392810378981923725
-    second: shields-unfinished_15
-  - first:
-      213: 8980953401211218535
-    second: shields-unfinished_16
-  - first:
-      213: 7226212678583116904
-    second: shields-unfinished_17
-  - first:
-      213: 4107653910916194264
-    second: shields-unfinished_18
-  - first:
-      213: 3434748010613785369
-    second: shields-unfinished_19
+      213: 3475676401291434107
+    second: mushroom_14
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -170,12 +155,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: shields-unfinished_0
+      name: mushroom_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 63
-        width: 16
+        x: 24
+        y: 205
+        width: 17
         height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -185,371 +170,19 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0ffb5edd37e6f1490800000000000000
-      internalID: -7773372987895070736
+      spriteID: 3fe58ab0d9bf6f400800000000000000
+      internalID: 357749872346554099
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shields-unfinished_1
+      name: mushroom_1
       rect:
         serializedVersion: 2
-        x: 0
-        y: 47
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3e704ec35a0897040800000000000000
-      internalID: 4645885937788913635
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_2
-      rect:
-        serializedVersion: 2
-        x: 16
-        y: 63
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a8ccc95f48b24b8b0800000000000000
-      internalID: -5137433424866521974
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_3
-      rect:
-        serializedVersion: 2
-        x: 16
-        y: 47
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 77c40559736d721c0800000000000000
-      internalID: -4528415366081131401
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_4
-      rect:
-        serializedVersion: 2
-        x: 32
-        y: 63
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3c4371b3f522e95c0800000000000000
-      internalID: -4206887209508850493
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_5
-      rect:
-        serializedVersion: 2
-        x: 32
-        y: 47
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2ebd1d987bba1ff20800000000000000
-      internalID: 3454731193949477858
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_6
-      rect:
-        serializedVersion: 2
-        x: 48
-        y: 63
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 457073020f06e5d40800000000000000
-      internalID: 5574999973180147540
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_7
-      rect:
-        serializedVersion: 2
-        x: 48
-        y: 47
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4b398c79605649190800000000000000
-      internalID: -7956623562666110028
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_8
-      rect:
-        serializedVersion: 2
-        x: 64
-        y: 31
-        width: 16
-        height: 48
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: dec3a1596b19c7980800000000000000
-      internalID: -8539790580029702931
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_9
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 32
-        width: 16
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 9c962ee21565e23c0800000000000000
-      internalID: -4382470480705984055
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_10
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 14
-        height: 32
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: db0ed462e22379d90800000000000000
-      internalID: -7091143914479034179
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_11
-      rect:
-        serializedVersion: 2
-        x: 16
-        y: 32
-        width: 16
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3b186c258521e7bf0800000000000000
-      internalID: -324801952568933965
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_12
-      rect:
-        serializedVersion: 2
-        x: 16
-        y: 0
-        width: 14
-        height: 33
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 72b9e450ff0bc56b0800000000000000
-      internalID: -5306171651597100249
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_13
-      rect:
-        serializedVersion: 2
-        x: 33
-        y: 32
-        width: 15
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1375d60b2e48bcd90800000000000000
-      internalID: -7076416280325171407
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_14
-      rect:
-        serializedVersion: 2
-        x: 33
-        y: 16
-        width: 13
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2888a7210a3a2f710800000000000000
-      internalID: 1725621515136436354
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_15
-      rect:
-        serializedVersion: 2
-        x: 48
-        y: 32
-        width: 16
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d8bdddcf3c566fc30800000000000000
-      internalID: 4392810378981923725
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_16
-      rect:
-        serializedVersion: 2
-        x: 49
-        y: 16
-        width: 13
-        height: 16
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 76ae7870981c2ac70800000000000000
-      internalID: 8980953401211218535
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: shields-unfinished_17
-      rect:
-        serializedVersion: 2
-        x: 32
-        y: 0
-        width: 15
+        x: 88
+        y: 205
+        width: 17
         height: 17
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -559,19 +192,151 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 864ee52252aa84460800000000000000
-      internalID: 7226212678583116904
+      spriteID: 60df58d7384d507b0800000000000000
+      internalID: -5258563328673448698
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shields-unfinished_18
+      name: mushroom_2
       rect:
         serializedVersion: 2
-        x: 48
-        y: 0
-        width: 15
+        x: 152
+        y: 205
+        width: 17
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8948cb709ca4c0550800000000000000
+      internalID: 6128355420223079576
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_3
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 204
+        width: 17
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a30b2dea1059e10e0800000000000000
+      internalID: -2297234925451825094
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_4
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 141
+        width: 17
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1905e0b57587bb230800000000000000
+      internalID: 3655647839126442129
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_5
+      rect:
+        serializedVersion: 2
+        x: 88
+        y: 141
+        width: 17
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9efc99cedc9dc28a0800000000000000
+      internalID: -6328443897901363223
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_6
+      rect:
+        serializedVersion: 2
+        x: 152
+        y: 141
+        width: 17
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f8c41105c30f4eac0800000000000000
+      internalID: -3826669641526063985
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_7
+      rect:
+        serializedVersion: 2
+        x: 215
+        y: 141
+        width: 17
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5f767b36c19f3320800000000000000
+      internalID: 2539908995447422810
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_8
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 77
+        width: 17
         height: 17
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -581,20 +346,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8df576cf771510930800000000000000
-      internalID: 4107653910916194264
+      spriteID: 0bcc181c1fd156bc0800000000000000
+      internalID: -3790590587191571280
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: shields-unfinished_19
+      name: mushroom_9
       rect:
         serializedVersion: 2
-        x: 64
-        y: 0
-        width: 15
-        height: 17
+        x: 89
+        y: 77
+        width: 17
+        height: 18
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -603,8 +368,118 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9134d991e1daaaf20800000000000000
-      internalID: 3434748010613785369
+      spriteID: a5b3c2ae60568d1e0800000000000000
+      internalID: -2172875739833287846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_10
+      rect:
+        serializedVersion: 2
+        x: 153
+        y: 78
+        width: 18
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 799637d4739624140800000000000000
+      internalID: 4702436647171746199
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_11
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 77
+        width: 17
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5c6794539b8003550800000000000000
+      internalID: 6138415883661964997
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_12
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 12
+        width: 17
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c0ce6a0f9c9da0a90800000000000000
+      internalID: -7346820380752417780
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_13
+      rect:
+        serializedVersion: 2
+        x: 89
+        y: 12
+        width: 18
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3ae7d9b1cd7f64ee0800000000000000
+      internalID: -1277060919584784733
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: mushroom_14
+      rect:
+        serializedVersion: 2
+        x: 153
+        y: 13
+        width: 20
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b781f25a5451c3030800000000000000
+      internalID: 3475676401291434107
       vertices: []
       indices: 
       edges: []
@@ -623,26 +498,21 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      shields-unfinished_0: -7773372987895070736
-      shields-unfinished_1: 4645885937788913635
-      shields-unfinished_10: -7091143914479034179
-      shields-unfinished_11: -324801952568933965
-      shields-unfinished_12: -5306171651597100249
-      shields-unfinished_13: -7076416280325171407
-      shields-unfinished_14: 1725621515136436354
-      shields-unfinished_15: 4392810378981923725
-      shields-unfinished_16: 8980953401211218535
-      shields-unfinished_17: 7226212678583116904
-      shields-unfinished_18: 4107653910916194264
-      shields-unfinished_19: 3434748010613785369
-      shields-unfinished_2: -5137433424866521974
-      shields-unfinished_3: -4528415366081131401
-      shields-unfinished_4: -4206887209508850493
-      shields-unfinished_5: 3454731193949477858
-      shields-unfinished_6: 5574999973180147540
-      shields-unfinished_7: -7956623562666110028
-      shields-unfinished_8: -8539790580029702931
-      shields-unfinished_9: -4382470480705984055
+      mushroom_0: 357749872346554099
+      mushroom_1: -5258563328673448698
+      mushroom_10: 4702436647171746199
+      mushroom_11: 6138415883661964997
+      mushroom_12: -7346820380752417780
+      mushroom_13: -1277060919584784733
+      mushroom_14: 3475676401291434107
+      mushroom_2: 6128355420223079576
+      mushroom_3: -2297234925451825094
+      mushroom_4: 3655647839126442129
+      mushroom_5: -6328443897901363223
+      mushroom_6: -3826669641526063985
+      mushroom_7: 2539908995447422810
+      mushroom_8: -3790590587191571280
+      mushroom_9: -2172875739833287846
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
