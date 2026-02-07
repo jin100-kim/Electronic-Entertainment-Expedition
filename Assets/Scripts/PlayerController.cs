@@ -103,6 +103,11 @@ public class PlayerController : NetworkBehaviour
 
     private void Update()
     {
+        if (GameSession.Instance != null && GameSession.Instance.IsGameOver)
+        {
+            return;
+        }
+
         if (!CanReadInput())
         {
             return;
@@ -180,6 +185,10 @@ public class PlayerController : NetworkBehaviour
         {
             var enemy = enemies[i];
             if (enemy == null)
+            {
+                continue;
+            }
+            if (enemy.IsDead)
             {
                 continue;
             }

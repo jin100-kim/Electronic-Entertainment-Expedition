@@ -350,6 +350,10 @@ public class AutoAttack : MonoBehaviour
             {
                 continue;
             }
+            if (enemy.IsDead)
+            {
+                continue;
+            }
 
             float dist = (enemy.transform.position - transform.position).sqrMagnitude;
             if (dist <= best)
@@ -543,13 +547,13 @@ public class AutoAttack : MonoBehaviour
 
             used.Add(idx);
             var enemy = enemies[idx];
-            if (enemy == null)
+            if (enemy == null || enemy.IsDead)
             {
                 continue;
             }
 
             var health = enemy.GetComponent<Health>();
-            if (health != null)
+            if (health != null && !health.IsDead)
             {
                 health.Damage(_projectileDamage * _lightning.DamageMult);
             }
@@ -873,9 +877,17 @@ public class AutoAttack : MonoBehaviour
             {
                 continue;
             }
+            if (enemy.IsDead)
+            {
+                continue;
+            }
 
             var health = enemy.GetComponent<Health>();
             if (health != null && hit != null && hit.Contains(health))
+            {
+                continue;
+            }
+            if (health != null && health.IsDead)
             {
                 continue;
             }

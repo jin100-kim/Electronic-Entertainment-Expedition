@@ -257,6 +257,12 @@ public class EnemySpawner : MonoBehaviour
                 continue;
             }
 
+            var controller = enemy.GetComponent<EnemyController>();
+            if (controller != null && controller.IsDead)
+            {
+                continue;
+            }
+
             var tierInfo = enemy.GetComponent<EnemyTier>();
             if (tierInfo != null && tierInfo.CurrentTier == tier)
             {

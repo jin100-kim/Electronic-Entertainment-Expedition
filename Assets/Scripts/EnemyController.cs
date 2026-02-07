@@ -17,10 +17,20 @@ public class EnemyController : MonoBehaviour
     [SerializeField]
     private float maxHealth = 40f;
 
+    [Header("Death")]
+    [SerializeField]
+    private float deathFadeDelay = 1f;
+
+    [SerializeField]
+    private float deathFadeDuration = 0.6f;
+
     private float _nextDamageTime;
     private Health _health;
     private float _slowMultiplier = 1f;
     private float _slowTimer;
+    private bool _dead;
+
+    public bool IsDead => _dead;
 
     public Transform Target { get; set; }
 
@@ -81,6 +91,11 @@ public class EnemyController : MonoBehaviour
 
     private void Update()
     {
+        if (_dead)
+        {
+            return;
+        }
+
         if (GameSession.Instance != null && GameSession.Instance.IsGameOver)
         {
             return;
@@ -128,6 +143,11 @@ public class EnemyController : MonoBehaviour
 
     private void OnTriggerStay2D(Collider2D other)
     {
+        if (_dead)
+        {
+            return;
+        }
+
         if (Time.time < _nextDamageTime)
         {
             return;
@@ -151,8 +171,28 @@ public class EnemyController : MonoBehaviour
 
     private void OnDied()
     {
+        if (_dead)
+        {
+            return;
+        }
+
+        _dead = true;
+        deathFadeDelay = 0f;
         SpawnXp();
-        Destroy(gameObject);
+
+        var col = GetComponent<Collider2D>();
+        if (col != null)
+        {
+            col.enabled = false;
+        }
+
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        StartCoroutine(DeathFade());
     }
 
     public void ApplySlow(float multiplier, float duration)
@@ -172,6 +212,40 @@ public class EnemyController : MonoBehaviour
         {
             _slowTimer = duration;
         }
+    }
+
+    private System.Collections.IEnumerator DeathFade()
+    {
+        float delay = Mathf.Max(0f, deathFadeDelay);
+        if (delay > 0f)
+        {
+            yield return new WaitForSeconds(delay);
+        }
+
+        var renderers = GetComponentsInChildren<SpriteRenderer>();
+        float duration = Mathf.Max(0.05f, deathFadeDuration);
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float alpha = Mathf.Clamp01(1f - t / duration);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var r = renderers[i];
+                if (r == null)
+                {
+                    continue;
+                }
+
+                var c = r.color;
+                c.a = alpha;
+                r.color = c;
+            }
+
+            yield return null;
+        }
+
+        Destroy(gameObject);
     }
 
     private void SpawnXp()
