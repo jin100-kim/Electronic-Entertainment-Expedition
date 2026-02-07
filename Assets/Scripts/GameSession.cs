@@ -386,15 +386,13 @@ public class GameSession : MonoBehaviour
 
         _options.Clear();
 
-        _options.Add(new UpgradeOption("공격력 +25%", () => BuildPercentStatText("공격력", damageMult, damageMult * 1.25f), () => damageMult *= 1.25f));
-        _options.Add(new UpgradeOption("공격속도 +20%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult * 1.20f), () => fireRateMult *= 1.20f));
-        _options.Add(new UpgradeOption("이동속도 +20%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult * 1.20f), () => moveSpeedMult *= 1.20f));
+        _options.Add(new UpgradeOption("공격력 +25%", () => BuildPercentStatText("공격력", damageMult, damageMult + 0.25f), () => damageMult += 0.25f));
+        _options.Add(new UpgradeOption("공격속도 +20%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult + 0.20f), () => fireRateMult += 0.20f));
+        _options.Add(new UpgradeOption("이동속도 +20%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult + 0.20f), () => moveSpeedMult += 0.20f));
         _options.Add(new UpgradeOption("체력 +40", () => BuildValueStatText("최대 체력", PlayerHealth != null ? PlayerHealth.MaxHealth : 0f, (PlayerHealth != null ? PlayerHealth.MaxHealth : 0f) + 40f), () => PlayerHealth?.AddMaxHealth(40f, true)));
         _options.Add(new UpgradeOption("체력재생 +1", () => BuildValueStatText("체력재생", regenPerSecond, regenPerSecond + 1f), () => regenPerSecond += 1f));
-        _options.Add(new UpgradeOption("스킬 크기 +25%", () => BuildPercentStatText("스킬 크기", sizeMult, sizeMult * 1.25f), () => sizeMult *= 1.25f));
-        _options.Add(new UpgradeOption("지속시간 +25%", () => BuildPercentStatText("지속시간", lifetimeMult, lifetimeMult * 1.25f), () => lifetimeMult *= 1.25f));
-        _options.Add(new UpgradeOption("사거리 +10%", () => BuildPercentStatText("사거리", rangeMult, rangeMult * 1.10f), () => rangeMult *= 1.10f));
-        _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult * 1.35f), () => xpGainMult *= 1.35f));
+        _options.Add(new UpgradeOption("사거리 +25%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.25f), () => rangeMult += 0.25f));
+        _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.35f), () => xpGainMult += 0.35f));
         if (boomerangStats != null && !boomerangStats.unlocked)
         {
             _options.Add(new UpgradeOption("무기 획득: 부메랑", () => BuildWeaponAcquireText(boomerangStats), () => UnlockBoomerang()));
@@ -470,19 +468,30 @@ public class GameSession : MonoBehaviour
             return -1;
         }
 
-        int bestIndex = 0;
         int bestScore = int.MinValue;
+        var bestIndices = new List<int>();
         for (int i = 0; i < _options.Count; i++)
         {
             int score = ScoreUpgradeOption(_options[i]);
             if (score > bestScore)
             {
                 bestScore = score;
-                bestIndex = i;
+                bestIndices.Clear();
+                bestIndices.Add(i);
+            }
+            else if (score == bestScore)
+            {
+                bestIndices.Add(i);
             }
         }
 
-        return bestIndex;
+        if (bestIndices.Count == 0)
+        {
+            return -1;
+        }
+
+        int pick = Random.Range(0, bestIndices.Count);
+        return bestIndices[pick];
     }
 
     private int ScoreUpgradeOption(UpgradeOption option)
@@ -493,44 +502,17 @@ public class GameSession : MonoBehaviour
         }
 
         string title = option.Title;
-        int score = 0;
-
         if (title.Contains("강화") && !title.Contains("무기 획득"))
         {
-            score += 300; // 무기 강화 최우선
+            return 1;
         }
 
         if (title.Contains("무기 획득"))
         {
-            score += 250; // 무기 획득
+            return 1;
         }
 
-        if (title.Contains("공격력") || title.Contains("공격속도") || title.Contains("피해"))
-        {
-            score += 200; // 공격 관련
-        }
-
-        if (title.Contains("사거리") || title.Contains("스킬") || title.Contains("투사체"))
-        {
-            score += 80;
-        }
-
-        if (title.Contains("이동속도"))
-        {
-            score += 60;
-        }
-
-        if (title.Contains("체력") || title.Contains("체력재생"))
-        {
-            score += 40;
-        }
-
-        if (title.Contains("경험치"))
-        {
-            score += 30;
-        }
-
-        return score;
+        return 0;
     }
 
     private void ApplyAttackStats()
@@ -624,12 +606,12 @@ public class GameSession : MonoBehaviour
         }
 
         gunStats.level += 1;
-        gunStats.damageMult *= 1.20f;
-        gunStats.fireRateMult *= 1.08f;
+        gunStats.damageMult += 0.20f;
+        gunStats.fireRateMult += 0.08f;
 
         if (gunStats.level % 3 == 0)
         {
-            projectileCount += 1;
+            gunStats.bonusProjectiles += 1;
         }
 
         if (gunStats.level % 4 == 0)
@@ -651,11 +633,12 @@ public class GameSession : MonoBehaviour
         }
 
         boomerangStats.level += 1;
-        boomerangStats.damageMult *= 1.20f;
-        boomerangStats.fireRateMult *= 1.10f;
+        boomerangStats.damageMult += 0.20f;
+        boomerangStats.fireRateMult += 0.10f;
 
         if (boomerangStats.level % 4 == 0)
         {
+            boomerangStats.bonusProjectiles += 1;
             projectilePierceBonus += 1;
         }
     }
@@ -673,8 +656,8 @@ public class GameSession : MonoBehaviour
         }
 
         novaStats.level += 1;
-        novaStats.damageMult *= 1.20f;
-        novaStats.fireRateMult *= 1.12f;
+        novaStats.damageMult += 0.20f;
+        novaStats.fireRateMult += 0.12f;
 
         if (novaStats.level % 3 == 0)
         {
@@ -746,11 +729,12 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = gunStats.level + 1;
-        float nextDamage = gunStats.damageMult * 1.20f;
-        int nextProjectile = projectileCount + (nextLevel % 3 == 0 ? 1 : 0);
+        float nextDamage = gunStats.damageMult + 0.20f;
+        int currentProjectile = 1 + gunStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
         int nextPierce = projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = gunStats.fireRateMult * 1.08f;
-        return BuildWeaponUpgradeText(gunStats.displayName, gunStats.level, nextLevel, gunStats.damageMult, nextDamage, gunStats.fireRateMult, nextRate, projectileCount, nextProjectile, projectilePierceBonus, nextPierce);
+        float nextRate = gunStats.fireRateMult + 0.08f;
+        return BuildWeaponUpgradeText(gunStats.displayName, gunStats.level, nextLevel, gunStats.damageMult, nextDamage, gunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, nextPierce);
     }
 
     private string BuildBoomerangUpgradeText()
@@ -761,10 +745,12 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = boomerangStats.level + 1;
-        float nextDamage = boomerangStats.damageMult * 1.20f;
+        float nextDamage = boomerangStats.damageMult + 0.20f;
+        int currentProjectile = 1 + boomerangStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 4 == 0 ? 1 : 0);
         int nextPierce = projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = boomerangStats.fireRateMult * 1.10f;
-        return BuildWeaponUpgradeText(boomerangStats.displayName, boomerangStats.level, nextLevel, boomerangStats.damageMult, nextDamage, boomerangStats.fireRateMult, nextRate, projectileCount, projectileCount, projectilePierceBonus, nextPierce);
+        float nextRate = boomerangStats.fireRateMult + 0.10f;
+        return BuildWeaponUpgradeText(boomerangStats.displayName, boomerangStats.level, nextLevel, boomerangStats.damageMult, nextDamage, boomerangStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, nextPierce);
     }
 
     private string BuildNovaUpgradeText()
@@ -775,10 +761,10 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = novaStats.level + 1;
-        float nextDamage = novaStats.damageMult * 1.20f;
+        float nextDamage = novaStats.damageMult + 0.20f;
         int currentCount = 8 + novaStats.bonusProjectiles;
         int nextCount = currentCount + (nextLevel % 3 == 0 ? 2 : 0);
-        float nextRate = novaStats.fireRateMult * 1.12f;
+        float nextRate = novaStats.fireRateMult + 0.12f;
         return BuildWeaponUpgradeText(novaStats.displayName, novaStats.level, nextLevel, novaStats.damageMult, nextDamage, novaStats.fireRateMult, nextRate, currentCount, nextCount, projectilePierceBonus, projectilePierceBonus);
     }
 

@@ -14,6 +14,9 @@ public class Minimap : MonoBehaviour
     [SerializeField]
     private float enemyDotSize = 4f;
 
+    [SerializeField]
+    private float weaponDotSize = 3f;
+
     private Texture2D _dotTex;
     private Texture2D _bgTex;
 
@@ -53,6 +56,7 @@ public class Minimap : MonoBehaviour
 
         DrawPlayerDot(rect, half);
         DrawEnemyDots(rect, half);
+        DrawWeaponDots(rect, half);
     }
 
     private void DrawPlayerDot(Rect rect, Vector2 half)
@@ -79,6 +83,33 @@ public class Minimap : MonoBehaviour
 
             Vector2 p = WorldToMinimap(rect, half, enemy.transform.position);
             DrawDot(p, enemyDotSize, new Color(1f, 0.2f, 0.2f, 1f));
+        }
+    }
+
+    private void DrawWeaponDots(Rect rect, Vector2 half)
+    {
+        var projectiles = FindObjectsOfType<Projectile>();
+        foreach (var proj in projectiles)
+        {
+            if (proj == null)
+            {
+                continue;
+            }
+
+            Vector2 p = WorldToMinimap(rect, half, proj.transform.position);
+            DrawDot(p, weaponDotSize, Color.white);
+        }
+
+        var boomerangs = FindObjectsOfType<BoomerangProjectile>();
+        foreach (var boom in boomerangs)
+        {
+            if (boom == null)
+            {
+                continue;
+            }
+
+            Vector2 p = WorldToMinimap(rect, half, boom.transform.position);
+            DrawDot(p, weaponDotSize, Color.white);
         }
     }
 

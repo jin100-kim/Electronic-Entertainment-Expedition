@@ -99,7 +99,7 @@ public class AutoAttack : MonoBehaviour
             _nextFireBoomerang = Time.time + GetIntervalForWeapon(_boomerang.FireRateMult);
         }
 
-        if (_nova.Enabled && Time.time >= _nextFireNova && target != null)
+        if (_nova.Enabled && Time.time >= _nextFireNova)
         {
             FireNova();
             _nextFireNova = Time.time + GetIntervalForWeapon(_nova.FireRateMult);
@@ -168,7 +168,8 @@ public class AutoAttack : MonoBehaviour
         _range *= _straight.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
 
-        if (_projectileCount <= 1)
+        int count = GetWeaponCount(_straight);
+        if (count <= 1)
         {
             SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime);
             _range = savedRange;
@@ -176,8 +177,8 @@ public class AutoAttack : MonoBehaviour
         }
 
         float angleStep = 16f;
-        float start = -angleStep * (_projectileCount - 1) * 0.5f;
-        for (int i = 0; i < _projectileCount; i++)
+        float start = -angleStep * (count - 1) * 0.5f;
+        for (int i = 0; i < count; i++)
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
@@ -193,7 +194,8 @@ public class AutoAttack : MonoBehaviour
         _range *= _boomerang.RangeMult;
         float lifetime = CalculateBoomerangLifetimeForRange(_range);
 
-        if (_projectileCount <= 1)
+        int count = GetWeaponCount(_boomerang);
+        if (count <= 1)
         {
             SpawnBoomerang(direction, _projectileDamage * _boomerang.DamageMult, lifetime);
             _range = savedRange;
@@ -201,8 +203,8 @@ public class AutoAttack : MonoBehaviour
         }
 
         float angleStep = 20f;
-        float start = -angleStep * (_projectileCount - 1) * 0.5f;
-        for (int i = 0; i < _projectileCount; i++)
+        float start = -angleStep * (count - 1) * 0.5f;
+        for (int i = 0; i < count; i++)
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
@@ -310,6 +312,11 @@ public class AutoAttack : MonoBehaviour
     private float GetIntervalForWeapon(float weaponFireRateMult)
     {
         return Mathf.Max(0.05f, _baseInterval / Mathf.Max(0.1f, weaponFireRateMult));
+    }
+
+    private int GetWeaponCount(WeaponConfig config)
+    {
+        return Mathf.Max(1, _projectileCount + config.BonusCount);
     }
 
     private static WeaponConfig CreateDefaultConfig(bool enabled)

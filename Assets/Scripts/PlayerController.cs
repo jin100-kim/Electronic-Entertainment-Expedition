@@ -29,10 +29,16 @@ public class PlayerController : NetworkBehaviour
     private float autoOrbitStrength = 0.8f;
 
     [SerializeField]
+    private float autoKeepDistanceStrength = 0.6f;
+
+    [SerializeField]
     private float autoCenterPull = 0.9f;
 
     [SerializeField]
     private float autoSmooth = 10f;
+
+    [SerializeField]
+    private float autoMidCenterPull = 0.1f;
 
     private const int SpriteSize = 50;
     private float _moveSpeedMult = 1f;
@@ -136,8 +142,10 @@ public class PlayerController : NetworkBehaviour
         }
 
         Vector2 desired = Vector2.zero;
+        bool hasTarget = false;
         if (closest != null)
         {
+            hasTarget = true;
             Vector2 toTarget = (closest.transform.position - transform.position);
             float dist = toTarget.magnitude;
             if (dist > 0.001f)
@@ -153,14 +161,22 @@ public class PlayerController : NetworkBehaviour
                 }
                 else
                 {
-                    Vector2 perp = new Vector2(-dir.y, dir.x);
-                    desired = perp * autoOrbitStrength;
+                    desired = Vector2.zero;
                 }
             }
         }
 
         if (GameSession.Instance != null)
         {
+            if (hasTarget && desired == Vector2.zero && autoMidCenterPull > 0f)
+            {
+                Vector2 toCenter = -((Vector2)transform.position);
+                if (toCenter.sqrMagnitude > 0.0001f)
+                {
+                    desired += toCenter.normalized * autoMidCenterPull;
+                }
+            }
+
             Vector2 bounds = GameSession.Instance.MapHalfSize;
             Vector2 pos = transform.position;
             float margin = 1.2f;
@@ -179,7 +195,7 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        if (desired == Vector2.zero)
+        if (desired == Vector2.zero && !hasTarget)
         {
             desired = new Vector2(Mathf.Sin(Time.time * 0.7f), Mathf.Cos(Time.time * 0.7f));
         }
