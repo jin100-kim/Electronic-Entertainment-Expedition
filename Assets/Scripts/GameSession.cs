@@ -138,6 +138,8 @@ public class GameSession : MonoBehaviour
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
     private Vector2 _upgradeScroll;
     private bool _waitingStartWeaponChoice;
+    private bool _autoPlayEnabled;
+    private float _autoUpgradeStartTime = -1f;
 
     private enum StartWeapon
     {
@@ -156,6 +158,20 @@ public class GameSession : MonoBehaviour
         if (!showNetworkUI)
         {
             DisableNetworkUI();
+        }
+
+        if (gunStats != null)
+        {
+            if (requireStartWeaponChoice)
+            {
+                gunStats.unlocked = false;
+                gunStats.level = 0;
+            }
+            else
+            {
+                gunStats.unlocked = true;
+                gunStats.level = Mathf.Max(1, gunStats.level);
+            }
         }
 
         if (autoStartLocal)
@@ -180,6 +196,27 @@ public class GameSession : MonoBehaviour
         if (!_gameStarted || IsGameOver)
         {
             return;
+        }
+
+        if (_choosingUpgrade && _autoPlayEnabled)
+        {
+            if (_autoUpgradeStartTime < 0f)
+            {
+                _autoUpgradeStartTime = Time.unscaledTime;
+            }
+
+            if (Time.unscaledTime - _autoUpgradeStartTime >= 1f)
+            {
+                int index = PickAutoUpgradeIndex();
+                if (index >= 0)
+                {
+                    ApplyUpgrade(index);
+                }
+            }
+        }
+        else
+        {
+            _autoUpgradeStartTime = -1f;
         }
 
         if (!_choosingUpgrade)
@@ -255,6 +292,7 @@ public class GameSession : MonoBehaviour
     {
         _player = player;
         _player.SetMoveSpeedMultiplier(moveSpeedMult);
+        _player.SetAutoPlay(_autoPlayEnabled);
 
         PlayerHealth = player.GetComponent<Health>();
         if (PlayerHealth != null)
@@ -356,6 +394,10 @@ public class GameSession : MonoBehaviour
         {
             _options.Add(new UpgradeOption("무기 획득: 노바", () => BuildWeaponAcquireText(novaStats), () => UnlockNova()));
         }
+        if (gunStats != null && !gunStats.unlocked)
+        {
+            _options.Add(new UpgradeOption("무기 획득: 총", () => BuildWeaponAcquireText(gunStats), () => UnlockStraight()));
+        }
         if (StraightUnlocked)
         {
             _options.Add(new UpgradeOption("총 강화", () => BuildStraightUpgradeText(), () => LevelUpStraightWeapon()));
@@ -387,6 +429,7 @@ public class GameSession : MonoBehaviour
 
         _choosingUpgrade = true;
         Time.timeScale = 0f;
+        _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
     }
 
     private void ApplyUpgrade(int index)
@@ -401,12 +444,83 @@ public class GameSession : MonoBehaviour
 
         _choosingUpgrade = false;
         Time.timeScale = 1f;
+        _autoUpgradeStartTime = -1f;
 
         // apply updated stats
         _player?.SetMoveSpeedMultiplier(moveSpeedMult);
         PlayerExperience?.SetXpMultiplier(xpGainMult);
         PlayerHealth?.SetRegenPerSecond(regenPerSecond);
         ApplyAttackStats();
+    }
+
+    private int PickAutoUpgradeIndex()
+    {
+        if (_options == null || _options.Count == 0)
+        {
+            return -1;
+        }
+
+        int bestIndex = 0;
+        int bestScore = int.MinValue;
+        for (int i = 0; i < _options.Count; i++)
+        {
+            int score = ScoreUpgradeOption(_options[i]);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    private int ScoreUpgradeOption(UpgradeOption option)
+    {
+        if (option == null || string.IsNullOrEmpty(option.Title))
+        {
+            return 0;
+        }
+
+        string title = option.Title;
+        int score = 0;
+
+        if (title.Contains("강화") && !title.Contains("무기 획득"))
+        {
+            score += 300; // 무기 강화 최우선
+        }
+
+        if (title.Contains("무기 획득"))
+        {
+            score += 250; // 무기 획득
+        }
+
+        if (title.Contains("공격력") || title.Contains("공격속도") || title.Contains("피해"))
+        {
+            score += 200; // 공격 관련
+        }
+
+        if (title.Contains("사거리") || title.Contains("스킬") || title.Contains("투사체"))
+        {
+            score += 80;
+        }
+
+        if (title.Contains("이동속도"))
+        {
+            score += 60;
+        }
+
+        if (title.Contains("체력") || title.Contains("체력재생"))
+        {
+            score += 40;
+        }
+
+        if (title.Contains("경험치"))
+        {
+            score += 30;
+        }
+
+        return score;
     }
 
     private void ApplyAttackStats()
@@ -664,13 +778,18 @@ public class GameSession : MonoBehaviour
         if (_waitingStartWeaponChoice && !_gameStarted)
         {
             DrawStartWeaponChoice();
-            return;
         }
 
-        if (!_choosingUpgrade)
+        if (_choosingUpgrade)
         {
-            return;
+            DrawUpgradeChoices();
         }
+
+        DrawAutoPlayToggle();
+    }
+
+    private void DrawUpgradeChoices()
+    {
 
         const int columns = 3;
         const float boxHeight = 200f;
@@ -708,6 +827,26 @@ public class GameSession : MonoBehaviour
             {
                 ApplyUpgrade(i);
             }
+        }
+    }
+
+    private void DrawAutoPlayToggle()
+    {
+        if (_player == null)
+        {
+            return;
+        }
+
+        const float width = 160f;
+        const float height = 36f;
+        float x = Screen.width - width - 12f;
+        float y = Screen.height - height - 12f;
+
+        string label = _autoPlayEnabled ? "AutoPlay: ON" : "AutoPlay: OFF";
+        if (GUI.Button(new Rect(x, y, width, height), label))
+        {
+            _autoPlayEnabled = !_autoPlayEnabled;
+            _player.SetAutoPlay(_autoPlayEnabled);
         }
     }
 

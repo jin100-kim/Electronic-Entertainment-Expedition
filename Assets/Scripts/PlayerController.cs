@@ -15,8 +15,28 @@ public class PlayerController : NetworkBehaviour
     [SerializeField]
     private bool allowOfflineControl = true;
 
+    [SerializeField]
+    private bool autoPlayEnabled = false;
+
+    [Header("Auto Play")]
+    [SerializeField]
+    private float autoMinDistance = 2.5f;
+
+    [SerializeField]
+    private float autoMaxDistance = 4.0f;
+
+    [SerializeField]
+    private float autoOrbitStrength = 0.8f;
+
+    [SerializeField]
+    private float autoCenterPull = 0.9f;
+
+    [SerializeField]
+    private float autoSmooth = 10f;
+
     private const int SpriteSize = 50;
     private float _moveSpeedMult = 1f;
+    private Vector2 _autoInputCurrent;
 
     private void Awake()
     {
@@ -32,7 +52,7 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
-        Vector2 input = ReadMovement();
+        Vector2 input = autoPlayEnabled ? GetAutoInput() : ReadMovement();
         if (input.sqrMagnitude > 1f)
         {
             input.Normalize();
@@ -52,6 +72,13 @@ public class PlayerController : NetworkBehaviour
     {
         _moveSpeedMult = Mathf.Max(0.1f, value);
     }
+
+    public void SetAutoPlay(bool enabled)
+    {
+        autoPlayEnabled = enabled;
+    }
+
+    public bool IsAutoPlayEnabled => autoPlayEnabled;
 
     private bool CanReadInput()
     {
@@ -85,6 +112,86 @@ public class PlayerController : NetworkBehaviour
         if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) y += 1f;
 
         return new Vector2(x, y);
+    }
+
+    private Vector2 GetAutoInput()
+    {
+        EnemyController closest = null;
+        float bestSqr = float.MaxValue;
+        var enemies = FindObjectsOfType<EnemyController>();
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null)
+            {
+                continue;
+            }
+
+            float sqr = (enemy.transform.position - transform.position).sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                closest = enemy;
+            }
+        }
+
+        Vector2 desired = Vector2.zero;
+        if (closest != null)
+        {
+            Vector2 toTarget = (closest.transform.position - transform.position);
+            float dist = toTarget.magnitude;
+            if (dist > 0.001f)
+            {
+                Vector2 dir = toTarget / dist;
+                if (dist < autoMinDistance)
+                {
+                    desired = -dir;
+                }
+                else if (dist > autoMaxDistance)
+                {
+                    desired = dir;
+                }
+                else
+                {
+                    Vector2 perp = new Vector2(-dir.y, dir.x);
+                    desired = perp * autoOrbitStrength;
+                }
+            }
+        }
+
+        if (GameSession.Instance != null)
+        {
+            Vector2 bounds = GameSession.Instance.MapHalfSize;
+            Vector2 pos = transform.position;
+            float margin = 1.2f;
+            Vector2 centerPush = Vector2.zero;
+            if (Mathf.Abs(pos.x) > bounds.x - margin)
+            {
+                centerPush.x = -Mathf.Sign(pos.x);
+            }
+            if (Mathf.Abs(pos.y) > bounds.y - margin)
+            {
+                centerPush.y = -Mathf.Sign(pos.y);
+            }
+            if (centerPush != Vector2.zero)
+            {
+                desired += centerPush * autoCenterPull;
+            }
+        }
+
+        if (desired == Vector2.zero)
+        {
+            desired = new Vector2(Mathf.Sin(Time.time * 0.7f), Mathf.Cos(Time.time * 0.7f));
+        }
+
+        if (desired.sqrMagnitude > 1f)
+        {
+            desired.Normalize();
+        }
+
+        float lerp = 1f - Mathf.Exp(-autoSmooth * Time.deltaTime);
+        _autoInputCurrent = Vector2.Lerp(_autoInputCurrent, desired, lerp);
+        return _autoInputCurrent;
     }
 
     private void EnsureVisual()
