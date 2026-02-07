@@ -44,6 +44,10 @@ public class Minimap : MonoBehaviour
         {
             return;
         }
+        if (session.IsWaitingStartWeaponChoice)
+        {
+            return;
+        }
 
         Rect rect = new Rect(
             Screen.width - size.x - margin.x,

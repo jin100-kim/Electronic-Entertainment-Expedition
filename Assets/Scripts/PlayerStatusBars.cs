@@ -4,16 +4,16 @@ using UnityEngine;
 public class PlayerStatusBars : MonoBehaviour
 {
     [SerializeField]
-    private float width = 0.9f;
+    private float barWidth = 0.9f;
 
     [SerializeField]
-    private float height = 0.12f;
+    private float barHeight = 0.12f;
 
     [SerializeField]
-    private float spacing = 0.14f;
+    private float spacing = 0.12f;
 
     [SerializeField]
-    private Vector3 offset = new Vector3(0f, 0.55f, 0f);
+    private Vector3 offset = new Vector3(0f, 0.65f, 0f);
 
     [SerializeField]
     private Color hpColor = new Color(0.2f, 0.9f, 0.3f, 1f);
@@ -25,6 +25,10 @@ public class PlayerStatusBars : MonoBehaviour
     private Experience _xp;
     private Transform _hpFill;
     private Transform _xpFill;
+    private SpriteRenderer _hpFillRenderer;
+    private SpriteRenderer _xpFillRenderer;
+    private readonly System.Collections.Generic.List<SpriteRenderer> _renderers = new System.Collections.Generic.List<SpriteRenderer>();
+    private bool _isVisible = true;
 
     private void Awake()
     {
@@ -34,13 +38,31 @@ public class PlayerStatusBars : MonoBehaviour
 
     private void LateUpdate()
     {
+        bool show = true;
+        var session = GameSession.Instance;
+        if (session != null && session.IsWaitingStartWeaponChoice)
+        {
+            show = false;
+        }
+
+        if (show != _isVisible)
+        {
+            SetRenderersVisible(show);
+            _isVisible = show;
+        }
+
+        if (!show)
+        {
+            return;
+        }
+
         if (_health == null || _hpFill == null)
         {
             return;
         }
 
         float hpRatio = _health.MaxHealth <= 0f ? 0f : _health.CurrentHealth / _health.MaxHealth;
-        SetFill(_hpFill, hpRatio);
+        SetFill(_hpFill, hpRatio, barWidth, barHeight);
 
         if (_xp == null)
         {
@@ -50,7 +72,7 @@ public class PlayerStatusBars : MonoBehaviour
         if (_xpFill != null)
         {
             float xpRatio = _xp != null && _xp.XpToNext > 0f ? _xp.CurrentXp / _xp.XpToNext : 0f;
-            SetFill(_xpFill, xpRatio);
+            SetFill(_xpFill, xpRatio, barWidth, barHeight);
         }
     }
 
@@ -60,11 +82,11 @@ public class PlayerStatusBars : MonoBehaviour
         root.transform.SetParent(transform, false);
         root.transform.localPosition = offset;
 
-        _hpFill = CreateBar(root.transform, "HPBar", hpColor, 20, Vector3.zero);
-        _xpFill = CreateBar(root.transform, "XPBar", xpColor, 22, new Vector3(0f, -spacing, 0f));
+        _hpFill = CreateBar(root.transform, "HPBar", hpColor, 20, Vector3.zero, out _hpFillRenderer);
+        _xpFill = CreateBar(root.transform, "XPBar", xpColor, 22, new Vector3(0f, -spacing, 0f), out _xpFillRenderer);
     }
 
-    private Transform CreateBar(Transform parent, string name, Color fillColor, int sortingOrder, Vector3 localOffset)
+    private Transform CreateBar(Transform parent, string name, Color fillColor, int sortingOrder, Vector3 localOffset, out SpriteRenderer fillRenderer)
     {
         var barRoot = new GameObject(name);
         barRoot.transform.SetParent(parent, false);
@@ -76,24 +98,37 @@ public class PlayerStatusBars : MonoBehaviour
         bgRenderer.sprite = CreateSolidSprite();
         bgRenderer.color = new Color(0f, 0f, 0f, 0.6f);
         bgRenderer.sortingOrder = sortingOrder;
-        bg.transform.localScale = new Vector3(width, height, 1f);
+        bg.transform.localScale = new Vector3(barWidth, barHeight, 1f);
+        _renderers.Add(bgRenderer);
 
         var fill = new GameObject("Fill");
         fill.transform.SetParent(barRoot.transform, false);
-        var fillRenderer = fill.AddComponent<SpriteRenderer>();
+        fillRenderer = fill.AddComponent<SpriteRenderer>();
         fillRenderer.sprite = CreateSolidSprite();
         fillRenderer.color = fillColor;
         fillRenderer.sortingOrder = sortingOrder + 1;
-        fill.transform.localPosition = new Vector3(-width * 0.5f, 0f, 0f);
-        fill.transform.localScale = new Vector3(width, height, 1f);
+        fill.transform.localPosition = new Vector3(-barWidth * 0.5f, 0f, 0f);
+        fill.transform.localScale = new Vector3(barWidth, barHeight, 1f);
+        _renderers.Add(fillRenderer);
 
         var pivot = fill.AddComponent<BarPivot>();
-        pivot.SetLeftAnchored(width);
+        pivot.SetLeftAnchored(barWidth);
 
         return fill.transform;
     }
 
-    private static void SetFill(Transform fill, float ratio)
+    private void SetRenderersVisible(bool visible)
+    {
+        for (int i = 0; i < _renderers.Count; i++)
+        {
+            if (_renderers[i] != null)
+            {
+                _renderers[i].enabled = visible;
+            }
+        }
+    }
+
+    private static void SetFill(Transform fill, float ratio, float width, float height)
     {
         if (fill == null)
         {
@@ -102,7 +137,8 @@ public class PlayerStatusBars : MonoBehaviour
 
         ratio = Mathf.Clamp01(ratio);
         var scale = fill.localScale;
-        scale.x = ratio;
+        scale.x = width * ratio;
+        scale.y = height;
         fill.localScale = scale;
     }
 
@@ -127,7 +163,8 @@ public class PlayerStatusBars : MonoBehaviour
         {
             var t = transform;
             var scale = t.localScale;
-            t.localPosition = new Vector3(-_width * 0.5f + (_width * 0.5f * scale.x), 0f, 0f);
+            float ratio = _width <= 0f ? 0f : scale.x / _width;
+            t.localPosition = new Vector3(-_width * 0.5f + (_width * 0.5f * ratio), 0f, 0f);
         }
     }
 }

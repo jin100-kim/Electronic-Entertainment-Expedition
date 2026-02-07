@@ -138,6 +138,7 @@ public class GameSession : MonoBehaviour
 
     public Vector2 MapHalfSize => mapHalfSize;
     public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
+    public bool IsWaitingStartWeaponChoice => _waitingStartWeaponChoice;
 
     private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
 
@@ -160,6 +161,7 @@ public class GameSession : MonoBehaviour
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
     private readonly Dictionary<string, int> _upgradeCounts = new Dictionary<string, int>();
     private readonly List<string> _upgradeOrder = new List<string>();
+    private bool _showUpgradeHistory;
     private Vector2 _upgradeScroll;
     private bool _waitingStartWeaponChoice;
     private bool _autoPlayEnabled;
@@ -420,33 +422,9 @@ public class GameSession : MonoBehaviour
         _options.Add(new UpgradeOption("체력재생 +1", () => BuildValueStatText("체력재생", regenPerSecond, regenPerSecond + 1f), () => regenPerSecond += 1f));
         _options.Add(new UpgradeOption("사거리 +25%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.25f), () => rangeMult += 0.25f));
         _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.35f), () => xpGainMult += 0.35f));
-        if (boomerangStats != null && !boomerangStats.unlocked)
-        {
-            _options.Add(new UpgradeOption("무기 획득: 부메랑", () => BuildWeaponAcquireText(boomerangStats), () => UnlockBoomerang()));
-        }
-
-        if (novaStats != null && !novaStats.unlocked)
-        {
-            _options.Add(new UpgradeOption("무기 획득: 노바", () => BuildWeaponAcquireText(novaStats), () => UnlockNova()));
-        }
-        if (gunStats != null && !gunStats.unlocked)
-        {
-            _options.Add(new UpgradeOption("무기 획득: 총", () => BuildWeaponAcquireText(gunStats), () => UnlockStraight()));
-        }
-        if (StraightUnlocked)
-        {
-            _options.Add(new UpgradeOption("총 강화", () => BuildStraightUpgradeText(), () => LevelUpStraightWeapon()));
-        }
-
-        if (boomerangStats != null && boomerangStats.unlocked)
-        {
-            _options.Add(new UpgradeOption("부메랑 강화", () => BuildBoomerangUpgradeText(), () => LevelUpBoomerangWeapon()));
-        }
-
-        if (novaStats != null && novaStats.unlocked)
-        {
-            _options.Add(new UpgradeOption("노바 강화", () => BuildNovaUpgradeText(), () => LevelUpNovaWeapon()));
-        }
+        AddWeaponChoice(gunStats, BuildStraightUpgradeText, UnlockStraight, LevelUpStraightWeapon);
+        AddWeaponChoice(boomerangStats, BuildBoomerangUpgradeText, UnlockBoomerang, LevelUpBoomerangWeapon);
+        AddWeaponChoice(novaStats, BuildNovaUpgradeText, UnlockNova, LevelUpNovaWeapon);
 
         // random pick 3
         for (int i = _options.Count - 1; i > 0; i--)
@@ -546,17 +524,35 @@ public class GameSession : MonoBehaviour
         }
 
         string title = option.Title;
-        if (title.Contains("강화") && !title.Contains("무기 획득"))
-        {
-            return 1;
-        }
-
-        if (title.Contains("무기 획득"))
+        if (title.Contains("무기:"))
         {
             return 1;
         }
 
         return 0;
+    }
+
+    private void AddWeaponChoice(WeaponStatsData stats, System.Func<string> upgradeText, System.Action unlockAction, System.Action levelUpAction)
+    {
+        if (stats == null)
+        {
+            return;
+        }
+
+        _options.Add(new UpgradeOption(
+            $"무기: {stats.displayName}",
+            () => stats.unlocked && stats.level > 0 ? upgradeText() : BuildWeaponAcquireText(stats),
+            () =>
+            {
+                if (stats.unlocked && stats.level > 0)
+                {
+                    levelUpAction?.Invoke();
+                }
+                else
+                {
+                    unlockAction?.Invoke();
+                }
+            }));
     }
 
     private void ApplyAttackStats()
@@ -837,7 +833,38 @@ public class GameSession : MonoBehaviour
 
     private string BuildWeaponUpgradeText(string name, int currentLevel, int nextLevel, float currentDamage, float nextDamage, float currentRate, float nextRate, int currentProjectile, int nextProjectile, int currentPierce, int nextPierce)
     {
-        return $"{name}\n레벨 {currentLevel} -> {nextLevel}\n피해량 {currentDamage:0.##} -> {nextDamage:0.##}\n속도 {currentRate:0.##} -> {nextRate:0.##}\n투사체 {currentProjectile} -> {nextProjectile}\n관통 {currentPierce} -> {nextPierce}";
+        var lines = new List<string>
+        {
+            name,
+            $"레벨 {currentLevel} -> {nextLevel}"
+        };
+
+        AddLineIfChanged(lines, "피해량", currentDamage, nextDamage);
+        AddLineIfChanged(lines, "속도", currentRate, nextRate);
+        AddLineIfChanged(lines, "투사체", currentProjectile, nextProjectile);
+        AddLineIfChanged(lines, "관통", currentPierce, nextPierce);
+
+        return string.Join("\n", lines);
+    }
+
+    private static void AddLineIfChanged(List<string> lines, string label, float current, float next)
+    {
+        if (Mathf.Abs(next - current) < 0.0001f)
+        {
+            return;
+        }
+
+        lines.Add($"{label} {current:0.##} -> {next:0.##}");
+    }
+
+    private static void AddLineIfChanged(List<string> lines, string label, int current, int next)
+    {
+        if (current == next)
+        {
+            return;
+        }
+
+        lines.Add($"{label} {current} -> {next}");
     }
 
     private string BuildPercentStatText(string label, float currentMult, float nextMult)
@@ -861,6 +888,7 @@ public class GameSession : MonoBehaviour
         if (_waitingStartWeaponChoice)
         {
             DrawStartWeaponChoice();
+            return;
         }
 
         if (_choosingUpgrade)
@@ -869,10 +897,29 @@ public class GameSession : MonoBehaviour
         }
 
         DrawAutoPlayToggle();
-        DrawUpgradeHistory();
+        DrawUpgradeHistoryToggle();
     }
 
-    private void DrawUpgradeHistory()
+    private void DrawUpgradeHistoryToggle()
+    {
+        const float width = 140f;
+        const float height = 32f;
+        float x = 12f;
+        float y = 45f;
+
+        string label = _showUpgradeHistory ? "업그레이드: ON" : "업그레이드: OFF";
+        if (GUI.Button(new Rect(x, y, width, height), label))
+        {
+            _showUpgradeHistory = !_showUpgradeHistory;
+        }
+
+        if (_showUpgradeHistory)
+        {
+            DrawUpgradeHistory(x, y + height + 8f);
+        }
+    }
+
+    private void DrawUpgradeHistory(float x, float y)
     {
         if (_upgradeOrder.Count == 0)
         {
@@ -881,8 +928,6 @@ public class GameSession : MonoBehaviour
 
         const float panelWidth = 220f;
         const float panelHeight = 260f;
-        float x = 12f;
-        float y = 90f;
 
         GUI.Box(new Rect(x, y, panelWidth, panelHeight), "획득한 업그레이드");
 
@@ -1055,6 +1100,19 @@ public class GameSession : MonoBehaviour
         {
             novaStats.unlocked = weapon == StartWeapon.Nova;
             novaStats.level = weapon == StartWeapon.Nova ? 1 : 0;
+        }
+
+        if (weapon == StartWeapon.Gun && gunStats != null)
+        {
+            TrackUpgrade($"무기: {gunStats.displayName}");
+        }
+        else if (weapon == StartWeapon.Boomerang && boomerangStats != null)
+        {
+            TrackUpgrade($"무기: {boomerangStats.displayName}");
+        }
+        else if (weapon == StartWeapon.Nova && novaStats != null)
+        {
+            TrackUpgrade($"무기: {novaStats.displayName}");
         }
 
         _waitingStartWeaponChoice = false;

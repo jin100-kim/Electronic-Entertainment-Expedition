@@ -15,6 +15,10 @@ public class GameHUD : MonoBehaviour
         {
             return;
         }
+        if (session.IsWaitingStartWeaponChoice)
+        {
+            return;
+        }
 
         if (_labelStyle == null || _smallStyle == null)
         {
