@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Animator))]
 public class ActorAnimatorDriver : MonoBehaviour
 {
     [SerializeField]
@@ -13,15 +12,23 @@ public class ActorAnimatorDriver : MonoBehaviour
     private string hurtTrigger = "Hurt";
 
     [SerializeField]
-    private float moveThreshold = 0.02f;
+    private float moveStartThreshold = 0.12f;
+
+    [SerializeField]
+    private float moveStopThreshold = 0.06f;
+
+    [SerializeField]
+    private float moveSmoothing = 12f;
 
     private Animator _animator;
     private Health _health;
     private Vector3 _lastPosition;
+    private bool _isMoving;
+    private float _smoothedSpeed;
 
     private void Awake()
     {
-        _animator = GetComponentInChildren<Animator>();
+        ResolveAnimator();
         _health = GetComponent<Health>();
         _lastPosition = transform.position;
 
@@ -41,9 +48,14 @@ public class ActorAnimatorDriver : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (_animator == null)
+        if (_animator == null || _animator.runtimeAnimatorController == null)
+        {
+            ResolveAnimator();
+        }
+
+        if (_animator == null || _animator.runtimeAnimatorController == null)
         {
             return;
         }
@@ -53,14 +65,26 @@ public class ActorAnimatorDriver : MonoBehaviour
 
         if (!string.IsNullOrEmpty(moveParam))
         {
-            bool isMoving = delta.sqrMagnitude > moveThreshold * moveThreshold;
-            _animator.SetBool(moveParam, isMoving);
+            float speed = Time.deltaTime > 0.0001f ? delta.magnitude / Time.deltaTime : 0f;
+            float lerp = 1f - Mathf.Exp(-moveSmoothing * Time.deltaTime);
+            _smoothedSpeed = Mathf.Lerp(_smoothedSpeed, speed, lerp);
+
+            if (!_isMoving && _smoothedSpeed >= moveStartThreshold)
+            {
+                _isMoving = true;
+            }
+            else if (_isMoving && _smoothedSpeed <= moveStopThreshold)
+            {
+                _isMoving = false;
+            }
+
+            _animator.SetBool(moveParam, _isMoving);
         }
     }
 
     private void OnDamaged(float amount)
     {
-        if (_animator == null || string.IsNullOrEmpty(hurtTrigger))
+        if (_animator == null || _animator.runtimeAnimatorController == null || string.IsNullOrEmpty(hurtTrigger))
         {
             return;
         }
@@ -70,11 +94,46 @@ public class ActorAnimatorDriver : MonoBehaviour
 
     private void OnDied()
     {
-        if (_animator == null || string.IsNullOrEmpty(deadParam))
+        if (_animator == null || _animator.runtimeAnimatorController == null || string.IsNullOrEmpty(deadParam))
         {
             return;
         }
 
         _animator.SetBool(deadParam, true);
+    }
+
+    private void ResolveAnimator()
+    {
+        _animator = null;
+
+        var visualRoot = transform.Find("Visuals");
+        if (visualRoot != null)
+        {
+            var visualAnimator = visualRoot.GetComponent<Animator>();
+            if (visualAnimator != null && visualAnimator.runtimeAnimatorController != null)
+            {
+                _animator = visualAnimator;
+            }
+        }
+
+        if (_animator == null)
+        {
+            var animators = GetComponentsInChildren<Animator>(true);
+            for (int i = 0; i < animators.Length; i++)
+            {
+                var anim = animators[i];
+                if (anim != null && anim.runtimeAnimatorController != null)
+                {
+                    _animator = anim;
+                    break;
+                }
+            }
+        }
+
+        var rootAnimator = GetComponent<Animator>();
+        if (rootAnimator != null && rootAnimator != _animator && rootAnimator.runtimeAnimatorController == null)
+        {
+            rootAnimator.enabled = false;
+        }
     }
 }

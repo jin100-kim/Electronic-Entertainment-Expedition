@@ -40,7 +40,7 @@ public class PlayerStatusBars : MonoBehaviour
     {
         bool show = true;
         var session = GameSession.Instance;
-        if (session != null && session.IsWaitingStartWeaponChoice)
+        if (session != null && !session.IsGameplayActive)
         {
             show = false;
         }

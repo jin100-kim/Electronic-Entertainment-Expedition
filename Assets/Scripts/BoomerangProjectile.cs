@@ -15,6 +15,15 @@ public class BoomerangProjectile : MonoBehaviour
     [SerializeField]
     private int pierce = 0;
 
+    [SerializeField]
+    private float returnAcceleration = 18f;
+
+    [SerializeField]
+    private float returnMaxSpeed = 18f;
+
+    [SerializeField]
+    private float catchDistance = 0.35f;
+
     private Vector2 _direction;
     private Transform _owner;
     private float _elapsed;
@@ -22,6 +31,7 @@ public class BoomerangProjectile : MonoBehaviour
     private bool _infinitePierce;
     private Collider2D _collider;
     private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
+    private bool _returning;
 
     public void Initialize(Transform owner, Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount)
     {
@@ -60,13 +70,39 @@ public class BoomerangProjectile : MonoBehaviour
     {
         _elapsed += Time.deltaTime;
         float half = lifetime * 0.5f;
-        Vector2 dir = _elapsed <= half ? _direction : -_direction;
-        transform.position += (Vector3)(dir * speed * Time.deltaTime);
+        if (!_returning && _elapsed >= half)
+        {
+            BeginReturn();
+        }
+
+        if (_returning)
+        {
+            if (_owner != null)
+            {
+                Vector2 toOwner = (Vector2)_owner.position - (Vector2)transform.position;
+                if (toOwner.sqrMagnitude <= catchDistance * catchDistance)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+
+                speed = Mathf.Min(speed + returnAcceleration * Time.deltaTime, returnMaxSpeed);
+                _direction = toOwner.normalized;
+            }
+        }
+
+        transform.position += (Vector3)(_direction * speed * Time.deltaTime);
 
         if (_elapsed >= lifetime)
         {
             Destroy(gameObject);
         }
+    }
+
+    private void BeginReturn()
+    {
+        _returning = true;
+        _hitTargets.Clear();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -78,6 +114,10 @@ public class BoomerangProjectile : MonoBehaviour
 
         if (_owner != null && other.transform == _owner)
         {
+            if (_returning)
+            {
+                Destroy(gameObject);
+            }
             return;
         }
 

@@ -15,7 +15,7 @@ public class GameHUD : MonoBehaviour
         {
             return;
         }
-        if (session.IsWaitingStartWeaponChoice)
+        if (!session.IsGameplayActive)
         {
             return;
         }

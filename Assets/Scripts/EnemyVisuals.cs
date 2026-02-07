@@ -36,6 +36,7 @@ public class EnemyVisuals : MonoBehaviour
         {
             renderer = root.gameObject.AddComponent<SpriteRenderer>();
         }
+        renderer.color = Color.white;
 
         _animator = root.GetComponent<Animator>();
         if (_animator == null)

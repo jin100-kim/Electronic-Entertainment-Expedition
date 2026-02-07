@@ -136,9 +136,17 @@ public class GameSession : MonoBehaviour
     [SerializeField]
     private StartWeapon startWeapon = StartWeapon.Gun;
 
+    [Header("Start Character Preview")]
+    [SerializeField]
+    private float startPreviewScale = 0.8f;
+
+    [SerializeField]
+    private int startPreviewSortingOrder = 5000;
+
     public Vector2 MapHalfSize => mapHalfSize;
     public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
     public bool IsWaitingStartWeaponChoice => _waitingStartWeaponChoice;
+    public bool IsGameplayActive => _gameStarted && !_waitingStartWeaponChoice;
 
     private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
 
@@ -166,6 +174,8 @@ public class GameSession : MonoBehaviour
     private bool _waitingStartWeaponChoice;
     private bool _autoPlayEnabled;
     private float _autoUpgradeStartTime = -1f;
+    private GameObject[] _startPreviews;
+    private Camera _cachedCamera;
 
     private enum StartWeapon
     {
@@ -919,6 +929,11 @@ public class GameSession : MonoBehaviour
             return;
         }
 
+        if (!_gameStarted)
+        {
+            return;
+        }
+
         if (_choosingUpgrade)
         {
             DrawUpgradeChoices();
@@ -1087,7 +1102,8 @@ public class GameSession : MonoBehaviour
         float x = (Screen.width - boxWidth) * 0.5f;
         float y = (Screen.height - boxHeight) * 0.5f;
 
-        GUI.Box(new Rect(x, y, boxWidth, boxHeight), "시작 무기 선택");
+        GUI.Box(new Rect(x, y, boxWidth, boxHeight), "시작 캐릭터 선택");
+        GUI.Label(new Rect(x + 20f, y + 36f, boxWidth - 40f, 20f), "캐릭터 스탯은 현재 동일합니다.");
 
         float buttonWidth = 160f;
         float buttonHeight = 120f;
@@ -1095,15 +1111,22 @@ public class GameSession : MonoBehaviour
         float bx = x + (boxWidth - (buttonWidth * 3f + gap * 2f)) * 0.5f;
         float by = y + 70f;
 
-        if (GUI.Button(new Rect(bx, by, buttonWidth, buttonHeight), "총"))
+        var rectMage = new Rect(bx, by, buttonWidth, buttonHeight);
+        var rectWarrior = new Rect(bx + buttonWidth + gap, by, buttonWidth, buttonHeight);
+        var rectDemon = new Rect(bx + (buttonWidth + gap) * 2f, by, buttonWidth, buttonHeight);
+
+        EnsureStartCharacterPreviews();
+        UpdateStartCharacterPreviews(rectMage, rectWarrior, rectDemon);
+
+        if (GUI.Button(rectMage, "마법사\n기본 무기: 총"))
         {
             SelectStartWeapon(StartWeapon.Gun);
         }
-        if (GUI.Button(new Rect(bx + buttonWidth + gap, by, buttonWidth, buttonHeight), "부메랑"))
+        if (GUI.Button(rectWarrior, "전사\n기본 무기: 부메랑"))
         {
             SelectStartWeapon(StartWeapon.Boomerang);
         }
-        if (GUI.Button(new Rect(bx + (buttonWidth + gap) * 2f, by, buttonWidth, buttonHeight), "노바"))
+        if (GUI.Button(rectDemon, "데몬로드\n기본 무기: 노바"))
         {
             SelectStartWeapon(StartWeapon.Nova);
         }
@@ -1144,6 +1167,92 @@ public class GameSession : MonoBehaviour
         }
 
         _waitingStartWeaponChoice = false;
+        ClearStartCharacterPreviews();
         StartLocalGame();
+    }
+
+    private void EnsureStartCharacterPreviews()
+    {
+        if (_startPreviews != null && _startPreviews.Length == 3)
+        {
+            return;
+        }
+
+        _startPreviews = new GameObject[3];
+        _startPreviews[0] = CreateStartPreview("StartPreview_Mage", "Animations/Player_Wizard");
+        _startPreviews[1] = CreateStartPreview("StartPreview_Warrior", "Animations/Player_Knight");
+        _startPreviews[2] = CreateStartPreview("StartPreview_DemonLord", "Animations/Player_DemonLord");
+    }
+
+    private GameObject CreateStartPreview(string name, string controllerPath)
+    {
+        var go = new GameObject(name);
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sortingOrder = startPreviewSortingOrder;
+        renderer.color = Color.white;
+
+        var animator = go.AddComponent<Animator>();
+        var controller = Resources.Load<RuntimeAnimatorController>(controllerPath);
+        if (controller != null)
+        {
+            animator.runtimeAnimatorController = controller;
+        }
+
+        return go;
+    }
+
+    private void UpdateStartCharacterPreviews(Rect rectMage, Rect rectWarrior, Rect rectDemon)
+    {
+        var cam = _cachedCamera != null ? _cachedCamera : Camera.main;
+        if (cam == null)
+        {
+            return;
+        }
+        _cachedCamera = cam;
+
+        UpdatePreviewTransform(_startPreviews[0], cam, rectMage);
+        UpdatePreviewTransform(_startPreviews[1], cam, rectWarrior);
+        UpdatePreviewTransform(_startPreviews[2], cam, rectDemon);
+    }
+
+    private void UpdatePreviewTransform(GameObject preview, Camera cam, Rect rect)
+    {
+        if (preview == null)
+        {
+            return;
+        }
+
+        float depth = Mathf.Abs(cam.transform.position.z);
+        float screenX = rect.x + rect.width * 0.5f;
+        float screenY = Screen.height - (rect.y + rect.height * 0.5f);
+        Vector3 world = cam.ScreenToWorldPoint(new Vector3(screenX, screenY, depth));
+        world.z = 0f;
+        preview.transform.position = world;
+
+        float topY = Screen.height - rect.y;
+        float bottomY = Screen.height - (rect.y + rect.height);
+        float worldTop = cam.ScreenToWorldPoint(new Vector3(0f, topY, depth)).y;
+        float worldBottom = cam.ScreenToWorldPoint(new Vector3(0f, bottomY, depth)).y;
+        float worldHeight = Mathf.Abs(worldTop - worldBottom);
+        float scale = Mathf.Max(0.1f, worldHeight * startPreviewScale);
+        preview.transform.localScale = new Vector3(scale, scale, 1f);
+    }
+
+    private void ClearStartCharacterPreviews()
+    {
+        if (_startPreviews == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _startPreviews.Length; i++)
+        {
+            if (_startPreviews[i] != null)
+            {
+                Destroy(_startPreviews[i]);
+            }
+        }
+
+        _startPreviews = null;
     }
 }

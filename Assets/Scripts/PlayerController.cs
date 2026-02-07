@@ -13,6 +13,24 @@ public class PlayerController : NetworkBehaviour
     private Color playerColor = new Color(0.2f, 0.9f, 0.3f, 1f);
 
     [SerializeField]
+    private Color[] playerPalette = new[]
+    {
+        new Color(0.2f, 0.9f, 0.3f, 1f),
+        new Color(1f, 0.85f, 0.2f, 1f),
+        new Color(0.3f, 0.7f, 1f, 1f),
+        new Color(1f, 0.4f, 0.6f, 1f)
+    };
+
+    [SerializeField]
+    private Vector3 shadowOffset = new Vector3(0f, -0.25f, 0f);
+
+    [SerializeField]
+    private Vector3 shadowScale = new Vector3(0.6f, 0.25f, 1f);
+
+    [SerializeField]
+    private float shadowAlpha = 0.6f;
+
+    [SerializeField]
     private bool allowOfflineControl = true;
 
     [SerializeField]
@@ -55,14 +73,32 @@ public class PlayerController : NetworkBehaviour
     private const int SpriteSize = 50;
     private float _moveSpeedMult = 1f;
     private Vector2 _autoInputCurrent;
+    private Transform _visualRoot;
+    private SpriteRenderer _visualRenderer;
+    private SpriteRenderer _shadowRenderer;
+    private Vector3 _lastPosition;
 
     private void Awake()
     {
+        _lastPosition = transform.position;
         EnsureVisual();
+        EnsureShadow();
         EnsurePhysics();
         EnsureHealth();
         EnsureStatusBars();
+        EnsureDamageVignette();
         EnsureVisuals();
+    }
+
+    private void Start()
+    {
+        ApplyPlayerColor();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        ApplyPlayerColor();
     }
 
     private void Update()
@@ -81,6 +117,7 @@ public class PlayerController : NetworkBehaviour
         float speed = moveSpeed * _moveSpeedMult;
         Vector2 delta = input * speed * Time.deltaTime;
         transform.Translate(delta, Space.World);
+        UpdateFacingFromInput(input);
 
         if (GameSession.Instance != null)
         {
@@ -278,28 +315,116 @@ public class PlayerController : NetworkBehaviour
             rootRenderer.enabled = false;
         }
 
-        Transform visualRoot = GetOrCreateVisualRoot();
-        visualRoot.localScale = Vector3.one * visualScale;
+        _visualRoot = GetOrCreateVisualRoot();
+        _visualRoot.localScale = Vector3.one * visualScale;
 
-        var renderer = visualRoot.GetComponent<SpriteRenderer>();
-        if (renderer == null)
+        _visualRenderer = _visualRoot.GetComponent<SpriteRenderer>();
+        if (_visualRenderer == null)
         {
-            renderer = visualRoot.gameObject.AddComponent<SpriteRenderer>();
+            _visualRenderer = _visualRoot.gameObject.AddComponent<SpriteRenderer>();
         }
 
-        var animator = visualRoot.GetComponent<Animator>();
+        var animator = _visualRoot.GetComponent<Animator>();
         if (animator != null && animator.runtimeAnimatorController != null)
         {
-            renderer.color = Color.white;
+            _visualRenderer.color = Color.white;
             return;
         }
 
-        if (renderer.sprite == null)
+        if (_visualRenderer.sprite == null)
         {
-            renderer.sprite = CreateCircleSprite(SpriteSize);
+            _visualRenderer.sprite = CreateCircleSprite(SpriteSize);
         }
 
-        renderer.color = playerColor;
+        _visualRenderer.color = Color.white;
+    }
+
+    private void EnsureShadow()
+    {
+        var existing = transform.Find("Shadow");
+        if (existing == null)
+        {
+            var shadow = new GameObject("Shadow");
+            shadow.transform.SetParent(transform, false);
+            shadow.transform.localPosition = shadowOffset;
+            shadow.transform.localScale = shadowScale;
+            _shadowRenderer = shadow.AddComponent<SpriteRenderer>();
+        }
+        else
+        {
+            _shadowRenderer = existing.GetComponent<SpriteRenderer>();
+            if (_shadowRenderer == null)
+            {
+                _shadowRenderer = existing.gameObject.AddComponent<SpriteRenderer>();
+            }
+            existing.localPosition = shadowOffset;
+            existing.localScale = shadowScale;
+        }
+
+        if (_shadowRenderer.sprite == null)
+        {
+            _shadowRenderer.sprite = CreateCircleSprite(SpriteSize);
+        }
+
+        UpdateShadowColor();
+        _shadowRenderer.sortingOrder = -1;
+    }
+
+    private void LateUpdate()
+    {
+        Vector3 current = transform.position;
+        Vector3 delta = current - _lastPosition;
+        if (Mathf.Abs(delta.x) > 0.001f)
+        {
+            SetFacing(delta.x < 0f);
+        }
+        _lastPosition = current;
+    }
+
+    private void UpdateFacingFromInput(Vector2 input)
+    {
+        if (Mathf.Abs(input.x) < 0.001f)
+        {
+            return;
+        }
+
+        SetFacing(input.x < 0f);
+    }
+
+    private void SetFacing(bool faceLeft)
+    {
+        if (_visualRenderer == null)
+        {
+            return;
+        }
+
+        _visualRenderer.flipX = faceLeft;
+    }
+
+    private void ApplyPlayerColor()
+    {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            if (playerPalette != null && playerPalette.Length > 0)
+            {
+                int index = (int)(OwnerClientId % (ulong)playerPalette.Length);
+                playerColor = playerPalette[index];
+            }
+        }
+
+        UpdateShadowColor();
+    }
+
+    private void UpdateShadowColor()
+    {
+        if (_shadowRenderer == null)
+        {
+            return;
+        }
+
+        var shadowColor = playerColor;
+        shadowColor.a = Mathf.Clamp01(shadowAlpha);
+        _shadowRenderer.color = shadowColor;
     }
 
     private void EnsurePhysics()
@@ -336,6 +461,14 @@ public class PlayerController : NetworkBehaviour
         if (GetComponent<PlayerStatusBars>() == null)
         {
             gameObject.AddComponent<PlayerStatusBars>();
+        }
+    }
+
+    private void EnsureDamageVignette()
+    {
+        if (GetComponent<PlayerDamageVignette>() == null)
+        {
+            gameObject.AddComponent<PlayerDamageVignette>();
         }
     }
 

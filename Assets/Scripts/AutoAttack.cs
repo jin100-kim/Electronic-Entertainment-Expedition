@@ -30,6 +30,12 @@ public class AutoAttack : MonoBehaviour
     [SerializeField]
     private int baseProjectilePierce = 0;
 
+    [SerializeField]
+    private float straightParallelSpacing = 0.35f;
+
+    [SerializeField]
+    private float novaOrbitAngularSpeed = 8f;
+
     private float _fireInterval;
     private float _baseInterval;
     private float _projectileSpeed;
@@ -176,13 +182,13 @@ public class AutoAttack : MonoBehaviour
             return;
         }
 
-        float angleStep = 16f;
-        float start = -angleStep * (count - 1) * 0.5f;
+        Vector2 perp = new Vector2(-direction.y, direction.x);
+        float start = -(count - 1) * 0.5f;
         for (int i = 0; i < count; i++)
         {
-            float angle = start + angleStep * i;
-            Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnProjectile(dir, _projectileDamage * _straight.DamageMult, 0f, lifetime);
+            float offsetIndex = start + i;
+            Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
+            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, spawnOffset);
         }
 
         _range = savedRange;
@@ -226,7 +232,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
-            SpawnNovaProjectile(dir, lifetime);
+            SpawnNovaProjectile(dir, lifetime, 1f);
         }
 
         _range = savedRange;
@@ -234,8 +240,13 @@ public class AutoAttack : MonoBehaviour
 
     private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed = 0f, float lifetimeOverride = -1f)
     {
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero);
+    }
+
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset)
+    {
         var go = new GameObject("Projectile");
-        go.transform.position = transform.position;
+        go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.localScale = Vector3.one * 0.4f;
 
         var renderer = go.AddComponent<SpriteRenderer>();
@@ -255,7 +266,7 @@ public class AutoAttack : MonoBehaviour
         proj.Initialize(direction, _projectileSpeed, damageOverride, life, _projectilePierce, spinSpeed);
     }
 
-    private void SpawnNovaProjectile(Vector2 direction, float lifetime)
+    private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign)
     {
         var go = new GameObject("NovaProjectile");
         go.transform.position = transform.position;
@@ -274,7 +285,8 @@ public class AutoAttack : MonoBehaviour
         col.radius = 0.5f;
 
         var proj = go.AddComponent<Projectile>();
-        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, 4f, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
+        float angularSpeed = Mathf.Max(0.1f, novaOrbitAngularSpeed) * rotationSign;
+        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
     }
 
     private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime)
