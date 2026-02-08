@@ -7,6 +7,9 @@ using Unity.Netcode.Transports.UTP;
 
 public class NetworkStartUI : MonoBehaviour
 {
+    [SerializeField]
+    private GameConfig gameConfig;
+
     [Header("Buttons")]
     [SerializeField]
     private string hostButtonText = "Start Host";
@@ -40,11 +43,36 @@ public class NetworkStartUI : MonoBehaviour
     private const string BuiltinFontPath = "LegacyRuntime.ttf";
 
     private Canvas _canvas;
+    private bool _settingsApplied;
 
     private void Start()
     {
+        ApplySettings();
         EnsureEventSystem();
         CreateButtons();
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.networkUi;
+
+        hostButtonText = settings.hostButtonText;
+        clientButtonText = settings.clientButtonText;
+        localButtonText = settings.localButtonText;
+        buttonSize = settings.buttonSize;
+        buttonSpacing = settings.buttonSpacing;
+        address = settings.address;
+        port = settings.port;
+        useImGuiFallback = settings.useImGuiFallback;
+        localSpawnPosition = settings.localSpawnPosition;
+
+        _settingsApplied = true;
     }
 
     private void CreateButtons()

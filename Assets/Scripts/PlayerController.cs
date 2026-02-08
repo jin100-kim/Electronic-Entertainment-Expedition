@@ -9,6 +9,9 @@ public class PlayerController : NetworkBehaviour
     public static readonly System.Collections.Generic.List<PlayerController> Active = new System.Collections.Generic.List<PlayerController>();
 
     [SerializeField]
+    private GameConfig gameConfig;
+
+    [SerializeField]
     private float moveSpeed = 5f;
 
     [SerializeField]
@@ -79,9 +82,11 @@ public class PlayerController : NetworkBehaviour
     private SpriteRenderer _visualRenderer;
     private SpriteRenderer _shadowRenderer;
     private Vector3 _lastPosition;
+    private bool _settingsApplied;
 
     private void Awake()
     {
+        ApplySettings();
         _lastPosition = transform.position;
         EnsureVisual();
         EnsureShadow();
@@ -108,6 +113,40 @@ public class PlayerController : NetworkBehaviour
     private void Start()
     {
         ApplyPlayerColor();
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.player;
+
+        moveSpeed = settings.moveSpeed;
+        playerColor = settings.playerColor;
+        playerPalette = settings.playerPalette;
+        shadowOffset = settings.shadowOffset;
+        shadowScale = settings.shadowScale;
+        shadowAlpha = settings.shadowAlpha;
+        allowOfflineControl = settings.allowOfflineControl;
+        autoPlayEnabled = settings.autoPlayEnabled;
+        visualScale = settings.visualScale;
+
+        autoSeekXp = settings.autoSeekXp;
+        autoXpPriority = settings.autoXpPriority;
+        autoXpSeekRange = settings.autoXpSeekRange;
+        autoMinDistance = settings.autoMinDistance;
+        autoMaxDistance = settings.autoMaxDistance;
+        autoOrbitStrength = settings.autoOrbitStrength;
+        autoKeepDistanceStrength = settings.autoKeepDistanceStrength;
+        autoCenterPull = settings.autoCenterPull;
+        autoSmooth = settings.autoSmooth;
+        autoMidCenterPull = settings.autoMidCenterPull;
+
+        _settingsApplied = true;
     }
 
     public override void OnNetworkSpawn()

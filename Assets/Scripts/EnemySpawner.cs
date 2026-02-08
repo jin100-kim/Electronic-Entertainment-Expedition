@@ -4,6 +4,9 @@ using UnityEngine;
 public class EnemySpawner : MonoBehaviour
 {
     [SerializeField]
+    private GameConfig gameConfig;
+
+    [SerializeField]
     private float spawnInterval = 2f;
 
     [SerializeField]
@@ -82,6 +85,7 @@ public class EnemySpawner : MonoBehaviour
     private float _nextEliteTime = -1f;
     private float _nextBossTime = -1f;
     private readonly List<GameObject> _enemies = new List<GameObject>();
+    private bool _settingsApplied;
 
     public Transform Target { get; set; }
 
@@ -131,6 +135,52 @@ public class EnemySpawner : MonoBehaviour
     {
         get => enemyMaxHealth;
         set => enemyMaxHealth = Mathf.Max(1f, value);
+    }
+
+    private void Awake()
+    {
+        ApplySettings();
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.enemySpawner;
+
+        spawnInterval = settings.spawnInterval;
+        maxEnemies = settings.maxEnemies;
+        spawnRadius = settings.spawnRadius;
+        enemyMoveSpeed = settings.enemyMoveSpeed;
+        enemyDamage = settings.enemyDamage;
+        enemyDamageCooldown = settings.enemyDamageCooldown;
+        enemyXpReward = settings.enemyXpReward;
+        enemyMaxHealth = settings.enemyMaxHealth;
+        enemyVisualScale = settings.enemyVisualScale;
+
+        eliteStartTime = settings.eliteStartTime;
+        eliteInterval = settings.eliteInterval;
+        eliteChance = settings.eliteChance;
+        maxEliteAlive = settings.maxEliteAlive;
+        bossStartTime = settings.bossStartTime;
+        bossInterval = settings.bossInterval;
+        maxBossAlive = settings.maxBossAlive;
+
+        eliteHealthMult = settings.eliteHealthMult;
+        eliteDamageMult = settings.eliteDamageMult;
+        eliteSpeedMult = settings.eliteSpeedMult;
+        eliteXpMult = settings.eliteXpMult;
+
+        bossHealthMult = settings.bossHealthMult;
+        bossDamageMult = settings.bossDamageMult;
+        bossSpeedMult = settings.bossSpeedMult;
+        bossXpMult = settings.bossXpMult;
+
+        _settingsApplied = true;
     }
 
     private void Update()

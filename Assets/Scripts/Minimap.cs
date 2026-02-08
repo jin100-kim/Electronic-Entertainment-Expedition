@@ -4,46 +4,24 @@ using UnityEngine.UI;
 public class Minimap : MonoBehaviour
 {
     [SerializeField]
+    private GameConfig gameConfig;
+
     private bool useUGUI = true;
-
-    [SerializeField]
     private Vector2 size = new Vector2(180f, 180f);
-
-    [SerializeField]
     private Vector2 margin = new Vector2(12f, 12f);
-
-    [SerializeField]
     private Vector2 referenceResolution = new Vector2(1280f, 720f);
-
-    [SerializeField]
     private Font uiFont;
-
-    [SerializeField]
     private bool showCameraRect = true;
-
-    [SerializeField]
     private Color cameraRectColor = new Color(1f, 1f, 1f, 0.6f);
-
-    [SerializeField]
     private float cameraRectThickness = 1f;
-
-    [SerializeField]
     private float playerDotSize = 6f;
-
-    [SerializeField]
     private float enemyDotSize = 2f;
-
-    [SerializeField]
     private float weaponDotSize = 2f;
-
-    [SerializeField]
     private float borderThickness = 2f;
-
-    [SerializeField]
     private Color borderColor = new Color(1f, 1f, 1f, 0.5f);
-
-    [SerializeField]
     private Color backgroundColor = new Color(0f, 0f, 0f, 0.35f);
+    private int labelFontSize = 12;
+    private string labelText = "미니맵";
 
     private Texture2D _dotTex;
     private Texture2D _bgTex;
@@ -57,9 +35,11 @@ public class Minimap : MonoBehaviour
     private int _texWidth;
     private int _texHeight;
     private bool _uiReady;
+    private bool _settingsApplied;
 
     private void Awake()
     {
+        ApplySettings();
         if (useUGUI)
         {
             BuildUGUI();
@@ -72,6 +52,11 @@ public class Minimap : MonoBehaviour
 
     private void Update()
     {
+        if (!_settingsApplied)
+        {
+            ApplySettings();
+        }
+
         if (!useUGUI)
         {
             return;
@@ -100,7 +85,7 @@ public class Minimap : MonoBehaviour
             size.y);
 
         GUI.DrawTexture(rect, _bgTex);
-        GUI.Box(rect, "미니맵");
+        GUI.Box(rect, labelText);
         DrawBorder(rect);
 
         Vector2 half = session.MapHalfSize;
@@ -145,14 +130,14 @@ public class Minimap : MonoBehaviour
         _imageRect.sizeDelta = size;
 
         var fontToUse = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        _label = CreateText(_imageRect, "Label", fontToUse, 12, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.9f));
+        _label = CreateText(_imageRect, "Label", fontToUse, labelFontSize, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.9f));
         var labelRect = _label.rectTransform;
         labelRect.anchorMin = new Vector2(0f, 1f);
         labelRect.anchorMax = new Vector2(0f, 1f);
         labelRect.pivot = new Vector2(0f, 1f);
         labelRect.anchoredPosition = new Vector2(6f, -4f);
         labelRect.sizeDelta = new Vector2(120f, 18f);
-        _label.text = "미니맵";
+        _label.text = labelText;
 
         EnsureTexture();
         _uiReady = true;
@@ -182,6 +167,30 @@ public class Minimap : MonoBehaviour
 
         EnsureTexture();
         RenderMinimap(session);
+    }
+
+    private void ApplySettings()
+    {
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.minimap;
+
+        useUGUI = settings.useUGUI;
+        size = settings.size;
+        margin = settings.margin;
+        referenceResolution = settings.referenceResolution;
+        uiFont = settings.uiFont;
+        showCameraRect = settings.showCameraRect;
+        cameraRectColor = settings.cameraRectColor;
+        cameraRectThickness = settings.cameraRectThickness;
+        playerDotSize = settings.playerDotSize;
+        enemyDotSize = settings.enemyDotSize;
+        weaponDotSize = settings.weaponDotSize;
+        borderThickness = settings.borderThickness;
+        borderColor = settings.borderColor;
+        backgroundColor = settings.backgroundColor;
+        labelFontSize = settings.labelFontSize;
+        labelText = string.IsNullOrEmpty(settings.labelText) ? "미니맵" : settings.labelText;
+        _settingsApplied = true;
     }
 
     private void EnsureTexture()

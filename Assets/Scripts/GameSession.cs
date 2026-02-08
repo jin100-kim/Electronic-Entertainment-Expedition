@@ -14,91 +14,84 @@ public class GameSession : MonoBehaviour
 {
     public static GameSession Instance { get; private set; }
 
-    [Header("Start Mode")]
     [SerializeField]
+    private GameConfig gameConfig;
+    [SerializeField]
+    private StageConfig stageConfig;
+    [SerializeField]
+    private DifficultyConfig difficultyConfig;
+
+    [Header("Start Mode")]
     private bool autoStartLocal = false;
 
-    [SerializeField]
     private bool showNetworkUI = true;
 
     [Header("Spawn")]
-    [SerializeField]
     private float spawnInterval = 2f;
 
-    [SerializeField]
     private int maxEnemies = 20;
 
-    [SerializeField]
     private float spawnRadius = 8f;
 
     [Header("Difficulty")]
-    [SerializeField]
     private float minSpawnInterval = 0.4f;
 
-    [SerializeField]
     private float spawnIntervalDecayPerSec = 0.01f;
 
-    [SerializeField]
     private int maxEnemiesPerMinute = 10;
 
-    [SerializeField]
     private float monsterLevelInterval = 60f;
 
-    [SerializeField]
     private float enemyHealthPerLevel = 0.15f;
 
-    [SerializeField]
     private float enemyDamagePerLevel = 0.10f;
 
-    [SerializeField]
     private float enemySpeedPerLevel = 0.05f;
 
-    [SerializeField]
     private float enemyXpPerLevel = 0f;
 
+    private float enemyHealthMultiplier = 1f;
+
+    private float enemyDamageMultiplier = 1f;
+
+    private float enemySpeedMultiplier = 1f;
+
+    private float enemyXpMultiplier = 1f;
+
     [Header("Player")]
-    [SerializeField]
     private Vector3 localSpawnPosition = Vector3.zero;
 
     [Header("Map Bounds")]
-    [SerializeField]
     private Vector2 mapHalfSize = new Vector2(24f, 24f);
 
+    [Header("Stage")]
+    private float stageTimeLimitSeconds = 0f;
+
+    private int stageKillTarget = 0;
+
     [Header("Upgrades")]
-    [SerializeField]
     private int maxUpgradeLevel = 10;
 
-    [SerializeField]
     private int maxWeaponSlots = 5;
 
-    [SerializeField]
     private int maxStatSlots = 5;
 
-    [SerializeField]
     private float damageMult = 1f;
 
-    [SerializeField]
     private float fireRateMult = 1f;
 
-    [SerializeField]
     private float rangeMult = 1f;
 
-    [SerializeField]
     private float sizeMult = 1f;
 
-    [SerializeField]
     private float lifetimeMult = 1f;
 
-    [SerializeField]
     private int projectileCount = 1;
 
-    [SerializeField]
     private int projectilePierceBonus = 0;
 
-    [SerializeField]
     private float weaponDamageMult = 1f;
 
-    [SerializeField]
     private WeaponStatsData gunStats = new WeaponStatsData
     {
         displayName = "총",
@@ -110,7 +103,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData boomerangStats = new WeaponStatsData
     {
         displayName = "부메랑",
@@ -122,7 +114,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData novaStats = new WeaponStatsData
     {
         displayName = "노바",
@@ -134,7 +125,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData shotgunStats = new WeaponStatsData
     {
         displayName = "샷건",
@@ -146,7 +136,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData laserStats = new WeaponStatsData
     {
         displayName = "레이저",
@@ -158,7 +147,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData chainStats = new WeaponStatsData
     {
         displayName = "체인 라이트닝",
@@ -170,7 +158,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData droneStats = new WeaponStatsData
     {
         displayName = "드론",
@@ -182,7 +169,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData shurikenStats = new WeaponStatsData
     {
         displayName = "수리검",
@@ -194,7 +180,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData frostStats = new WeaponStatsData
     {
         displayName = "빙결 구체",
@@ -206,7 +191,6 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private WeaponStatsData lightningStats = new WeaponStatsData
     {
         displayName = "번개",
@@ -218,130 +202,97 @@ public class GameSession : MonoBehaviour
         bonusProjectiles = 0
     };
 
-    [SerializeField]
     private float moveSpeedMult = 1f;
 
-    [SerializeField]
     private float xpGainMult = 1f;
 
-    [SerializeField]
     private float magnetRangeMult = 1f;
 
-    [SerializeField]
     private float magnetSpeedMult = 1f;
 
-    [SerializeField]
     private float magnetRangeStep = 0.5f;
 
-    [SerializeField]
     private float magnetSpeedStep = 0.5f;
 
-    [SerializeField]
     private float regenPerSecond = 0f;
 
     [Header("Drops")]
-    [SerializeField]
     private float coinDropChance = 0.06f;
 
-    [SerializeField]
     private int coinAmount = 1;
 
     [Header("Upgrade Levels")]
-    [SerializeField]
     private int damageLevel = 0;
 
-    [SerializeField]
     private int fireRateLevel = 0;
 
-    [SerializeField]
     private int moveSpeedLevel = 0;
 
-    [SerializeField]
     private int healthReinforceLevel = 0;
 
-    [SerializeField]
     private int rangeLevel = 0;
 
-    [SerializeField]
     private int xpGainLevel = 0;
 
-    [SerializeField]
     private int sizeLevel = 0;
 
-    [SerializeField]
     private int magnetLevel = 0;
 
-    [SerializeField]
     private int pierceLevel = 0;
 
-    [SerializeField]
     private int projectileCountLevel = 0;
 
     [Header("Start Weapon")]
-    [SerializeField]
     private bool requireStartWeaponChoice = true;
 
-    [SerializeField]
-    private StartWeapon startWeapon = StartWeapon.Gun;
+    private StartWeaponType startWeapon = StartWeaponType.Gun;
 
     [Header("Start Character Preview")]
-    [SerializeField]
     private float startPreviewScale = 2f;
 
-    [SerializeField]
     private float startPreviewDimAlpha = 0.5f;
 
-    [SerializeField]
     private float startPreviewHoverAlpha = 1f;
 
-    [SerializeField]
     private int startPreviewSortingOrder = 5000;
 
-    [SerializeField]
     private float startPreviewYOffset = -0.5f;
 
     [Header("UI")]
-    [SerializeField]
     private bool useUGUI = true;
 
-    [SerializeField]
     private Vector2 uiReferenceResolution = new Vector2(1280f, 720f);
 
-    [SerializeField]
     private Font uiFont;
 
-    [SerializeField]
     private Color startButtonNormalColor = new Color(0f, 0f, 0f, 0.25f);
 
-    [SerializeField]
     private Color startButtonHoverColor = new Color(0.25f, 0.25f, 0.25f, 0.6f);
 
-    [SerializeField]
     private Color upgradeButtonNormalColor = new Color(0.2f, 0.2f, 0.2f, 0.9f);
 
-    [SerializeField]
     private Color upgradeButtonHoverColor = new Color(0.35f, 0.35f, 0.35f, 0.95f);
 
-    [SerializeField]
     private Color startButtonClickColor = new Color(0.9f, 0.9f, 0.9f, 1f);
 
-    [SerializeField]
     private Color upgradeButtonClickColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
-    [SerializeField]
     private float selectionClickDuration = 0.3f;
 
-    [SerializeField]
     private float selectionClickScale = 0.96f;
 
-    [SerializeField]
     private Color selectionOutlineColor = new Color(1f, 1f, 1f, 0.9f);
 
-    [SerializeField]
     private float selectionOutlineSize = 2f;
 
-    [SerializeField]
     private float selectionFlashStrength = 1f;
+
+    [Header("Developer")]
+    private bool allowAutoButtonSecret = true;
+
+    private string autoButtonSecret = "auto";
+
+    private float autoButtonSecretTimeout = 1.5f;
 
     public Vector2 MapHalfSize => mapHalfSize;
     public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
@@ -352,6 +303,7 @@ public class GameSession : MonoBehaviour
     private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
 
     public bool IsGameOver { get; private set; }
+    public bool IsStageComplete => _stageCompleted;
     public float ElapsedTime { get; private set; }
     public Health PlayerHealth { get; private set; }
     public Experience PlayerExperience { get; private set; }
@@ -364,9 +316,11 @@ public class GameSession : MonoBehaviour
     private float _baseEnemyMaxHealth;
     private int _baseEnemyXp;
     private bool _cachedSpawnerBase;
+    private bool _spawnerDifficultyApplied;
     private AutoAttack _attack;
     private PlayerController _player;
     private bool _gameStarted;
+    private bool _stageCompleted;
 
     private bool _choosingUpgrade;
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
@@ -388,6 +342,7 @@ public class GameSession : MonoBehaviour
     private Button _rerollButton;
     private Text _rerollButtonText;
     private RectTransform _gameOverPanel;
+    private Text _gameOverTitleText;
     private Text _gameOverTimeText;
     private Button _gameOverButton;
     private RectTransform _startPanel;
@@ -403,72 +358,125 @@ public class GameSession : MonoBehaviour
     private bool _uiReady;
     private bool _selectionLocked;
     private Coroutine _selectionFeedbackRoutine;
+    private bool _showAutoButton;
+    private string _autoSecretBuffer = string.Empty;
+    private float _autoSecretLastTime = -1f;
+    private bool _settingsApplied;
 
     private const string CoinPrefKey = "CoinCount";
     private int _coinCount;
     private int _killCount;
 
-    private enum StartWeapon
-    {
-        Gun,
-        Boomerang,
-        Nova
-    }
-
     private void Awake()
     {
-        ApplyRuntimeDefaults();
+        ApplySettings();
+        ResetRuntimeState();
         Instance = this;
         _coinCount = PlayerPrefs.GetInt(CoinPrefKey, 0);
     }
 
-    private void ApplyRuntimeDefaults()
+    private void ApplySettings()
     {
-        autoStartLocal = false;
-        showNetworkUI = true;
+        if (_settingsApplied)
+        {
+            return;
+        }
 
-        spawnInterval = 2f;
-        maxEnemies = 20;
-        spawnRadius = 8f;
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.game;
+        var stage = ResolveStageConfig(config);
+        var difficulty = ResolveDifficultyConfig(config);
 
-        minSpawnInterval = 0.4f;
-        spawnIntervalDecayPerSec = 0.01f;
-        maxEnemiesPerMinute = 10;
-        monsterLevelInterval = 60f;
-        enemyHealthPerLevel = 0.15f;
-        enemyDamagePerLevel = 0.10f;
-        enemySpeedPerLevel = 0.05f;
-        enemyXpPerLevel = 0f;
+        autoStartLocal = settings.autoStartLocal;
+        showNetworkUI = settings.showNetworkUI;
 
-        localSpawnPosition = Vector3.zero;
-        mapHalfSize = new Vector2(24f, 24f);
+        spawnInterval = settings.spawnInterval;
+        maxEnemies = settings.maxEnemies;
+        spawnRadius = settings.spawnRadius;
 
-        maxUpgradeLevel = 10;
-        maxWeaponSlots = 5;
-        maxStatSlots = 5;
+        minSpawnInterval = settings.minSpawnInterval;
+        spawnIntervalDecayPerSec = settings.spawnIntervalDecayPerSec;
+        maxEnemiesPerMinute = settings.maxEnemiesPerMinute;
+        monsterLevelInterval = settings.monsterLevelInterval;
+        enemyHealthPerLevel = settings.enemyHealthPerLevel;
+        enemyDamagePerLevel = settings.enemyDamagePerLevel;
+        enemySpeedPerLevel = settings.enemySpeedPerLevel;
+        enemyXpPerLevel = settings.enemyXpPerLevel;
 
-        damageMult = 1f;
-        fireRateMult = 1f;
-        rangeMult = 1f;
-        sizeMult = 1f;
-        lifetimeMult = 1f;
-        projectileCount = 1;
-        projectilePierceBonus = 0;
-        weaponDamageMult = 1f;
+        localSpawnPosition = settings.localSpawnPosition;
+        mapHalfSize = settings.mapHalfSize;
 
-        ApplyWeaponDefaults();
+        maxUpgradeLevel = settings.maxUpgradeLevel;
+        maxWeaponSlots = settings.maxWeaponSlots;
+        maxStatSlots = settings.maxStatSlots;
 
-        moveSpeedMult = 1f;
-        xpGainMult = 1f;
-        magnetRangeMult = 1f;
-        magnetSpeedMult = 1f;
-        magnetRangeStep = 1f;
-        magnetSpeedStep = 1f;
-        regenPerSecond = 0f;
+        damageMult = settings.damageMult;
+        fireRateMult = settings.fireRateMult;
+        rangeMult = settings.rangeMult;
+        sizeMult = settings.sizeMult;
+        lifetimeMult = settings.lifetimeMult;
+        projectileCount = settings.projectileCount;
+        projectilePierceBonus = settings.projectilePierceBonus;
+        weaponDamageMult = settings.weaponDamageMult;
 
-        coinDropChance = 0.06f;
-        coinAmount = 1;
+        gunStats = CloneWeaponStats(settings.gunStats);
+        boomerangStats = CloneWeaponStats(settings.boomerangStats);
+        novaStats = CloneWeaponStats(settings.novaStats);
+        shotgunStats = CloneWeaponStats(settings.shotgunStats);
+        laserStats = CloneWeaponStats(settings.laserStats);
+        chainStats = CloneWeaponStats(settings.chainStats);
+        droneStats = CloneWeaponStats(settings.droneStats);
+        shurikenStats = CloneWeaponStats(settings.shurikenStats);
+        frostStats = CloneWeaponStats(settings.frostStats);
+        lightningStats = CloneWeaponStats(settings.lightningStats);
 
+        moveSpeedMult = settings.moveSpeedMult;
+        xpGainMult = settings.xpGainMult;
+        magnetRangeMult = settings.magnetRangeMult;
+        magnetSpeedMult = settings.magnetSpeedMult;
+        magnetRangeStep = settings.magnetRangeStep;
+        magnetSpeedStep = settings.magnetSpeedStep;
+        regenPerSecond = settings.regenPerSecond;
+
+        coinDropChance = settings.coinDropChance;
+        coinAmount = settings.coinAmount;
+
+        requireStartWeaponChoice = settings.requireStartWeaponChoice;
+        startWeapon = settings.startWeapon;
+
+        startPreviewScale = settings.startPreviewScale;
+        startPreviewDimAlpha = settings.startPreviewDimAlpha;
+        startPreviewHoverAlpha = settings.startPreviewHoverAlpha;
+        startPreviewSortingOrder = settings.startPreviewSortingOrder;
+        startPreviewYOffset = settings.startPreviewYOffset;
+
+        useUGUI = settings.useUGUI;
+        uiReferenceResolution = settings.uiReferenceResolution;
+        uiFont = settings.uiFont;
+        startButtonNormalColor = settings.startButtonNormalColor;
+        startButtonHoverColor = settings.startButtonHoverColor;
+        upgradeButtonNormalColor = settings.upgradeButtonNormalColor;
+        upgradeButtonHoverColor = settings.upgradeButtonHoverColor;
+        startButtonClickColor = settings.startButtonClickColor;
+        upgradeButtonClickColor = settings.upgradeButtonClickColor;
+        selectionClickDuration = settings.selectionClickDuration;
+        selectionClickScale = settings.selectionClickScale;
+        selectionOutlineColor = settings.selectionOutlineColor;
+        selectionOutlineSize = settings.selectionOutlineSize;
+        selectionFlashStrength = settings.selectionFlashStrength;
+
+        allowAutoButtonSecret = settings.allowAutoButtonSecret;
+        autoButtonSecret = settings.autoButtonSecret;
+        autoButtonSecretTimeout = settings.autoButtonSecretTimeout;
+
+        ApplyStageOverrides(stage);
+        ApplyDifficultyOverrides(difficulty);
+
+        _settingsApplied = true;
+    }
+
+    private void ResetRuntimeState()
+    {
         damageLevel = 0;
         fireRateLevel = 0;
         moveSpeedLevel = 0;
@@ -479,60 +487,124 @@ public class GameSession : MonoBehaviour
         magnetLevel = 0;
         pierceLevel = 0;
         projectileCountLevel = 0;
-
-        requireStartWeaponChoice = true;
-        startWeapon = StartWeapon.Gun;
-
-        startPreviewScale = 2f;
-        startPreviewDimAlpha = 0.5f;
-        startPreviewHoverAlpha = 1f;
-        startPreviewSortingOrder = 5000;
-        startPreviewYOffset = -0.5f;
-
-        useUGUI = true;
-        uiReferenceResolution = new Vector2(1280f, 720f);
-        uiFont = null;
-        startButtonNormalColor = new Color(0f, 0f, 0f, 0.25f);
-        startButtonHoverColor = new Color(0.25f, 0.25f, 0.25f, 0.6f);
-        upgradeButtonNormalColor = new Color(0.2f, 0.2f, 0.2f, 0.9f);
-        upgradeButtonHoverColor = new Color(0.35f, 0.35f, 0.35f, 0.95f);
-        startButtonClickColor = new Color(0.9f, 0.9f, 0.9f, 1f);
-        upgradeButtonClickColor = new Color(0.55f, 0.55f, 0.55f, 1f);
-        selectionClickDuration = 0.3f;
-        selectionClickScale = 0.96f;
-        selectionOutlineColor = new Color(1f, 1f, 1f, 0.9f);
-        selectionOutlineSize = 2f;
-        selectionFlashStrength = 1f;
+        _cachedSpawnerBase = false;
+        _spawnerDifficultyApplied = false;
+        _stageCompleted = false;
     }
 
-    private void ApplyWeaponDefaults()
+    private static WeaponStatsData CloneWeaponStats(WeaponStatsData source)
     {
-        ApplyWeaponDefaults(gunStats, "총", 1, true, 1f, 1.2f, 1f, 0);
-        ApplyWeaponDefaults(boomerangStats, "부메랑", 0, false, 1f, 0.8f, 0.7f, 0);
-        ApplyWeaponDefaults(novaStats, "노바", 0, false, 1f, 0.6f, 0.5f, 0);
-        ApplyWeaponDefaults(shotgunStats, "샷건", 0, false, 0.9f, 0.7f, 0.75f, 0);
-        ApplyWeaponDefaults(laserStats, "레이저", 0, false, 1.1f, 0.8f, 1.4f, 0);
-        ApplyWeaponDefaults(chainStats, "체인 라이트닝", 0, false, 0.9f, 0.75f, 1.1f, 0);
-        ApplyWeaponDefaults(droneStats, "드론", 0, false, 0.8f, 0.5f, 1.0f, 0);
-        ApplyWeaponDefaults(shurikenStats, "수리검", 0, false, 0.9f, 0.9f, 1.0f, 0);
-        ApplyWeaponDefaults(frostStats, "빙결 구체", 0, false, 0.85f, 0.8f, 1.0f, 0);
-        ApplyWeaponDefaults(lightningStats, "번개", 0, false, 1.0f, 0.7f, 1.0f, 0);
+        if (source == null)
+        {
+            return new WeaponStatsData();
+        }
+
+        return new WeaponStatsData
+        {
+            displayName = source.displayName,
+            level = source.level,
+            unlocked = source.unlocked,
+            damageMult = source.damageMult,
+            fireRateMult = source.fireRateMult,
+            rangeMult = source.rangeMult,
+            bonusProjectiles = source.bonusProjectiles
+        };
     }
 
-    private static void ApplyWeaponDefaults(WeaponStatsData stats, string displayName, int level, bool unlocked, float damage, float rate, float range, int bonusProjectiles)
+    private StageConfig ResolveStageConfig(GameConfig config)
     {
-        if (stats == null)
+        if (stageConfig != null)
+        {
+            return stageConfig;
+        }
+
+        if (config != null && config.defaultStage != null)
+        {
+            return config.defaultStage;
+        }
+
+        return null;
+    }
+
+    private DifficultyConfig ResolveDifficultyConfig(GameConfig config)
+    {
+        if (difficultyConfig != null)
+        {
+            return difficultyConfig;
+        }
+
+        if (config != null && config.defaultDifficulty != null)
+        {
+            return config.defaultDifficulty;
+        }
+
+        return null;
+    }
+
+    private void ApplyStageOverrides(StageConfig stage)
+    {
+        if (stage == null)
         {
             return;
         }
 
-        stats.displayName = displayName;
-        stats.level = level;
-        stats.unlocked = unlocked;
-        stats.damageMult = damage;
-        stats.fireRateMult = rate;
-        stats.rangeMult = range;
-        stats.bonusProjectiles = bonusProjectiles;
+        stageTimeLimitSeconds = Mathf.Max(0f, stage.timeLimitSeconds);
+        stageKillTarget = Mathf.Max(0, stage.killTarget);
+        mapHalfSize = stage.mapHalfSize;
+        localSpawnPosition = stage.localSpawnPosition;
+
+        spawnInterval = stage.spawnInterval;
+        maxEnemies = stage.maxEnemies;
+        spawnRadius = stage.spawnRadius;
+        minSpawnInterval = stage.minSpawnInterval;
+        spawnIntervalDecayPerSec = stage.spawnIntervalDecayPerSec;
+        maxEnemiesPerMinute = stage.maxEnemiesPerMinute;
+    }
+
+    private void ApplyDifficultyOverrides(DifficultyConfig difficulty)
+    {
+        enemyHealthMultiplier = 1f;
+        enemyDamageMultiplier = 1f;
+        enemySpeedMultiplier = 1f;
+        enemyXpMultiplier = 1f;
+
+        if (difficulty == null)
+        {
+            return;
+        }
+
+        spawnInterval *= difficulty.spawnIntervalMultiplier;
+        minSpawnInterval *= difficulty.minSpawnIntervalMultiplier;
+        spawnIntervalDecayPerSec *= difficulty.spawnIntervalDecayMultiplier;
+        maxEnemies = Mathf.RoundToInt(maxEnemies * difficulty.maxEnemiesMultiplier);
+        maxEnemiesPerMinute = Mathf.RoundToInt(maxEnemiesPerMinute * difficulty.maxEnemiesPerMinuteMultiplier);
+
+        enemyHealthMultiplier = difficulty.enemyHealthMultiplier;
+        enemyDamageMultiplier = difficulty.enemyDamageMultiplier;
+        enemySpeedMultiplier = difficulty.enemySpeedMultiplier;
+        enemyXpMultiplier = difficulty.enemyXpMultiplier;
+
+        enemyHealthPerLevel *= difficulty.enemyHealthPerLevelMultiplier;
+        enemyDamagePerLevel *= difficulty.enemyDamagePerLevelMultiplier;
+        enemySpeedPerLevel *= difficulty.enemySpeedPerLevelMultiplier;
+        enemyXpPerLevel *= difficulty.enemyXpPerLevelMultiplier;
+
+        coinDropChance *= difficulty.coinDropChanceMultiplier;
+        xpGainMult *= difficulty.xpGainMultiplier;
+    }
+
+    private void ApplyDifficultyToSpawner()
+    {
+        if (_spawner == null || _spawnerDifficultyApplied)
+        {
+            return;
+        }
+
+        _spawner.EnemyMaxHealth *= enemyHealthMultiplier;
+        _spawner.EnemyDamage *= enemyDamageMultiplier;
+        _spawner.EnemyMoveSpeed *= enemySpeedMultiplier;
+        _spawner.EnemyXpReward = Mathf.Max(1, Mathf.RoundToInt(_spawner.EnemyXpReward * enemyXpMultiplier));
+        _spawnerDifficultyApplied = true;
     }
 
     private void Start()
@@ -623,11 +695,14 @@ public class GameSession : MonoBehaviour
         {
             ElapsedTime += Time.deltaTime;
             ApplyDifficultyScaling();
+            CheckStageCompletion();
         }
         else
         {
             HandleUpgradeHotkeys();
         }
+
+        HandleAutoButtonSecret();
     }
 
     private void LateUpdate()
@@ -752,7 +827,7 @@ public class GameSession : MonoBehaviour
         PlayerHealth?.SetRegenPerSecond(regenPerSecond);
     }
 
-    private void ApplyPlayerVisuals(StartWeapon weapon)
+    private void ApplyPlayerVisuals(StartWeaponType weapon)
     {
         if (_player == null)
         {
@@ -767,10 +842,10 @@ public class GameSession : MonoBehaviour
 
         switch (weapon)
         {
-            case StartWeapon.Boomerang:
+            case StartWeaponType.Boomerang:
                 visuals.SetVisual(PlayerVisuals.PlayerVisualType.Warrior);
                 break;
-            case StartWeapon.Nova:
+            case StartWeaponType.Nova:
                 visuals.SetVisual(PlayerVisuals.PlayerVisualType.DemonLord);
                 break;
             default:
@@ -792,6 +867,7 @@ public class GameSession : MonoBehaviour
         _spawner.MaxEnemies = maxEnemies;
         _spawner.SpawnRadius = spawnRadius;
 
+        ApplyDifficultyToSpawner();
         CacheSpawnerBaseStats();
         ApplyDifficultyScaling();
     }
@@ -1042,6 +1118,10 @@ public class GameSession : MonoBehaviour
     public void RegisterKill(Vector3 position)
     {
         _killCount += 1;
+        if (!_stageCompleted && stageKillTarget > 0 && _killCount >= stageKillTarget)
+        {
+            CompleteStage();
+        }
         TrySpawnCoin(position);
     }
 
@@ -1281,6 +1361,43 @@ public class GameSession : MonoBehaviour
         _spawner.EnemyDamage = _baseEnemyDamage * (1f + enemyDamagePerLevel * levelFactor);
         _spawner.EnemyMaxHealth = _baseEnemyMaxHealth * (1f + enemyHealthPerLevel * levelFactor);
         _spawner.EnemyXpReward = Mathf.Max(1, Mathf.RoundToInt(_baseEnemyXp * (1f + enemyXpPerLevel * levelFactor)));
+    }
+
+    private void CheckStageCompletion()
+    {
+        if (_stageCompleted || IsGameOver)
+        {
+            return;
+        }
+
+        if (stageTimeLimitSeconds > 0f && ElapsedTime >= stageTimeLimitSeconds)
+        {
+            CompleteStage();
+            return;
+        }
+
+        if (stageKillTarget > 0 && _killCount >= stageKillTarget)
+        {
+            CompleteStage();
+        }
+    }
+
+    private void CompleteStage()
+    {
+        if (_stageCompleted)
+        {
+            return;
+        }
+
+        _stageCompleted = true;
+        IsGameOver = true;
+        _choosingUpgrade = false;
+        Time.timeScale = 1f;
+
+        if (_spawner != null)
+        {
+            _spawner.enabled = false;
+        }
     }
 
     private void CacheSpawnerBaseStats()
@@ -2095,7 +2212,7 @@ public class GameSession : MonoBehaviour
         bool showStart = _waitingStartWeaponChoice && !IsGameOver;
         bool showGameOver = IsGameOver;
         bool showUpgrade = _choosingUpgrade && !showStart && !IsGameOver;
-        bool showAuto = _player != null && _gameStarted && !_waitingStartWeaponChoice && !IsGameOver;
+        bool showAuto = _showAutoButton && _player != null && _gameStarted && !_waitingStartWeaponChoice && !IsGameOver;
 
         if (_startPanel != null)
         {
@@ -2118,9 +2235,15 @@ public class GameSession : MonoBehaviour
             _autoButtonRect.gameObject.SetActive(showAuto);
         }
 
+        if (showGameOver && _gameOverTitleText != null)
+        {
+            _gameOverTitleText.text = _stageCompleted ? "스테이지 완료" : "게임 오버";
+        }
+
         if (showGameOver && _gameOverTimeText != null)
         {
-            _gameOverTimeText.text = $"생존 시간 {ElapsedTime:0.0}s";
+            string label = _stageCompleted ? "클리어 시간" : "생존 시간";
+            _gameOverTimeText.text = $"{label} {ElapsedTime:0.0}s";
         }
 
         if (showUpgrade)
@@ -2177,7 +2300,7 @@ public class GameSession : MonoBehaviour
         }
     }
 
-    private void SelectStartWeaponWithFeedback(StartWeapon weapon, Button button)
+    private void SelectStartWeaponWithFeedback(StartWeaponType weapon, Button button)
     {
         if (_selectionLocked)
         {
@@ -2374,6 +2497,91 @@ public class GameSession : MonoBehaviour
 #endif
     }
 
+    private void HandleAutoButtonSecret()
+    {
+        if (!allowAutoButtonSecret || string.IsNullOrEmpty(autoButtonSecret))
+        {
+            return;
+        }
+
+        if (_autoSecretLastTime > 0f && Time.unscaledTime - _autoSecretLastTime > autoButtonSecretTimeout)
+        {
+            _autoSecretBuffer = string.Empty;
+            _autoSecretLastTime = -1f;
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        bool appended = false;
+        foreach (char c in autoButtonSecret)
+        {
+            if (WasSecretCharPressed(keyboard, c))
+            {
+                AppendAutoSecretChar(c);
+                appended = true;
+                break;
+            }
+        }
+
+        if (!appended)
+        {
+            return;
+        }
+#else
+        string input = Input.inputString;
+        if (string.IsNullOrEmpty(input))
+        {
+            return;
+        }
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            AppendAutoSecretChar(char.ToLowerInvariant(input[i]));
+        }
+#endif
+    }
+
+#if ENABLE_INPUT_SYSTEM
+    private static bool WasSecretCharPressed(Keyboard keyboard, char c)
+    {
+        switch (char.ToLowerInvariant(c))
+        {
+            case 'a':
+                return keyboard.aKey.wasPressedThisFrame;
+            case 'u':
+                return keyboard.uKey.wasPressedThisFrame;
+            case 't':
+                return keyboard.tKey.wasPressedThisFrame;
+            case 'o':
+                return keyboard.oKey.wasPressedThisFrame;
+            default:
+                return false;
+        }
+    }
+#endif
+
+    private void AppendAutoSecretChar(char c)
+    {
+        _autoSecretLastTime = Time.unscaledTime;
+        _autoSecretBuffer += char.ToLowerInvariant(c);
+        if (_autoSecretBuffer.Length > autoButtonSecret.Length)
+        {
+            _autoSecretBuffer = _autoSecretBuffer.Substring(_autoSecretBuffer.Length - autoButtonSecret.Length);
+        }
+
+        if (_autoSecretBuffer == autoButtonSecret.ToLowerInvariant())
+        {
+            _showAutoButton = !_showAutoButton;
+            _autoSecretBuffer = string.Empty;
+            _autoSecretLastTime = -1f;
+        }
+    }
+
 #if ENABLE_INPUT_SYSTEM
     private static bool IsNumberKeyPressed(Keyboard keyboard, int number)
     {
@@ -2412,6 +2620,7 @@ public class GameSession : MonoBehaviour
         _gameOverPanel = CreatePanel(_uiRoot, "GameOverPanel", new Vector2(360f, 180f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
 
         var title = CreateText(_gameOverPanel, "Title", fontToUse, 20, TextAnchor.UpperCenter, Color.white);
+        _gameOverTitleText = title;
         var titleRect = title.rectTransform;
         titleRect.anchorMin = new Vector2(0.5f, 1f);
         titleRect.anchorMax = new Vector2(0.5f, 1f);
@@ -2483,7 +2692,7 @@ public class GameSession : MonoBehaviour
         mageLabel.text = "마법사\n기본 무기: 총";
         _startMagePreviewRect = CreateRect(_startMageRect, "MagePreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var mageButton = _startMageRect.GetComponent<Button>();
-        mageButton.onClick.AddListener(() => SelectStartWeapon(StartWeapon.Gun));
+        mageButton.onClick.AddListener(() => SelectStartWeapon(StartWeaponType.Gun));
         AddStartHoverTrigger(mageButton, 0);
         ApplyButtonColors(mageButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2498,7 +2707,7 @@ public class GameSession : MonoBehaviour
         warriorLabel.text = "전사\n기본 무기: 부메랑";
         _startWarriorPreviewRect = CreateRect(_startWarriorRect, "WarriorPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var warriorButton = _startWarriorRect.GetComponent<Button>();
-        warriorButton.onClick.AddListener(() => SelectStartWeapon(StartWeapon.Boomerang));
+        warriorButton.onClick.AddListener(() => SelectStartWeapon(StartWeaponType.Boomerang));
         AddStartHoverTrigger(warriorButton, 1);
         ApplyButtonColors(warriorButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2513,7 +2722,7 @@ public class GameSession : MonoBehaviour
         demonLabel.text = "데몬로드\n기본 무기: 노바";
         _startDemonPreviewRect = CreateRect(_startDemonRect, "DemonPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var demonButton = _startDemonRect.GetComponent<Button>();
-        demonButton.onClick.AddListener(() => SelectStartWeapon(StartWeapon.Nova));
+        demonButton.onClick.AddListener(() => SelectStartWeapon(StartWeaponType.Nova));
         AddStartHoverTrigger(demonButton, 2);
         ApplyButtonColors(demonButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2863,7 +3072,10 @@ public class GameSession : MonoBehaviour
             DrawUpgradeChoices();
         }
 
-        DrawAutoPlayToggle();
+        if (_showAutoButton)
+        {
+            DrawAutoPlayToggle();
+        }
     }
 
     private void DrawGameOverPanel()
@@ -2873,8 +3085,10 @@ public class GameSession : MonoBehaviour
         float x = (Screen.width - width) * 0.5f;
         float y = (Screen.height - height) * 0.5f;
 
-        GUI.Box(new Rect(x, y, width, height), "게임 오버");
-        GUI.Label(new Rect(x + 20f, y + 40f, width - 40f, 24f), $"생존 시간 {ElapsedTime:0.0}s");
+        string title = _stageCompleted ? "스테이지 완료" : "게임 오버";
+        string timeLabel = _stageCompleted ? "클리어 시간" : "생존 시간";
+        GUI.Box(new Rect(x, y, width, height), title);
+        GUI.Label(new Rect(x + 20f, y + 40f, width - 40f, 24f), $"{timeLabel} {ElapsedTime:0.0}s");
 
         if (GUI.Button(new Rect(x + 80f, y + 100f, width - 160f, 40f), "처음 화면으로"))
         {
@@ -3006,37 +3220,37 @@ public class GameSession : MonoBehaviour
 
         if (GUI.Button(rectMage, "마법사\n기본 무기: 총"))
         {
-            SelectStartWeapon(StartWeapon.Gun);
+            SelectStartWeapon(StartWeaponType.Gun);
         }
         if (GUI.Button(rectWarrior, "전사\n기본 무기: 부메랑"))
         {
-            SelectStartWeapon(StartWeapon.Boomerang);
+            SelectStartWeapon(StartWeaponType.Boomerang);
         }
         if (GUI.Button(rectDemon, "데몬로드\n기본 무기: 노바"))
         {
-            SelectStartWeapon(StartWeapon.Nova);
+            SelectStartWeapon(StartWeaponType.Nova);
         }
     }
 
-    private void SelectStartWeapon(StartWeapon weapon)
+    private void SelectStartWeapon(StartWeaponType weapon)
     {
         startWeapon = weapon;
         if (gunStats != null)
         {
-            gunStats.unlocked = weapon == StartWeapon.Gun;
-            gunStats.level = weapon == StartWeapon.Gun ? 1 : 0;
+            gunStats.unlocked = weapon == StartWeaponType.Gun;
+            gunStats.level = weapon == StartWeaponType.Gun ? 1 : 0;
         }
 
         if (boomerangStats != null)
         {
-            boomerangStats.unlocked = weapon == StartWeapon.Boomerang;
-            boomerangStats.level = weapon == StartWeapon.Boomerang ? 1 : 0;
+            boomerangStats.unlocked = weapon == StartWeaponType.Boomerang;
+            boomerangStats.level = weapon == StartWeaponType.Boomerang ? 1 : 0;
         }
 
         if (novaStats != null)
         {
-            novaStats.unlocked = weapon == StartWeapon.Nova;
-            novaStats.level = weapon == StartWeapon.Nova ? 1 : 0;
+            novaStats.unlocked = weapon == StartWeaponType.Nova;
+            novaStats.level = weapon == StartWeaponType.Nova ? 1 : 0;
         }
 
         ResetWeaponToLocked(shotgunStats);
@@ -3047,15 +3261,15 @@ public class GameSession : MonoBehaviour
         ResetWeaponToLocked(frostStats);
         ResetWeaponToLocked(lightningStats);
 
-        if (weapon == StartWeapon.Gun && gunStats != null)
+        if (weapon == StartWeaponType.Gun && gunStats != null)
         {
             TrackUpgrade($"무기: {gunStats.displayName}");
         }
-        else if (weapon == StartWeapon.Boomerang && boomerangStats != null)
+        else if (weapon == StartWeaponType.Boomerang && boomerangStats != null)
         {
             TrackUpgrade($"무기: {boomerangStats.displayName}");
         }
-        else if (weapon == StartWeapon.Nova && novaStats != null)
+        else if (weapon == StartWeaponType.Nova && novaStats != null)
         {
             TrackUpgrade($"무기: {novaStats.displayName}");
         }
@@ -3152,3 +3366,4 @@ public class GameSession : MonoBehaviour
     }
 
 }
+

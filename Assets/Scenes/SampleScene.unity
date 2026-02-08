@@ -633,7 +633,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   margin: 12
   xpBarHeight: 18
-  iconSize: 28
+  iconSize: 56
   iconGap: 6
 --- !u!1 &2400000000
 GameObject:

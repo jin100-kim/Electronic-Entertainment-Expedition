@@ -2,6 +2,9 @@
 
 public class AutoAttack : MonoBehaviour
 {
+    [SerializeField]
+    private GameConfig gameConfig;
+
     public enum WeaponType
     {
         Straight,
@@ -198,9 +201,11 @@ public class AutoAttack : MonoBehaviour
     private float _nextFireDrone;
     private float _nextFireShuriken;
     private float _nextFireFrost;
+    private bool _settingsApplied;
 
     private void Awake()
     {
+        ApplySettings();
         ApplyStats(1f, 1f, 1f, 1f, 1f, 1, 0, 1f);
         _straight = CreateDefaultConfig(true);
         _boomerang = CreateDefaultConfig(false);
@@ -212,6 +217,68 @@ public class AutoAttack : MonoBehaviour
         _drone = CreateDefaultConfig(false);
         _shuriken = CreateDefaultConfig(false);
         _frost = CreateDefaultConfig(false);
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.autoAttack;
+
+        baseFireInterval = settings.baseFireInterval;
+        baseProjectileSpeed = settings.baseProjectileSpeed;
+        baseProjectileDamage = settings.baseProjectileDamage;
+        baseRange = settings.baseRange;
+        baseProjectileSize = settings.baseProjectileSize;
+        baseProjectileLifetime = settings.baseProjectileLifetime;
+        baseProjectilePierce = settings.baseProjectilePierce;
+        straightParallelSpacing = settings.straightParallelSpacing;
+        novaOrbitAngularSpeed = settings.novaOrbitAngularSpeed;
+
+        shotgunBasePellets = settings.shotgunBasePellets;
+        shotgunSpreadAngle = settings.shotgunSpreadAngle;
+        shotgunPelletDamageMult = settings.shotgunPelletDamageMult;
+        shotgunSpeedMult = settings.shotgunSpeedMult;
+
+        laserSpeedMult = settings.laserSpeedMult;
+        laserThickness = settings.laserThickness;
+        laserLengthScale = settings.laserLengthScale;
+        laserParallelSpacing = settings.laserParallelSpacing;
+        laserColor = settings.laserColor;
+
+        chainBaseJumps = settings.chainBaseJumps;
+        chainJumpRangeMult = settings.chainJumpRangeMult;
+        chainLineWidth = settings.chainLineWidth;
+        chainEffectDuration = settings.chainEffectDuration;
+        chainColor = settings.chainColor;
+
+        droneOrbitRadius = settings.droneOrbitRadius;
+        droneAngularSpeed = settings.droneAngularSpeed;
+        droneLifetime = settings.droneLifetime;
+        droneDamageMult = settings.droneDamageMult;
+        droneColor = settings.droneColor;
+
+        shurikenSpeedMult = settings.shurikenSpeedMult;
+        shurikenSpinSpeed = settings.shurikenSpinSpeed;
+        shurikenDamageMult = settings.shurikenDamageMult;
+        shurikenColor = settings.shurikenColor;
+
+        frostSpeedMult = settings.frostSpeedMult;
+        frostDamageMult = settings.frostDamageMult;
+        frostSlowMultiplier = settings.frostSlowMultiplier;
+        frostSlowDuration = settings.frostSlowDuration;
+        frostColor = settings.frostColor;
+
+        lightningEffectDuration = settings.lightningEffectDuration;
+        lightningLineWidth = settings.lightningLineWidth;
+        lightningLineLength = settings.lightningLineLength;
+        lightningColor = settings.lightningColor;
+
+        _settingsApplied = true;
     }
 
     private void Update()

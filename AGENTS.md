@@ -5,12 +5,18 @@
 - 유니티 프로젝트 경로: `E:\전자오락원정대\My project`.
 - 코드 변경은 간결하게, 필요한 파일만 수정.
 - 빌드 산출물도 Git에 포함(사용자 요청 사항).
-- GameSession은 실행 시 코드 기본값으로 강제 덮어쓰기(인스펙터 값 무시).
+- 모든 핵심 설정은 ScriptableObject 단일 소스 `GameConfig`로 관리.
 
 ## 현재 게임 핵심 요약
 - 장르: 뱀파이어 서바이버류 멀티/로컬 2D.
 - 자동 공격 + 업그레이드 + 적 스폰 + 경험치/코인 획득.
 - 맵 반경: 24 x 24 (기본 12 x 12에서 2배).
+- 스테이지/난이도: `StageConfig`, `DifficultyConfig`로 분리 관리.
+
+## 스테이지/난이도
+- 적용 순서: `GameConfig` 기본값 -> `StageConfig` 덮어쓰기 -> `DifficultyConfig` 배율 적용.
+- 스테이지 클리어 조건: 시간 제한/처치 목표(둘 중 하나라도 충족 시 완료).
+- 기본 에셋: `Assets/Resources/StageConfig_Default.asset`, `Assets/Resources/DifficultyConfig_Default.asset`.
 
 ## 무기 목록 (10개)
 - 총, 부메랑, 노바, 샷건, 레이저, 체인 라이트닝, 번개, 드론, 수리검, 빙결 구체
@@ -53,7 +59,12 @@
 - 시작 선택 캐릭터 프리뷰는 기본 밝게 표시(흐림 제거).
 - 시작 선택 프리뷰 위치 보정값(startPreviewYOffset) 추가.
 - 플레이어 그림자 오프셋 하향 조정.
-- 무기/스탯 아이콘 시작 위치는 margin 기준 + iconStartOffsetX(추가 오프셋).
+- 오토 버튼은 숨김 상태, 히든 커맨드(기본 "auto" 입력)로 토글.
+- 무기/스탯 아이콘 시작 위치는 margin 기준 + iconStartOffsetX(추가 오프셋, 기본 20).
+- HUD 아이콘 크기는 56, 아이콘 레벨 폰트는 12.
+- 설정 파일: `Assets/Resources/GameConfig.asset` (HUD/Minimap/GameSession/EnemySpawner/AutoAttack/Player/Experience/Pickup/MapBorder/Network/Window 통합).
+- 스테이지/난이도 설정: `StageConfig`, `DifficultyConfig` (GameConfig에서 기본 참조).
+- GameHUD는 UGUI 강제 사용, CanvasScaler는 ScaleWithScreenSize(1280x720 기준)로 통일, 레이아웃은 매 프레임 ApplyUGUILayout로 갱신.
 
 ## 코인 시스템
 - 적 처치 시 낮은 확률로 코인 드랍.

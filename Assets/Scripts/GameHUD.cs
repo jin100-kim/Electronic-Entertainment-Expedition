@@ -3,48 +3,34 @@ using UnityEngine.UI;
 
 public class GameHUD : MonoBehaviour
 {
-    [SerializeField]
     private bool useUGUI = true;
 
     [SerializeField]
+    private GameConfig gameConfig;
+
     private Vector2 referenceResolution = new Vector2(1280f, 720f);
-
-    [SerializeField]
     private Font uiFont;
-
-    [SerializeField]
     private float margin = 12f;
-
-    [SerializeField]
     private float xpBarHeight = 18f;
-
-    [SerializeField]
-    private float iconSize = 28f;
-
-    [SerializeField]
+    private float iconSize = 56f;
     private float iconGap = 6f;
-
-    [SerializeField]
-    private float iconStartOffsetX = 0f;
-
-    [SerializeField]
+    private float iconStartOffsetX = 20f;
     private int labelFontSize = 24;
-
-    [SerializeField]
     private int smallFontSize = 20;
-
-    [SerializeField]
     private int iconFontSize = 11;
+    private int iconLevelFontSize = 12;
 
     private GUIStyle _labelStyle;
     private GUIStyle _smallStyle;
     private GUIStyle _iconStyle;
+    private GUIStyle _iconLevelStyle;
     private Texture2D _solidTex;
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _upgradeIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _weaponIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _statIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
 
     private Canvas _canvas;
+    private CanvasScaler _canvasScaler;
     private RectTransform _canvasRoot;
     private Image _xpBarBg;
     private RectTransform _xpFillRect;
@@ -53,6 +39,7 @@ public class GameHUD : MonoBehaviour
     private Text _infoText;
     private RectTransform _iconRoot;
     private bool _uiReady;
+    private bool _settingsApplied;
 
     private class UpgradeIconUI
     {
@@ -67,6 +54,7 @@ public class GameHUD : MonoBehaviour
 
     private void Awake()
     {
+        ApplySettings();
         if (useUGUI)
         {
             BuildUGUI();
@@ -78,6 +66,11 @@ public class GameHUD : MonoBehaviour
         if (!useUGUI)
         {
             return;
+        }
+
+        if (!_settingsApplied)
+        {
+            ApplySettings();
         }
 
         var session = GameSession.Instance;
@@ -101,6 +94,25 @@ public class GameHUD : MonoBehaviour
         }
 
         UpdateUGUI(session);
+    }
+
+    private void ApplySettings()
+    {
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.hud;
+
+        referenceResolution = settings.referenceResolution;
+        uiFont = settings.uiFont;
+        margin = settings.margin;
+        xpBarHeight = settings.xpBarHeight;
+        iconSize = settings.iconSize;
+        iconGap = settings.iconGap;
+        iconStartOffsetX = settings.iconStartOffsetX;
+        labelFontSize = settings.labelFontSize;
+        smallFontSize = settings.smallFontSize;
+        iconFontSize = settings.iconFontSize;
+        iconLevelFontSize = settings.iconLevelFontSize;
+        _settingsApplied = true;
     }
 
     private void OnGUI()
@@ -142,11 +154,11 @@ public class GameHUD : MonoBehaviour
         _canvas = canvasGo.AddComponent<Canvas>();
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         _canvas.sortingOrder = 1000;
-        var scaler = canvasGo.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = referenceResolution;
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
+        _canvasScaler = canvasGo.AddComponent<CanvasScaler>();
+        _canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        _canvasScaler.referenceResolution = referenceResolution;
+        _canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        _canvasScaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
 
         _canvasRoot = canvasGo.GetComponent<RectTransform>();
@@ -206,6 +218,8 @@ public class GameHUD : MonoBehaviour
         _iconRoot.anchoredPosition = new Vector2(margin + iconStartOffsetX, -(margin + xpBarHeight + 28f));
         _iconRoot.sizeDelta = new Vector2(0f, 0f);
 
+        ApplyUGUILayout();
+
         _uiReady = true;
     }
 
@@ -214,6 +228,13 @@ public class GameHUD : MonoBehaviour
         if (_xpFillRect == null)
         {
             return;
+        }
+
+        ApplyUGUILayout();
+
+        if (_levelText != null)
+        {
+            _levelText.fontSize = labelFontSize;
         }
 
         if (_timeText != null)
@@ -241,6 +262,14 @@ public class GameHUD : MonoBehaviour
 
         _infoText.text = $"처치 {session.KillCount}  코인 {session.CoinCount}";
 
+        if (_infoText != null)
+        {
+            var infoRect = _infoText.rectTransform;
+            float minWidth = 260f;
+            float preferred = _infoText.preferredWidth + 12f;
+            infoRect.sizeDelta = new Vector2(Mathf.Max(minWidth, preferred), smallFontSize + 6f);
+        }
+
         UpdateUpgradeIcons(session);
     }
 
@@ -262,7 +291,8 @@ public class GameHUD : MonoBehaviour
             }
         }
 
-        int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f - iconStartOffsetX) / (iconSize + iconGap)));
+        float layoutWidth = GetLayoutWidth();
+        int perRow = Mathf.Max(1, Mathf.FloorToInt((layoutWidth - margin * 2f - iconStartOffsetX) / (iconSize + iconGap)));
         int weaponRows = Mathf.Max(1, Mathf.CeilToInt(_weaponIcons.Count / (float)perRow));
 
         EnsureIconList(_weaponIconUI, _weaponIcons.Count);
@@ -295,6 +325,7 @@ public class GameHUD : MonoBehaviour
             float y = -(row * (iconSize + iconGap) + yOffset);
 
             var ui = uiList[i];
+            ui.Rect.sizeDelta = new Vector2(iconSize, iconSize);
             ui.Rect.anchoredPosition = new Vector2(x, y);
 
             Color color;
@@ -303,6 +334,9 @@ public class GameHUD : MonoBehaviour
             ui.Bg.color = color;
             ui.Label.text = label;
             ui.Level.text = $"Lv{dataList[i].Level}";
+            ui.Label.fontSize = iconFontSize;
+            ui.Level.fontSize = iconLevelFontSize;
+            ui.Level.rectTransform.sizeDelta = new Vector2(iconSize + 12f, iconLevelFontSize + 6f);
         }
     }
 
@@ -311,6 +345,9 @@ public class GameHUD : MonoBehaviour
         var go = new GameObject("Icon");
         var rect = go.AddComponent<RectTransform>();
         rect.SetParent(parent, false);
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
         rect.sizeDelta = new Vector2(iconSize, iconSize);
 
         var bg = go.AddComponent<Image>();
@@ -325,13 +362,13 @@ public class GameHUD : MonoBehaviour
         label.horizontalOverflow = HorizontalWrapMode.Overflow;
         label.verticalOverflow = VerticalWrapMode.Overflow;
 
-        var level = CreateText(go.transform, "Level", fontToUse, smallFontSize, TextAnchor.LowerRight, new Color(1f, 1f, 1f, 0.9f));
+        var level = CreateText(go.transform, "Level", fontToUse, iconLevelFontSize, TextAnchor.LowerRight, new Color(1f, 1f, 1f, 0.9f));
         var levelRect = level.rectTransform;
         levelRect.anchorMin = new Vector2(1f, 0f);
         levelRect.anchorMax = new Vector2(1f, 0f);
         levelRect.pivot = new Vector2(1f, 0f);
         levelRect.anchoredPosition = new Vector2(-2f, 2f);
-        levelRect.sizeDelta = new Vector2(iconSize + 12f, smallFontSize + 6f);
+        levelRect.sizeDelta = new Vector2(iconSize + 12f, iconLevelFontSize + 6f);
         level.horizontalOverflow = HorizontalWrapMode.Overflow;
         level.verticalOverflow = VerticalWrapMode.Overflow;
 
@@ -358,6 +395,70 @@ public class GameHUD : MonoBehaviour
         return text;
     }
 
+    private void ApplyUGUILayout()
+    {
+        if (_xpBarBg == null)
+        {
+            return;
+        }
+
+        var barRect = _xpBarBg.rectTransform;
+        barRect.anchorMin = new Vector2(0f, 1f);
+        barRect.anchorMax = new Vector2(1f, 1f);
+        barRect.pivot = new Vector2(0.5f, 1f);
+        barRect.sizeDelta = new Vector2(-margin * 2f, xpBarHeight);
+        barRect.anchoredPosition = new Vector2(0f, -margin);
+
+        if (_levelText != null)
+        {
+            var levelRect = _levelText.rectTransform;
+            levelRect.anchorMin = new Vector2(0f, 0f);
+            levelRect.anchorMax = new Vector2(0f, 1f);
+            levelRect.pivot = new Vector2(0f, 0.5f);
+            levelRect.anchoredPosition = new Vector2(6f, 0f);
+            levelRect.sizeDelta = new Vector2(200f, xpBarHeight + 4f);
+        }
+
+        if (_timeText != null)
+        {
+            var timeRect = _timeText.rectTransform;
+            timeRect.anchorMin = new Vector2(0.5f, 1f);
+            timeRect.anchorMax = new Vector2(0.5f, 1f);
+            timeRect.pivot = new Vector2(0.5f, 1f);
+            timeRect.anchoredPosition = new Vector2(0f, -(margin + xpBarHeight + 4f));
+            timeRect.sizeDelta = new Vector2(200f, labelFontSize + 6f);
+        }
+
+        if (_infoText != null)
+        {
+            var infoRect = _infoText.rectTransform;
+            infoRect.anchorMin = new Vector2(1f, 1f);
+            infoRect.anchorMax = new Vector2(1f, 1f);
+            infoRect.pivot = new Vector2(1f, 1f);
+            infoRect.anchoredPosition = new Vector2(-margin, -(margin + xpBarHeight + 4f));
+            infoRect.sizeDelta = new Vector2(260f, smallFontSize + 6f);
+        }
+
+        if (_iconRoot != null)
+        {
+            _iconRoot.anchoredPosition = new Vector2(margin + iconStartOffsetX, -(margin + xpBarHeight + 28f));
+        }
+    }
+
+    private float GetLayoutWidth()
+    {
+        if (_canvasRoot != null)
+        {
+            float width = _canvasRoot.rect.width;
+            if (width > 0f)
+            {
+                return width;
+            }
+        }
+
+        return Screen.width;
+    }
+
     private void EnsureStyles()
     {
         if (_labelStyle == null)
@@ -378,10 +479,17 @@ public class GameHUD : MonoBehaviour
             _iconStyle.alignment = TextAnchor.MiddleCenter;
             _iconStyle.normal.textColor = Color.white;
         }
+
+        if (_iconLevelStyle == null)
+        {
+            _iconLevelStyle = new GUIStyle(GUI.skin.label);
+            _iconLevelStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
+        }
         
         _labelStyle.fontSize = labelFontSize;
         _smallStyle.fontSize = smallFontSize;
         _iconStyle.fontSize = iconFontSize;
+        _iconLevelStyle.fontSize = iconLevelFontSize;
 
         if (_solidTex == null)
         {
@@ -492,127 +600,134 @@ public class GameHUD : MonoBehaviour
             GUI.Label(rect, label, _iconStyle);
 
             string levelText = $"Lv{icons[i].Level}";
-            var levelSize = _smallStyle.CalcSize(new GUIContent(levelText));
-            GUI.Label(new Rect(rect.xMax - levelSize.x - 2f, rect.yMax - levelSize.y - 1f, levelSize.x, levelSize.y), levelText, _smallStyle);
+            var levelSize = _iconLevelStyle.CalcSize(new GUIContent(levelText));
+            GUI.Label(new Rect(rect.xMax - levelSize.x - 2f, rect.yMax - levelSize.y - 1f, levelSize.x, levelSize.y), levelText, _iconLevelStyle);
         }
     }
 
     private void GetIconStyle(GameSession.UpgradeIconData data, out Color color, out string label)
     {
+        string key = data.Key ?? string.Empty;
+        string keyNoSpace = key.Replace(" ", string.Empty);
+
         if (data.IsWeapon)
         {
-            label = data.Key;
-            if (label.Length > 2)
+            label = keyNoSpace;
+            if (label.Length > 4)
             {
-                label = label.Substring(0, 2);
+                label = label.Substring(0, 4);
             }
 
             color = new Color(0.85f, 0.55f, 0.2f, 0.95f);
 
-            if (data.Key.Contains("총"))
+            if (key.Contains("총"))
             {
                 color = new Color(0.8f, 0.7f, 0.2f, 0.95f);
-                label = "총";
+                label = "총기류";
             }
-            else if (data.Key.Contains("부메랑"))
+            else if (key.Contains("부메랑"))
             {
                 color = new Color(0.2f, 0.9f, 0.5f, 0.95f);
-                label = "부";
+                label = "부메랑";
             }
-            else if (data.Key.Contains("노바"))
+            else if (key.Contains("노바"))
             {
                 color = new Color(0.5f, 0.6f, 0.95f, 0.95f);
-                label = "노";
+                label = "노바탄";
             }
-            else if (data.Key.Contains("샷건"))
+            else if (key.Contains("샷건"))
             {
                 color = new Color(0.9f, 0.6f, 0.3f, 0.95f);
-                label = "샷";
+                label = "샷건탄";
             }
-            else if (data.Key.Contains("레이저"))
+            else if (key.Contains("레이저"))
             {
                 color = new Color(0.7f, 0.4f, 1f, 0.95f);
-                label = "레";
+                label = "레이저";
             }
-            else if (data.Key.Contains("체인"))
+            else if (key.Contains("체인"))
             {
                 color = new Color(0.3f, 0.7f, 1f, 0.95f);
-                label = "체";
+                label = "체인번개";
             }
-            else if (data.Key.Contains("드론"))
+            else if (key.Contains("드론"))
             {
                 color = new Color(0.6f, 0.9f, 0.9f, 0.95f);
-                label = "드";
+                label = "드론기";
             }
-            else if (data.Key.Contains("수리"))
+            else if (key.Contains("수리"))
             {
                 color = new Color(0.95f, 0.8f, 0.3f, 0.95f);
-                label = "수";
+                label = "수리검";
             }
-            else if (data.Key.Contains("빙결"))
+            else if (key.Contains("빙결"))
             {
                 color = new Color(0.3f, 0.8f, 1f, 0.95f);
-                label = "빙";
+                label = "빙결구체";
             }
-            else if (data.Key.Contains("번개"))
+            else if (key.Contains("번개"))
             {
                 color = new Color(1f, 0.9f, 0.2f, 0.95f);
-                label = "번";
+                label = "번개탄";
             }
         }
         else
         {
-            label = "업";
+            label = keyNoSpace;
+            if (label.Length > 4)
+            {
+                label = label.Substring(0, 4);
+            }
             color = new Color(0.2f, 0.6f, 0.3f, 0.95f);
 
-            if (data.Key.Contains("공격력"))
+            if (key.Contains("공격력"))
             {
-                label = "공";
+                label = "공격력";
                 color = new Color(0.9f, 0.3f, 0.3f, 0.95f);
             }
-            else if (data.Key.Contains("공격속도"))
+            else if (key.Contains("공격속도"))
             {
-                label = "속";
+                label = "공격속도";
                 color = new Color(0.9f, 0.6f, 0.2f, 0.95f);
             }
-            else if (data.Key.Contains("이동속도"))
+            else if (key.Contains("이동속도"))
             {
-                label = "이";
+                label = "이동속도";
                 color = new Color(0.3f, 0.8f, 0.4f, 0.95f);
             }
-            else if (data.Key.Contains("체력강화"))
+            else if (key.Contains("체력강화"))
             {
-                label = "체";
+                label = "체력강화";
                 color = new Color(0.3f, 0.9f, 0.3f, 0.95f);
             }
-            else if (data.Key.Contains("사거리"))
+            else if (key.Contains("사거리"))
             {
-                label = "사";
+                label = "사거리";
                 color = new Color(0.4f, 0.7f, 1f, 0.95f);
             }
-            else if (data.Key.Contains("경험치"))
+            else if (key.Contains("경험치"))
             {
-                label = "경";
+                label = "경험치";
                 color = new Color(0.2f, 0.7f, 1f, 0.95f);
             }
-            else if (data.Key.Contains("자석"))
+            else if (key.Contains("자석"))
             {
-                label = "자";
+                label = "자석범위";
                 color = new Color(0.5f, 0.85f, 1f, 0.95f);
             }
-            else if (data.Key.Contains("투사체수"))
+            else if (key.Contains("투사체수"))
             {
-                label = "수";
+                label = "투사체수";
                 color = new Color(0.85f, 0.85f, 0.3f, 0.95f);
             }
-            else if (data.Key.Contains("투사체크기") || data.Key.Contains("크기"))
+            else if (key.Contains("투사체크기") || key.Contains("크기"))
             {
-                label = "크";
+                label = "투사크기";
                 color = new Color(0.7f, 0.75f, 0.8f, 0.95f);
             }
-            else if (data.Key.Contains("관통"))
+            else if (key.Contains("관통"))
             {
-                label = "관";
+                label = "관통력";
                 color = new Color(0.9f, 0.55f, 0.2f, 0.95f);
             }
         }

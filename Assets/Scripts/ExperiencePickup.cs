@@ -5,6 +5,7 @@ public class ExperiencePickup : MonoBehaviour
     public static readonly System.Collections.Generic.List<ExperiencePickup> Active = new System.Collections.Generic.List<ExperiencePickup>();
     private static readonly System.Collections.Generic.Stack<ExperiencePickup> _pool = new System.Collections.Generic.Stack<ExperiencePickup>();
     private static Sprite _cachedSprite;
+    private static int _cachedSpriteSize = -1;
 
     [SerializeField]
     private float amount = 1f;
@@ -14,6 +15,7 @@ public class ExperiencePickup : MonoBehaviour
 
     private Experience _magnetTarget;
     private float _nextScanTime;
+    private bool _settingsApplied;
 
     public static ExperiencePickup Spawn(Vector3 position, float value)
     {
@@ -31,7 +33,8 @@ public class ExperiencePickup : MonoBehaviour
         var go = pickup.gameObject;
         go.SetActive(true);
         go.transform.position = position;
-        go.transform.localScale = Vector3.one * 0.4f;
+        var settings = GetSettings();
+        go.transform.localScale = Vector3.one * settings.xpPickupScale;
         pickup.SetAmount(value);
         return pickup;
     }
@@ -49,6 +52,11 @@ public class ExperiencePickup : MonoBehaviour
         }
         _magnetTarget = null;
         _nextScanTime = 0f;
+    }
+
+    private void Awake()
+    {
+        ApplySettings();
     }
 
     private void OnDisable()
@@ -154,11 +162,12 @@ public class ExperiencePickup : MonoBehaviour
     private static ExperiencePickup CreateInstance()
     {
         var go = new GameObject("XP");
-        go.transform.localScale = Vector3.one * 0.4f;
+        var settings = GetSettings();
+        go.transform.localScale = Vector3.one * settings.xpPickupScale;
 
         var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = GetCachedSprite();
-        renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
+        renderer.sprite = GetCachedSprite(settings.xpSpriteSize);
+        renderer.color = settings.xpColor;
 
         var rb = go.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
@@ -166,20 +175,19 @@ public class ExperiencePickup : MonoBehaviour
 
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = 0.15f;
+        col.radius = settings.xpColliderRadius;
 
         var pickup = go.AddComponent<ExperiencePickup>();
         return pickup;
     }
 
-    private static Sprite GetCachedSprite()
+    private static Sprite GetCachedSprite(int size)
     {
-        if (_cachedSprite != null)
+        if (_cachedSprite != null && _cachedSpriteSize == size)
         {
             return _cachedSprite;
         }
 
-        const int size = 50;
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
         var colors = new Color32[size * size];
         float r = (size - 1) * 0.5f;
@@ -200,6 +208,25 @@ public class ExperiencePickup : MonoBehaviour
         texture.SetPixels32(colors);
         texture.Apply();
         _cachedSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        _cachedSpriteSize = size;
         return _cachedSprite;
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var settings = GetSettings();
+        magnetScanInterval = settings.xpMagnetScanInterval;
+        _settingsApplied = true;
+    }
+
+    private static PickupConfig GetSettings()
+    {
+        var config = GameConfig.LoadOrCreate();
+        return config.pickups;
     }
 }

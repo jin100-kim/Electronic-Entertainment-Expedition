@@ -5,6 +5,9 @@ public class Experience : MonoBehaviour
     public static readonly System.Collections.Generic.List<Experience> Active = new System.Collections.Generic.List<Experience>();
 
     [SerializeField]
+    private GameConfig gameConfig;
+
+    [SerializeField]
     private int level = 1;
 
     [SerializeField]
@@ -28,6 +31,7 @@ public class Experience : MonoBehaviour
 
     private float _magnetRangeMult = 1f;
     private float _magnetSpeedMult = 1f;
+    private bool _settingsApplied;
 
     public int Level => level;
     public float CurrentXp => currentXp;
@@ -39,6 +43,7 @@ public class Experience : MonoBehaviour
 
     private void Awake()
     {
+        ApplySettings();
         RecalculateMagnet();
     }
 
@@ -87,6 +92,24 @@ public class Experience : MonoBehaviour
                 break;
             }
         }
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var settings = config.experience;
+
+        xpToNext = settings.initialXpToNext;
+        xpGrowth = settings.xpGrowth;
+        xpMultiplier = settings.xpMultiplier;
+        baseMagnetRange = settings.baseMagnetRange;
+        baseMagnetSpeed = settings.baseMagnetSpeed;
+        _settingsApplied = true;
     }
 
     public void SetXpMultiplier(float value)

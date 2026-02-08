@@ -4,6 +4,7 @@ public class CoinPickup : MonoBehaviour
 {
     private static readonly System.Collections.Generic.Stack<CoinPickup> _pool = new System.Collections.Generic.Stack<CoinPickup>();
     private static Sprite _cachedSprite;
+    private static int _cachedSpriteSize = -1;
 
     [SerializeField]
     private int amount = 1;
@@ -13,6 +14,7 @@ public class CoinPickup : MonoBehaviour
 
     private Experience _magnetTarget;
     private float _nextScanTime;
+    private bool _settingsApplied;
 
     public static CoinPickup Spawn(Vector3 position, int value)
     {
@@ -30,7 +32,8 @@ public class CoinPickup : MonoBehaviour
         var go = pickup.gameObject;
         go.SetActive(true);
         go.transform.position = position;
-        go.transform.localScale = Vector3.one * 0.4f;
+        var settings = GetSettings();
+        go.transform.localScale = Vector3.one * settings.coinPickupScale;
         pickup.SetAmount(value);
         return pickup;
     }
@@ -44,6 +47,11 @@ public class CoinPickup : MonoBehaviour
     {
         _magnetTarget = null;
         _nextScanTime = 0f;
+    }
+
+    private void Awake()
+    {
+        ApplySettings();
     }
 
     private void Update()
@@ -144,12 +152,13 @@ public class CoinPickup : MonoBehaviour
     private static CoinPickup CreateInstance()
     {
         var go = new GameObject("Coin");
-        go.transform.localScale = Vector3.one * 0.4f;
+        var settings = GetSettings();
+        go.transform.localScale = Vector3.one * settings.coinPickupScale;
 
         var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = GetCachedSprite();
-        renderer.color = new Color(1f, 0.85f, 0.2f, 1f);
-        renderer.sortingOrder = 1;
+        renderer.sprite = GetCachedSprite(settings.coinSpriteSize);
+        renderer.color = settings.coinColor;
+        renderer.sortingOrder = settings.coinSortingOrder;
 
         var rb = go.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
@@ -157,20 +166,19 @@ public class CoinPickup : MonoBehaviour
 
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = 0.12f;
+        col.radius = settings.coinColliderRadius;
 
         var pickup = go.AddComponent<CoinPickup>();
         return pickup;
     }
 
-    private static Sprite GetCachedSprite()
+    private static Sprite GetCachedSprite(int size)
     {
-        if (_cachedSprite != null)
+        if (_cachedSprite != null && _cachedSpriteSize == size)
         {
             return _cachedSprite;
         }
 
-        const int size = 40;
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
         var colors = new Color32[size * size];
         float r = (size - 1) * 0.5f;
@@ -191,6 +199,25 @@ public class CoinPickup : MonoBehaviour
         texture.SetPixels32(colors);
         texture.Apply();
         _cachedSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        _cachedSpriteSize = size;
         return _cachedSprite;
+    }
+
+    private void ApplySettings()
+    {
+        if (_settingsApplied)
+        {
+            return;
+        }
+
+        var settings = GetSettings();
+        magnetScanInterval = settings.coinMagnetScanInterval;
+        _settingsApplied = true;
+    }
+
+    private static PickupConfig GetSettings()
+    {
+        var config = GameConfig.LoadOrCreate();
+        return config.pickups;
     }
 }

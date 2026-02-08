@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9046cb95f80b255448e75849a609f210, type: 3}
+  m_Name: StageConfig_Default
+  m_EditorClassIdentifier: Assembly-CSharp::StageConfig
+  stageName: "\uC2A4\uD14C\uC774\uC9C0 1"
+  timeLimitSeconds: 0
+  killTarget: 0
+  mapHalfSize: {x: 24, y: 24}
+  localSpawnPosition: {x: 0, y: 0, z: 0}
+  spawnInterval: 2
+  maxEnemies: 20
+  spawnRadius: 8
+  minSpawnInterval: 0.4
+  spawnIntervalDecayPerSec: 0.01
+  maxEnemiesPerMinute: 10
