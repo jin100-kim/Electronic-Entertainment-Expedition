@@ -2777,6 +2777,18 @@ public class GameSession : MonoBehaviour
         }
 
         border.SetBounds(mapHalfSize);
+        EnsureMapBackground();
+    }
+
+    private void EnsureMapBackground()
+    {
+        var background = GetComponent<MapBackground>();
+        if (background == null)
+        {
+            background = gameObject.AddComponent<MapBackground>();
+        }
+
+        background.SetBounds(mapHalfSize);
     }
 
     public Vector3 ClampToBounds(Vector3 position)

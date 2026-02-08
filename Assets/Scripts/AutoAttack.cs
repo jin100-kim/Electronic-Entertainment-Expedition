@@ -149,6 +149,28 @@ public class AutoAttack : MonoBehaviour
     [SerializeField]
     private Color lightningColor = new Color(1f, 0.95f, 0.5f, 1f);
 
+    [Header("Sprites (Resources)")]
+    [SerializeField]
+    private string straightSpritePath;
+
+    [SerializeField]
+    private string boomerangSpritePath;
+
+    [SerializeField]
+    private string novaSpritePath;
+
+    [SerializeField]
+    private string shotgunSpritePath;
+
+    [SerializeField]
+    private string droneSpritePath;
+
+    [SerializeField]
+    private string shurikenSpritePath;
+
+    [SerializeField]
+    private string frostSpritePath;
+
     private float _fireInterval;
     private float _baseInterval;
     private float _projectileSpeed;
@@ -277,6 +299,14 @@ public class AutoAttack : MonoBehaviour
         lightningLineWidth = settings.lightningLineWidth;
         lightningLineLength = settings.lightningLineLength;
         lightningColor = settings.lightningColor;
+
+        straightSpritePath = settings.straightSpritePath;
+        boomerangSpritePath = settings.boomerangSpritePath;
+        novaSpritePath = settings.novaSpritePath;
+        shotgunSpritePath = settings.shotgunSpritePath;
+        droneSpritePath = settings.droneSpritePath;
+        shurikenSpritePath = settings.shurikenSpritePath;
+        frostSpritePath = settings.frostSpritePath;
 
         _settingsApplied = true;
     }
@@ -483,7 +513,7 @@ public class AutoAttack : MonoBehaviour
         int count = GetWeaponCount(_straight);
         if (count <= 1)
         {
-            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime);
+            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, straightSpritePath);
             _range = savedRange;
             return;
         }
@@ -494,7 +524,7 @@ public class AutoAttack : MonoBehaviour
         {
             float offsetIndex = start + i;
             Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
-            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, spawnOffset);
+            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, spawnOffset, straightSpritePath);
         }
 
         _range = savedRange;
@@ -561,7 +591,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + step * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnProjectile(dir, pelletDamage, 0f, lifetime, Vector2.zero, speed);
+            SpawnProjectile(dir, pelletDamage, 0f, lifetime, Vector2.zero, speed, shotgunSpritePath);
         }
 
         _range = savedRange;
@@ -703,7 +733,7 @@ public class AutoAttack : MonoBehaviour
         {
             float offsetIndex = start + i;
             Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
-            SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, spawnOffset);
+            SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, spawnOffset);
         }
 
         _range = savedRange;
@@ -718,7 +748,7 @@ public class AutoAttack : MonoBehaviour
         int count = GetWeaponCount(_frost);
         for (int i = 0; i < count; i++)
         {
-            var proj = SpawnColoredProjectile(direction, _projectileDamage * _frost.DamageMult * frostDamageMult, frostColor, 360f, lifetime, _projectileSpeed * frostSpeedMult);
+            var proj = SpawnColoredProjectile(direction, _projectileDamage * _frost.DamageMult * frostDamageMult, frostColor, 360f, lifetime, _projectileSpeed * frostSpeedMult, frostSpritePath);
             if (proj != null)
             {
                 proj.SetSlowEffect(frostSlowMultiplier, frostSlowDuration);
@@ -728,17 +758,17 @@ public class AutoAttack : MonoBehaviour
         _range = savedRange;
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed = 0f, float lifetimeOverride = -1f)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath)
     {
-        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero);
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero, _projectileSpeed, spritePath);
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, string spritePath)
     {
-        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, spawnOffset, _projectileSpeed);
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, spawnOffset, _projectileSpeed, spritePath);
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride, string spritePath)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -771,12 +801,13 @@ public class AutoAttack : MonoBehaviour
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = CreateCircleSprite(_projectileSize);
+        renderer.sprite = ResolveProjectileSprite(spritePath, _projectileSize);
         var baseColor = new Color(0.9f, 0.9f, 0.2f, 1f);
         var netColor = go.GetComponent<NetworkColor>();
         if (netColor != null)
         {
             netColor.SetColor(baseColor);
+            netColor.SetSpritePath(spritePath);
         }
         else
         {
@@ -847,12 +878,13 @@ public class AutoAttack : MonoBehaviour
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = CreateCircleSprite(_projectileSize);
+        renderer.sprite = ResolveProjectileSprite(novaSpritePath, _projectileSize);
         var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
         var netColor = go.GetComponent<NetworkColor>();
         if (netColor != null)
         {
             netColor.SetColor(novaColor);
+            netColor.SetSpritePath(novaSpritePath);
         }
         else
         {
@@ -963,12 +995,12 @@ public class AutoAttack : MonoBehaviour
         }
     }
 
-    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride)
+    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath)
     {
-        return SpawnColoredProjectile(direction, damageOverride, color, spinSpeed, lifetime, speedOverride, Vector2.zero);
+        return SpawnColoredProjectile(direction, damageOverride, color, spinSpeed, lifetime, speedOverride, spritePath, Vector2.zero);
     }
 
-    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, Vector2 spawnOffset)
+    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, Vector2 spawnOffset)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -1001,11 +1033,12 @@ public class AutoAttack : MonoBehaviour
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = CreateCircleSprite(_projectileSize);
+        renderer.sprite = ResolveProjectileSprite(spritePath, _projectileSize);
         var netColor = go.GetComponent<NetworkColor>();
         if (netColor != null)
         {
             netColor.SetColor(color);
+            netColor.SetSpritePath(spritePath);
         }
         else
         {
@@ -1075,11 +1108,12 @@ public class AutoAttack : MonoBehaviour
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = CreateCircleSprite(_projectileSize);
+        renderer.sprite = ResolveProjectileSprite(droneSpritePath, _projectileSize);
         var netColor = go.GetComponent<NetworkColor>();
         if (netColor != null)
         {
             netColor.SetColor(droneColor);
+            netColor.SetSpritePath(droneSpritePath);
         }
         else
         {
@@ -1148,12 +1182,13 @@ public class AutoAttack : MonoBehaviour
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = CreateCircleSprite(_projectileSize);
+        renderer.sprite = ResolveProjectileSprite(boomerangSpritePath, _projectileSize);
         var boomColor = new Color(0.2f, 0.9f, 0.9f, 1f);
         var netColor = go.GetComponent<NetworkColor>();
         if (netColor != null)
         {
             netColor.SetColor(boomColor);
+            netColor.SetSpritePath(boomerangSpritePath);
         }
         else
         {
@@ -1239,6 +1274,7 @@ public class AutoAttack : MonoBehaviour
     }
 
     private static readonly System.Collections.Generic.Dictionary<int, Sprite> _circleCache = new System.Collections.Generic.Dictionary<int, Sprite>();
+    private static readonly System.Collections.Generic.Dictionary<string, Sprite> _resourceSpriteCache = new System.Collections.Generic.Dictionary<string, Sprite>();
 
     private static Sprite CreateCircleSprite(int size)
     {
@@ -1274,6 +1310,29 @@ public class AutoAttack : MonoBehaviour
         var sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
         _circleCache[size] = sprite;
         return sprite;
+    }
+
+    private static Sprite LoadResourceSprite(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        if (_resourceSpriteCache.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        var sprite = Resources.Load<Sprite>(path);
+        _resourceSpriteCache[path] = sprite;
+        return sprite;
+    }
+
+    private static Sprite ResolveProjectileSprite(string path, int fallbackSize)
+    {
+        var sprite = LoadResourceSprite(path);
+        return sprite != null ? sprite : CreateCircleSprite(fallbackSize);
     }
 
     private static Sprite _solidSprite;

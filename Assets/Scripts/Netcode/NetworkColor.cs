@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using Unity.Collections;
 
 [RequireComponent(typeof(SpriteRenderer))]
 public class NetworkColor : NetworkBehaviour
@@ -7,21 +8,26 @@ public class NetworkColor : NetworkBehaviour
     private const int DefaultCircleSize = 50;
     private static readonly System.Collections.Generic.Dictionary<int, Sprite> _circleCache = new System.Collections.Generic.Dictionary<int, Sprite>();
     private static Sprite _solidSprite;
+    private static readonly System.Collections.Generic.Dictionary<string, Sprite> _resourceSpriteCache = new System.Collections.Generic.Dictionary<string, Sprite>();
 
     private readonly NetworkVariable<Color32> _color = new NetworkVariable<Color32>(new Color32(255, 255, 255, 255));
+    private readonly NetworkVariable<FixedString64Bytes> _spritePath = new NetworkVariable<FixedString64Bytes>(new FixedString64Bytes());
     private SpriteRenderer _renderer;
 
     public override void OnNetworkSpawn()
     {
         _renderer = GetComponent<SpriteRenderer>();
         EnsureDefaultSprite();
+        ApplySprite(_spritePath.Value.ToString());
         ApplyColor(_color.Value);
         _color.OnValueChanged += OnColorChanged;
+        _spritePath.OnValueChanged += OnSpritePathChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         _color.OnValueChanged -= OnColorChanged;
+        _spritePath.OnValueChanged -= OnSpritePathChanged;
         base.OnNetworkDespawn();
     }
 
@@ -37,9 +43,26 @@ public class NetworkColor : NetworkBehaviour
         ApplyColor(c);
     }
 
+    public void SetSpritePath(string resourcePath)
+    {
+        if (NetworkSession.IsActive && !IsServer)
+        {
+            return;
+        }
+
+        var path = resourcePath ?? string.Empty;
+        _spritePath.Value = path;
+        ApplySprite(path);
+    }
+
     private void OnColorChanged(Color32 previous, Color32 next)
     {
         ApplyColor(next);
+    }
+
+    private void OnSpritePathChanged(FixedString64Bytes previous, FixedString64Bytes next)
+    {
+        ApplySprite(next.ToString());
     }
 
     private void ApplyColor(Color32 color)
@@ -50,6 +73,33 @@ public class NetworkColor : NetworkBehaviour
         }
 
         _renderer.color = color;
+    }
+
+    private void ApplySprite(string resourcePath)
+    {
+        if (_renderer == null)
+        {
+            _renderer = GetComponent<SpriteRenderer>();
+        }
+
+        if (string.IsNullOrEmpty(resourcePath))
+        {
+            if (_renderer.sprite == null)
+            {
+                EnsureDefaultSprite();
+            }
+            return;
+        }
+
+        var sprite = LoadResourceSprite(resourcePath);
+        if (sprite != null)
+        {
+            _renderer.sprite = sprite;
+        }
+        else if (_renderer.sprite == null)
+        {
+            EnsureDefaultSprite();
+        }
     }
 
     private void EnsureDefaultSprite()
@@ -71,6 +121,23 @@ public class NetworkColor : NetworkBehaviour
         }
 
         _renderer.sprite = GetCircleSprite(DefaultCircleSize);
+    }
+
+    private static Sprite LoadResourceSprite(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        if (_resourceSpriteCache.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        var sprite = Resources.Load<Sprite>(path);
+        _resourceSpriteCache[path] = sprite;
+        return sprite;
     }
 
     private static Sprite GetCircleSprite(int size)

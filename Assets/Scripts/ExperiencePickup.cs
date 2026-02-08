@@ -7,6 +7,7 @@ public class ExperiencePickup : MonoBehaviour
     private static readonly System.Collections.Generic.Stack<ExperiencePickup> _pool = new System.Collections.Generic.Stack<ExperiencePickup>();
     private static Sprite _cachedSprite;
     private static int _cachedSpriteSize = -1;
+    private static readonly System.Collections.Generic.Dictionary<string, Sprite> _resourceSpriteCache = new System.Collections.Generic.Dictionary<string, Sprite>();
 
     [SerializeField]
     private float amount = 1f;
@@ -231,7 +232,7 @@ public class ExperiencePickup : MonoBehaviour
         go.transform.localScale = Vector3.one * settings.xpPickupScale;
 
         var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = GetCachedSprite(settings.xpSpriteSize);
+        renderer.sprite = ResolvePickupSprite(settings.xpSpritePath, settings.xpSpriteSize);
         renderer.color = settings.xpColor;
 
         var rb = go.AddComponent<Rigidbody2D>();
@@ -277,6 +278,29 @@ public class ExperiencePickup : MonoBehaviour
         return _cachedSprite;
     }
 
+    private static Sprite LoadResourceSprite(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        if (_resourceSpriteCache.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        var sprite = Resources.Load<Sprite>(path);
+        _resourceSpriteCache[path] = sprite;
+        return sprite;
+    }
+
+    private static Sprite ResolvePickupSprite(string path, int fallbackSize)
+    {
+        var sprite = LoadResourceSprite(path);
+        return sprite != null ? sprite : GetCachedSprite(fallbackSize);
+    }
+
     private void ApplySettings()
     {
         if (_settingsApplied)
@@ -305,7 +329,7 @@ public class ExperiencePickup : MonoBehaviour
             renderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        renderer.sprite = GetCachedSprite(settings.xpSpriteSize);
+        renderer.sprite = ResolvePickupSprite(settings.xpSpritePath, settings.xpSpriteSize);
         if (NetworkSession.IsActive)
         {
             var netColor = GetComponent<NetworkColor>();

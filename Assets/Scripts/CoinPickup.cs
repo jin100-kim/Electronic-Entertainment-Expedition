@@ -6,6 +6,7 @@ public class CoinPickup : MonoBehaviour
     private static readonly System.Collections.Generic.Stack<CoinPickup> _pool = new System.Collections.Generic.Stack<CoinPickup>();
     private static Sprite _cachedSprite;
     private static int _cachedSpriteSize = -1;
+    private static readonly System.Collections.Generic.Dictionary<string, Sprite> _resourceSpriteCache = new System.Collections.Generic.Dictionary<string, Sprite>();
 
     [SerializeField]
     private int amount = 1;
@@ -214,7 +215,7 @@ public class CoinPickup : MonoBehaviour
         go.transform.localScale = Vector3.one * settings.coinPickupScale;
 
         var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = GetCachedSprite(settings.coinSpriteSize);
+        renderer.sprite = ResolvePickupSprite(settings.coinSpritePath, settings.coinSpriteSize);
         renderer.color = settings.coinColor;
         renderer.sortingOrder = settings.coinSortingOrder;
 
@@ -261,6 +262,29 @@ public class CoinPickup : MonoBehaviour
         return _cachedSprite;
     }
 
+    private static Sprite LoadResourceSprite(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        if (_resourceSpriteCache.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        var sprite = Resources.Load<Sprite>(path);
+        _resourceSpriteCache[path] = sprite;
+        return sprite;
+    }
+
+    private static Sprite ResolvePickupSprite(string path, int fallbackSize)
+    {
+        var sprite = LoadResourceSprite(path);
+        return sprite != null ? sprite : GetCachedSprite(fallbackSize);
+    }
+
     private void ApplySettings()
     {
         if (_settingsApplied)
@@ -289,7 +313,7 @@ public class CoinPickup : MonoBehaviour
             renderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        renderer.sprite = GetCachedSprite(settings.coinSpriteSize);
+        renderer.sprite = ResolvePickupSprite(settings.coinSpritePath, settings.coinSpriteSize);
         if (NetworkSession.IsActive)
         {
             var netColor = GetComponent<NetworkColor>();

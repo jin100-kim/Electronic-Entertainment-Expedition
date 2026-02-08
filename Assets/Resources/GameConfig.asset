@@ -258,6 +258,13 @@ MonoBehaviour:
     lightningLineWidth: 0.14
     lightningLineLength: 1.6
     lightningColor: {r: 1, g: 0.95, b: 0.5, a: 1}
+    straightSpritePath: Art/Projectiles/straight
+    boomerangSpritePath: Art/Projectiles/boomerang
+    novaSpritePath: Art/Projectiles/nova
+    shotgunSpritePath: Art/Projectiles/shotgun
+    droneSpritePath: Art/Projectiles/drone
+    shurikenSpritePath: Art/Projectiles/shuriken
+    frostSpritePath: Art/Projectiles/frost
   player:
     moveSpeed: 5
     playerColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
@@ -295,11 +302,18 @@ MonoBehaviour:
     coinMagnetScanInterval: 0.2
     xpSpriteSize: 50
     coinSpriteSize: 40
+    xpSpritePath: Art/Pickups/xp
+    coinSpritePath: Art/Pickups/coin
     xpColor: {r: 0.2, g: 0.8, b: 1, a: 1}
     coinColor: {r: 1, g: 0.85, b: 0.2, a: 1}
     xpColliderRadius: 0.15
     coinColliderRadius: 0.12
     coinSortingOrder: 1
+  mapBackground:
+    backgroundSpritePath: Art/Map/tilemaps
+    tileScale: 1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    sortingOrder: -10
   mapBorder:
     color: {r: 1, g: 1, b: 1, a: 0.6}
     width: 0.05

@@ -13,6 +13,7 @@ public class GameConfig : ScriptableObject
     public PlayerConfig player = new PlayerConfig();
     public ExperienceConfig experience = new ExperienceConfig();
     public PickupConfig pickups = new PickupConfig();
+    public MapBackgroundConfig mapBackground = new MapBackgroundConfig();
     public MapBorderConfig mapBorder = new MapBorderConfig();
     public NetworkUiConfig networkUi = new NetworkUiConfig();
     public WindowConfig window = new WindowConfig();
@@ -365,6 +366,15 @@ public class AutoAttackConfig
     public float lightningLineWidth = 0.14f;
     public float lightningLineLength = 1.6f;
     public Color lightningColor = new Color(1f, 0.95f, 0.5f, 1f);
+
+    [Header("Sprites (Resources)")]
+    public string straightSpritePath;
+    public string boomerangSpritePath;
+    public string novaSpritePath;
+    public string shotgunSpritePath;
+    public string droneSpritePath;
+    public string shurikenSpritePath;
+    public string frostSpritePath;
 }
 
 [System.Serializable]
@@ -417,11 +427,22 @@ public class PickupConfig
     public float coinMagnetScanInterval = 0.2f;
     public int xpSpriteSize = 50;
     public int coinSpriteSize = 40;
+    public string xpSpritePath;
+    public string coinSpritePath;
     public Color xpColor = new Color(0.2f, 0.8f, 1f, 1f);
     public Color coinColor = new Color(1f, 0.85f, 0.2f, 1f);
     public float xpColliderRadius = 0.15f;
     public float coinColliderRadius = 0.12f;
     public int coinSortingOrder = 1;
+}
+
+[System.Serializable]
+public class MapBackgroundConfig
+{
+    public string backgroundSpritePath;
+    public float tileScale = 1f;
+    public Color tint = Color.white;
+    public int sortingOrder = -10;
 }
 
 [System.Serializable]
