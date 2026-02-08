@@ -25,10 +25,13 @@ public class GameHUD : MonoBehaviour
     private float iconGap = 6f;
 
     [SerializeField]
-    private int labelFontSize = 16;
+    private float iconStartOffsetX = 0f;
 
     [SerializeField]
-    private int smallFontSize = 12;
+    private int labelFontSize = 24;
+
+    [SerializeField]
+    private int smallFontSize = 20;
 
     [SerializeField]
     private int iconFontSize = 11;
@@ -200,7 +203,7 @@ public class GameHUD : MonoBehaviour
         _iconRoot.anchorMin = new Vector2(0f, 1f);
         _iconRoot.anchorMax = new Vector2(0f, 1f);
         _iconRoot.pivot = new Vector2(0f, 1f);
-        _iconRoot.anchoredPosition = new Vector2(margin, -(margin + xpBarHeight + 28f));
+        _iconRoot.anchoredPosition = new Vector2(margin + iconStartOffsetX, -(margin + xpBarHeight + 28f));
         _iconRoot.sizeDelta = new Vector2(0f, 0f);
 
         _uiReady = true;
@@ -211,6 +214,16 @@ public class GameHUD : MonoBehaviour
         if (_xpFillRect == null)
         {
             return;
+        }
+
+        if (_timeText != null)
+        {
+            _timeText.fontSize = labelFontSize;
+        }
+
+        if (_infoText != null)
+        {
+            _infoText.fontSize = smallFontSize;
         }
 
         int level = session.PlayerExperience != null ? session.PlayerExperience.Level : 1;
@@ -249,7 +262,7 @@ public class GameHUD : MonoBehaviour
             }
         }
 
-        int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f) / (iconSize + iconGap)));
+        int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f - iconStartOffsetX) / (iconSize + iconGap)));
         int weaponRows = Mathf.Max(1, Mathf.CeilToInt(_weaponIcons.Count / (float)perRow));
 
         EnsureIconList(_weaponIconUI, _weaponIcons.Count);
@@ -350,24 +363,25 @@ public class GameHUD : MonoBehaviour
         if (_labelStyle == null)
         {
             _labelStyle = new GUIStyle(GUI.skin.label);
-            _labelStyle.fontSize = labelFontSize;
             _labelStyle.normal.textColor = Color.white;
         }
 
         if (_smallStyle == null)
         {
             _smallStyle = new GUIStyle(GUI.skin.label);
-            _smallStyle.fontSize = smallFontSize;
             _smallStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
         }
 
         if (_iconStyle == null)
         {
             _iconStyle = new GUIStyle(GUI.skin.label);
-            _iconStyle.fontSize = iconFontSize;
             _iconStyle.alignment = TextAnchor.MiddleCenter;
             _iconStyle.normal.textColor = Color.white;
         }
+        
+        _labelStyle.fontSize = labelFontSize;
+        _smallStyle.fontSize = smallFontSize;
+        _iconStyle.fontSize = iconFontSize;
 
         if (_solidTex == null)
         {
@@ -442,9 +456,9 @@ public class GameHUD : MonoBehaviour
             }
         }
 
-        float startX = margin;
+        float startX = margin + iconStartOffsetX;
         float startY = margin + xpBarHeight + 28f;
-        int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f) / (iconSize + iconGap)));
+        int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f - iconStartOffsetX) / (iconSize + iconGap)));
         int weaponRows = Mathf.Max(1, Mathf.CeilToInt(_weaponIcons.Count / (float)perRow));
 
         DrawIconRow(_weaponIcons, startX, startY, perRow);

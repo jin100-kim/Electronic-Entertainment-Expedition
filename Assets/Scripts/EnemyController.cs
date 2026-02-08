@@ -93,6 +93,11 @@ public class EnemyController : MonoBehaviour
         _health.OnDied += OnDied;
     }
 
+    private void Start()
+    {
+        ResolveVisualRenderers();
+    }
+
     private void OnEnable()
     {
         if (!Active.Contains(this))

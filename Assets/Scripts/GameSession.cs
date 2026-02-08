@@ -62,7 +62,7 @@ public class GameSession : MonoBehaviour
 
     [Header("Map Bounds")]
     [SerializeField]
-    private Vector2 mapHalfSize = new Vector2(12f, 12f);
+    private Vector2 mapHalfSize = new Vector2(24f, 24f);
 
     [Header("Upgrades")]
     [SerializeField]
@@ -441,7 +441,7 @@ public class GameSession : MonoBehaviour
         enemyXpPerLevel = 0f;
 
         localSpawnPosition = Vector3.zero;
-        mapHalfSize = new Vector2(12f, 12f);
+        mapHalfSize = new Vector2(24f, 24f);
 
         maxUpgradeLevel = 10;
         maxWeaponSlots = 5;
@@ -1100,30 +1100,33 @@ public class GameSession : MonoBehaviour
             return -1;
         }
 
-        int bestScore = int.MinValue;
-        var bestIndices = new List<int>();
+        float totalWeight = 0f;
+        var weights = new float[_options.Count];
         for (int i = 0; i < _options.Count; i++)
         {
             int score = ScoreUpgradeOption(_options[i]);
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestIndices.Clear();
-                bestIndices.Add(i);
-            }
-            else if (score == bestScore)
-            {
-                bestIndices.Add(i);
-            }
+            float weight = 1f + Mathf.Max(0, score);
+            weights[i] = weight;
+            totalWeight += weight;
         }
 
-        if (bestIndices.Count == 0)
+        if (totalWeight <= 0.0001f)
         {
-            return -1;
+            return Random.Range(0, _options.Count);
         }
 
-        int pick = Random.Range(0, bestIndices.Count);
-        return bestIndices[pick];
+        float pick = Random.Range(0f, totalWeight);
+        float cumulative = 0f;
+        for (int i = 0; i < weights.Length; i++)
+        {
+            cumulative += weights[i];
+            if (pick <= cumulative)
+            {
+                return i;
+            }
+        }
+
+        return _options.Count - 1;
     }
 
     private int ScoreUpgradeOption(UpgradeOption option)
@@ -2480,7 +2483,7 @@ public class GameSession : MonoBehaviour
         mageLabel.text = "마법사\n기본 무기: 총";
         _startMagePreviewRect = CreateRect(_startMageRect, "MagePreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var mageButton = _startMageRect.GetComponent<Button>();
-        mageButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeapon.Gun, mageButton));
+        mageButton.onClick.AddListener(() => SelectStartWeapon(StartWeapon.Gun));
         AddStartHoverTrigger(mageButton, 0);
         ApplyButtonColors(mageButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2495,7 +2498,7 @@ public class GameSession : MonoBehaviour
         warriorLabel.text = "전사\n기본 무기: 부메랑";
         _startWarriorPreviewRect = CreateRect(_startWarriorRect, "WarriorPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var warriorButton = _startWarriorRect.GetComponent<Button>();
-        warriorButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeapon.Boomerang, warriorButton));
+        warriorButton.onClick.AddListener(() => SelectStartWeapon(StartWeapon.Boomerang));
         AddStartHoverTrigger(warriorButton, 1);
         ApplyButtonColors(warriorButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2510,7 +2513,7 @@ public class GameSession : MonoBehaviour
         demonLabel.text = "데몬로드\n기본 무기: 노바";
         _startDemonPreviewRect = CreateRect(_startDemonRect, "DemonPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var demonButton = _startDemonRect.GetComponent<Button>();
-        demonButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeapon.Nova, demonButton));
+        demonButton.onClick.AddListener(() => SelectStartWeapon(StartWeapon.Nova));
         AddStartHoverTrigger(demonButton, 2);
         ApplyButtonColors(demonButton, startButtonNormalColor, startButtonHoverColor);
 

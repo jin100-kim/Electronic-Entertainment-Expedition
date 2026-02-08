@@ -31,10 +31,10 @@ public class Minimap : MonoBehaviour
     private float playerDotSize = 6f;
 
     [SerializeField]
-    private float enemyDotSize = 4f;
+    private float enemyDotSize = 2f;
 
     [SerializeField]
-    private float weaponDotSize = 3f;
+    private float weaponDotSize = 2f;
 
     [SerializeField]
     private float borderThickness = 2f;
