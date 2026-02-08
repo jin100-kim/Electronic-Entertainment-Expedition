@@ -64,6 +64,12 @@ public class GameSession : MonoBehaviour
     private int maxUpgradeLevel = 10;
 
     [SerializeField]
+    private int maxWeaponSlots = 5;
+
+    [SerializeField]
+    private int maxStatSlots = 5;
+
+    [SerializeField]
     private float damageMult = 1f;
 
     [SerializeField]
@@ -214,7 +220,26 @@ public class GameSession : MonoBehaviour
     private float xpGainMult = 1f;
 
     [SerializeField]
+    private float magnetRangeMult = 1f;
+
+    [SerializeField]
+    private float magnetSpeedMult = 1f;
+
+    [SerializeField]
+    private float magnetRangeStep = 0.5f;
+
+    [SerializeField]
+    private float magnetSpeedStep = 0.5f;
+
+    [SerializeField]
     private float regenPerSecond = 0f;
+
+    [Header("Drops")]
+    [SerializeField]
+    private float coinDropChance = 0.06f;
+
+    [SerializeField]
+    private int coinAmount = 1;
 
     [Header("Upgrade Levels")]
     [SerializeField]
@@ -227,16 +252,25 @@ public class GameSession : MonoBehaviour
     private int moveSpeedLevel = 0;
 
     [SerializeField]
-    private int maxHealthLevel = 0;
-
-    [SerializeField]
-    private int regenLevel = 0;
+    private int healthReinforceLevel = 0;
 
     [SerializeField]
     private int rangeLevel = 0;
 
     [SerializeField]
     private int xpGainLevel = 0;
+
+    [SerializeField]
+    private int sizeLevel = 0;
+
+    [SerializeField]
+    private int magnetLevel = 0;
+
+    [SerializeField]
+    private int pierceLevel = 0;
+
+    [SerializeField]
+    private int projectileCountLevel = 0;
 
     [Header("Start Weapon")]
     [SerializeField]
@@ -263,6 +297,8 @@ public class GameSession : MonoBehaviour
     public float ElapsedTime { get; private set; }
     public Health PlayerHealth { get; private set; }
     public Experience PlayerExperience { get; private set; }
+    public int CoinCount => _coinCount;
+    public int KillCount => _killCount;
 
     private EnemySpawner _spawner;
     private float _baseEnemyMoveSpeed;
@@ -278,13 +314,16 @@ public class GameSession : MonoBehaviour
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
     private readonly Dictionary<string, int> _upgradeCounts = new Dictionary<string, int>();
     private readonly List<string> _upgradeOrder = new List<string>();
-    private bool _showUpgradeHistory;
-    private Vector2 _upgradeScroll;
     private bool _waitingStartWeaponChoice;
     private bool _autoPlayEnabled;
     private float _autoUpgradeStartTime = -1f;
     private GameObject[] _startPreviews;
     private Camera _cachedCamera;
+    private bool _rerollAvailable;
+
+    private const string CoinPrefKey = "CoinCount";
+    private int _coinCount;
+    private int _killCount;
 
     private enum StartWeapon
     {
@@ -295,7 +334,104 @@ public class GameSession : MonoBehaviour
 
     private void Awake()
     {
+        ApplyRuntimeDefaults();
         Instance = this;
+        _coinCount = PlayerPrefs.GetInt(CoinPrefKey, 0);
+    }
+
+    private void ApplyRuntimeDefaults()
+    {
+        autoStartLocal = false;
+        showNetworkUI = true;
+
+        spawnInterval = 2f;
+        maxEnemies = 20;
+        spawnRadius = 8f;
+
+        minSpawnInterval = 0.4f;
+        spawnIntervalDecayPerSec = 0.01f;
+        maxEnemiesPerMinute = 10;
+        monsterLevelInterval = 60f;
+        enemyHealthPerLevel = 0.15f;
+        enemyDamagePerLevel = 0.10f;
+        enemySpeedPerLevel = 0.05f;
+        enemyXpPerLevel = 0f;
+
+        localSpawnPosition = Vector3.zero;
+        mapHalfSize = new Vector2(12f, 12f);
+
+        maxUpgradeLevel = 10;
+        maxWeaponSlots = 5;
+        maxStatSlots = 5;
+
+        damageMult = 1f;
+        fireRateMult = 1f;
+        rangeMult = 1f;
+        sizeMult = 1f;
+        lifetimeMult = 1f;
+        projectileCount = 1;
+        projectilePierceBonus = 0;
+        weaponDamageMult = 1f;
+
+        ApplyWeaponDefaults();
+
+        moveSpeedMult = 1f;
+        xpGainMult = 1f;
+        magnetRangeMult = 1f;
+        magnetSpeedMult = 1f;
+        magnetRangeStep = 1f;
+        magnetSpeedStep = 1f;
+        regenPerSecond = 0f;
+
+        coinDropChance = 0.06f;
+        coinAmount = 1;
+
+        damageLevel = 0;
+        fireRateLevel = 0;
+        moveSpeedLevel = 0;
+        healthReinforceLevel = 0;
+        rangeLevel = 0;
+        xpGainLevel = 0;
+        sizeLevel = 0;
+        magnetLevel = 0;
+        pierceLevel = 0;
+        projectileCountLevel = 0;
+
+        requireStartWeaponChoice = true;
+        startWeapon = StartWeapon.Gun;
+
+        startPreviewScale = 0.8f;
+        startPreviewSortingOrder = 5000;
+    }
+
+    private void ApplyWeaponDefaults()
+    {
+        ApplyWeaponDefaults(gunStats, "총", 1, true, 1f, 1.2f, 1f, 0);
+        ApplyWeaponDefaults(boomerangStats, "부메랑", 0, false, 1f, 0.8f, 0.7f, 0);
+        ApplyWeaponDefaults(novaStats, "노바", 0, false, 1f, 0.6f, 0.5f, 0);
+        ApplyWeaponDefaults(shotgunStats, "샷건", 0, false, 0.9f, 0.7f, 0.75f, 0);
+        ApplyWeaponDefaults(laserStats, "레이저", 0, false, 1.1f, 0.8f, 1.4f, 0);
+        ApplyWeaponDefaults(chainStats, "체인 라이트닝", 0, false, 0.9f, 0.75f, 1.1f, 0);
+        ApplyWeaponDefaults(droneStats, "드론", 0, false, 0.8f, 0.5f, 1.0f, 0);
+        ApplyWeaponDefaults(shurikenStats, "수리검", 0, false, 0.9f, 0.9f, 1.0f, 0);
+        ApplyWeaponDefaults(frostStats, "빙결 구체", 0, false, 0.85f, 0.8f, 1.0f, 0);
+        ApplyWeaponDefaults(lightningStats, "번개", 0, false, 1.0f, 0.7f, 1.0f, 0);
+    }
+
+    private static void ApplyWeaponDefaults(WeaponStatsData stats, string displayName, int level, bool unlocked, float damage, float rate, float range, int bonusProjectiles)
+    {
+        if (stats == null)
+        {
+            return;
+        }
+
+        stats.displayName = displayName;
+        stats.level = level;
+        stats.unlocked = unlocked;
+        stats.damageMult = damage;
+        stats.fireRateMult = rate;
+        stats.rangeMult = range;
+        stats.bonusProjectiles = bonusProjectiles;
     }
 
     private void Start()
@@ -477,6 +613,7 @@ public class GameSession : MonoBehaviour
         }
 
         PlayerExperience.SetXpMultiplier(xpGainMult);
+        PlayerExperience.SetMagnetMultiplier(magnetRangeMult, magnetSpeedMult);
         PlayerExperience.OnLevelUp += OnLevelUp;
 
         _attack = player.GetComponent<AutoAttack>();
@@ -573,35 +710,77 @@ public class GameSession : MonoBehaviour
             return;
         }
 
+        BuildUpgradeOptions(true);
+
+        _choosingUpgrade = true;
+        Time.timeScale = 0f;
+        _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+    }
+
+    private void BuildUpgradeOptions(bool resetReroll)
+    {
         _options.Clear();
 
-        if (damageLevel < maxUpgradeLevel)
+        if (damageLevel < maxUpgradeLevel && CanOfferNewStat(damageLevel))
         {
-            _options.Add(new UpgradeOption("공격력 +25%", () => BuildPercentStatText("공격력", damageMult, damageMult + 0.25f), () => { damageMult += 0.25f; damageLevel += 1; }));
+            _options.Add(new UpgradeOption("공격력 +10%", () => BuildPercentStatText("공격력", damageMult, damageMult + 0.10f), () => { damageMult += 0.10f; damageLevel += 1; }));
         }
-        if (fireRateLevel < maxUpgradeLevel)
+        if (fireRateLevel < maxUpgradeLevel && CanOfferNewStat(fireRateLevel))
         {
-            _options.Add(new UpgradeOption("공격속도 +20%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult + 0.20f), () => { fireRateMult += 0.20f; fireRateLevel += 1; }));
+            _options.Add(new UpgradeOption("공격속도 +10%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult + 0.10f), () => { fireRateMult += 0.10f; fireRateLevel += 1; }));
         }
-        if (moveSpeedLevel < maxUpgradeLevel)
+        if (moveSpeedLevel < maxUpgradeLevel && CanOfferNewStat(moveSpeedLevel))
         {
-            _options.Add(new UpgradeOption("이동속도 +20%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult + 0.20f), () => { moveSpeedMult += 0.20f; moveSpeedLevel += 1; }));
+            _options.Add(new UpgradeOption("이동속도 +10%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult + 0.10f), () => { moveSpeedMult += 0.10f; moveSpeedLevel += 1; }));
         }
-        if (maxHealthLevel < maxUpgradeLevel)
+        if (healthReinforceLevel < maxUpgradeLevel && CanOfferNewStat(healthReinforceLevel))
         {
-            _options.Add(new UpgradeOption("체력 +40", () => BuildValueStatText("최대 체력", PlayerHealth != null ? PlayerHealth.MaxHealth : 0f, (PlayerHealth != null ? PlayerHealth.MaxHealth : 0f) + 40f), () => { PlayerHealth?.AddMaxHealth(40f, true); maxHealthLevel += 1; }));
+            _options.Add(new UpgradeOption("체력 강화", BuildHealthReinforceText, () =>
+            {
+                if (PlayerHealth != null)
+                {
+                    PlayerHealth.AddMaxHealth(25f, true);
+                    PlayerHealth.Heal(PlayerHealth.MaxHealth);
+                }
+                regenPerSecond += 0.5f;
+                healthReinforceLevel += 1;
+            }));
         }
-        if (regenLevel < maxUpgradeLevel)
+        if (rangeLevel < maxUpgradeLevel && CanOfferNewStat(rangeLevel))
         {
-            _options.Add(new UpgradeOption("체력재생 +1", () => BuildValueStatText("체력재생", regenPerSecond, regenPerSecond + 1f), () => { regenPerSecond += 1f; regenLevel += 1; }));
+            _options.Add(new UpgradeOption("사거리 +15%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.15f), () => { rangeMult += 0.15f; rangeLevel += 1; }));
         }
-        if (rangeLevel < maxUpgradeLevel)
+        if (xpGainLevel < maxUpgradeLevel && CanOfferNewStat(xpGainLevel))
         {
-            _options.Add(new UpgradeOption("사거리 +25%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.25f), () => { rangeMult += 0.25f; rangeLevel += 1; }));
+            _options.Add(new UpgradeOption("경험치 +10%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.10f), () => { xpGainMult += 0.10f; xpGainLevel += 1; }));
         }
-        if (xpGainLevel < maxUpgradeLevel)
+        if (magnetLevel < maxUpgradeLevel && CanOfferNewStat(magnetLevel))
         {
-            _options.Add(new UpgradeOption("경험치 +35%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.35f), () => { xpGainMult += 0.35f; xpGainLevel += 1; }));
+            _options.Add(new UpgradeOption("경험치 자석", BuildMagnetUpgradeText, () =>
+            {
+                magnetRangeMult += magnetRangeStep;
+                magnetSpeedMult += magnetSpeedStep;
+                magnetLevel += 1;
+            }));
+        }
+        if (sizeLevel < maxUpgradeLevel && CanOfferNewStat(sizeLevel))
+        {
+            _options.Add(new UpgradeOption("투사체 크기 +25%", () => BuildPercentStatText("투사체 크기", sizeMult, sizeMult + 0.25f), () => { sizeMult += 0.25f; sizeLevel += 1; }));
+        }
+        if (projectileCountLevel < maxUpgradeLevel && CanOfferNewStat(projectileCountLevel))
+        {
+            _options.Add(new UpgradeOption("투사체 수", BuildProjectileCountText, () =>
+            {
+                projectileCountLevel += 1;
+                if (projectileCountLevel % 2 == 0)
+                {
+                    projectileCount += 1;
+                }
+            }));
+        }
+        if (pierceLevel < maxUpgradeLevel && CanOfferNewStat(pierceLevel))
+        {
+            _options.Add(new UpgradeOption("관통 +1", () => BuildValueStatText("관통", projectilePierceBonus, projectilePierceBonus + 1), () => { projectilePierceBonus += 1; pierceLevel += 1; }));
         }
         AddWeaponChoice(gunStats, BuildStraightUpgradeText, UnlockStraight, LevelUpStraightWeapon);
         AddWeaponChoice(boomerangStats, BuildBoomerangUpgradeText, UnlockBoomerang, LevelUpBoomerangWeapon);
@@ -625,7 +804,6 @@ public class GameSession : MonoBehaviour
             }));
         }
 
-        // random pick 3
         for (int i = _options.Count - 1; i > 0; i--)
         {
             int j = Random.Range(0, i + 1);
@@ -634,14 +812,15 @@ public class GameSession : MonoBehaviour
             _options[j] = temp;
         }
 
-        if (_options.Count > 3)
+        if (_options.Count > 4)
         {
-            _options.RemoveRange(3, _options.Count - 3);
+            _options.RemoveRange(4, _options.Count - 4);
         }
 
-        _choosingUpgrade = true;
-        Time.timeScale = 0f;
-        _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+        if (resetReroll)
+        {
+            _rerollAvailable = true;
+        }
     }
 
     private void ApplyUpgrade(int index)
@@ -662,8 +841,93 @@ public class GameSession : MonoBehaviour
         // apply updated stats
         _player?.SetMoveSpeedMultiplier(moveSpeedMult);
         PlayerExperience?.SetXpMultiplier(xpGainMult);
+        PlayerExperience?.SetMagnetMultiplier(magnetRangeMult, magnetSpeedMult);
         PlayerHealth?.SetRegenPerSecond(regenPerSecond);
         ApplyAttackStats();
+    }
+
+    public struct UpgradeIconData
+    {
+        public string Key;
+        public int Level;
+        public bool IsWeapon;
+
+        public UpgradeIconData(string key, int level, bool isWeapon)
+        {
+            Key = key;
+            Level = level;
+            IsWeapon = isWeapon;
+        }
+    }
+
+    public void GetUpgradeIconData(List<UpgradeIconData> results)
+    {
+        if (results == null)
+        {
+            return;
+        }
+
+        results.Clear();
+
+        AddWeaponIcon(results, gunStats);
+        AddWeaponIcon(results, boomerangStats);
+        AddWeaponIcon(results, novaStats);
+        AddWeaponIcon(results, shotgunStats);
+        AddWeaponIcon(results, laserStats);
+        AddWeaponIcon(results, chainStats);
+        AddWeaponIcon(results, droneStats);
+        AddWeaponIcon(results, shurikenStats);
+        AddWeaponIcon(results, frostStats);
+        AddWeaponIcon(results, lightningStats);
+
+        AddStatIcon(results, "공격력", damageLevel);
+        AddStatIcon(results, "공격속도", fireRateLevel);
+        AddStatIcon(results, "이동속도", moveSpeedLevel);
+        AddStatIcon(results, "체력강화", healthReinforceLevel);
+        AddStatIcon(results, "사거리", rangeLevel);
+        AddStatIcon(results, "경험치", xpGainLevel);
+        AddStatIcon(results, "자석", magnetLevel);
+        AddStatIcon(results, "투사체크기", sizeLevel);
+        AddStatIcon(results, "투사체수", projectileCountLevel);
+        AddStatIcon(results, "관통", pierceLevel);
+    }
+
+    private static void AddWeaponIcon(List<UpgradeIconData> results, WeaponStatsData stats)
+    {
+        if (stats == null || !stats.unlocked || stats.level <= 0)
+        {
+            return;
+        }
+
+        results.Add(new UpgradeIconData(stats.displayName, stats.level, true));
+    }
+
+    private static void AddStatIcon(List<UpgradeIconData> results, string key, int level)
+    {
+        if (level <= 0)
+        {
+            return;
+        }
+
+        results.Add(new UpgradeIconData(key, level, false));
+    }
+
+    public void RegisterKill(Vector3 position)
+    {
+        _killCount += 1;
+        TrySpawnCoin(position);
+    }
+
+    public void AddCoins(int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        _coinCount += amount;
+        PlayerPrefs.SetInt(CoinPrefKey, _coinCount);
+        PlayerPrefs.Save();
     }
 
     private void TrackUpgrade(string title)
@@ -680,6 +944,44 @@ public class GameSession : MonoBehaviour
         }
 
         _upgradeCounts[title] += 1;
+    }
+
+    private void TrySpawnCoin(Vector3 position)
+    {
+        if (coinDropChance <= 0f)
+        {
+            return;
+        }
+
+        if (Random.value > coinDropChance)
+        {
+            return;
+        }
+
+        SpawnCoin(position);
+    }
+
+    private void SpawnCoin(Vector3 position)
+    {
+        var go = new GameObject("Coin");
+        go.transform.position = position;
+        go.transform.localScale = Vector3.one * 0.4f;
+
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = CreateCircleSprite(40);
+        renderer.color = new Color(1f, 0.85f, 0.2f, 1f);
+        renderer.sortingOrder = 1;
+
+        var rb = go.AddComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.gravityScale = 0f;
+
+        var col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.12f;
+
+        var pickup = go.AddComponent<CoinPickup>();
+        pickup.SetAmount(coinAmount);
     }
 
     private int PickAutoUpgradeIndex()
@@ -741,6 +1043,10 @@ public class GameSession : MonoBehaviour
         {
             return;
         }
+        if (!stats.unlocked && !CanOfferNewWeapon(stats))
+        {
+            return;
+        }
 
         _options.Add(new UpgradeOption(
             $"무기: {stats.displayName}",
@@ -756,6 +1062,70 @@ public class GameSession : MonoBehaviour
                     unlockAction?.Invoke();
                 }
             }));
+    }
+
+    private bool CanOfferNewWeapon(WeaponStatsData stats)
+    {
+        if (stats == null)
+        {
+            return false;
+        }
+        if (stats.unlocked && stats.level > 0)
+        {
+            return true;
+        }
+        if (maxWeaponSlots <= 0)
+        {
+            return true;
+        }
+
+        return GetUnlockedWeaponCount() < maxWeaponSlots;
+    }
+
+    private bool CanOfferNewStat(int currentLevel)
+    {
+        if (currentLevel > 0)
+        {
+            return true;
+        }
+        if (maxStatSlots <= 0)
+        {
+            return true;
+        }
+
+        return GetUnlockedStatCount() < maxStatSlots;
+    }
+
+    private int GetUnlockedWeaponCount()
+    {
+        int count = 0;
+        if (gunStats != null && gunStats.unlocked && gunStats.level > 0) count++;
+        if (boomerangStats != null && boomerangStats.unlocked && boomerangStats.level > 0) count++;
+        if (novaStats != null && novaStats.unlocked && novaStats.level > 0) count++;
+        if (shotgunStats != null && shotgunStats.unlocked && shotgunStats.level > 0) count++;
+        if (laserStats != null && laserStats.unlocked && laserStats.level > 0) count++;
+        if (chainStats != null && chainStats.unlocked && chainStats.level > 0) count++;
+        if (droneStats != null && droneStats.unlocked && droneStats.level > 0) count++;
+        if (shurikenStats != null && shurikenStats.unlocked && shurikenStats.level > 0) count++;
+        if (frostStats != null && frostStats.unlocked && frostStats.level > 0) count++;
+        if (lightningStats != null && lightningStats.unlocked && lightningStats.level > 0) count++;
+        return count;
+    }
+
+    private int GetUnlockedStatCount()
+    {
+        int count = 0;
+        if (damageLevel > 0) count++;
+        if (fireRateLevel > 0) count++;
+        if (moveSpeedLevel > 0) count++;
+        if (healthReinforceLevel > 0) count++;
+        if (rangeLevel > 0) count++;
+        if (xpGainLevel > 0) count++;
+        if (sizeLevel > 0) count++;
+        if (magnetLevel > 0) count++;
+        if (projectileCountLevel > 0) count++;
+        if (pierceLevel > 0) count++;
+        return count;
     }
 
     private void ApplyAttackStats()
@@ -1535,6 +1905,43 @@ public class GameSession : MonoBehaviour
         return $"{label} {currentValue:0.#} -> {nextValue:0.#}";
     }
 
+    private string BuildHealthReinforceText()
+    {
+        float currentMax = PlayerHealth != null ? PlayerHealth.MaxHealth : 0f;
+        float nextMax = currentMax + 25f;
+        float nextRegen = regenPerSecond + 0.5f;
+        var lines = new List<string>
+        {
+            BuildValueStatText("최대 체력", currentMax, nextMax),
+            BuildValueStatText("체력 재생", regenPerSecond, nextRegen),
+            "획득 시 체력 100% 회복"
+        };
+        return string.Join("\n", lines);
+    }
+
+    private string BuildMagnetUpgradeText()
+    {
+        float nextRange = magnetRangeMult + magnetRangeStep;
+        float nextSpeed = magnetSpeedMult + magnetSpeedStep;
+        var lines = new List<string>
+        {
+            BuildValueStatText("자석 범위", magnetRangeMult, nextRange),
+            BuildValueStatText("자석 속도", magnetSpeedMult, nextSpeed)
+        };
+        return string.Join("\n", lines);
+    }
+
+    private string BuildProjectileCountText()
+    {
+        int nextCount = projectileCount + ((projectileCountLevel + 1) % 2 == 0 ? 1 : 0);
+        var lines = new List<string>
+        {
+            BuildValueStatText("투사체 수", projectileCount, nextCount),
+            "2회 업그레이드마다 +1"
+        };
+        return string.Join("\n", lines);
+    }
+
     private void OnGUI()
     {
         if (IsGameOver)
@@ -1560,53 +1967,6 @@ public class GameSession : MonoBehaviour
         }
 
         DrawAutoPlayToggle();
-        DrawUpgradeHistoryToggle();
-    }
-
-    private void DrawUpgradeHistoryToggle()
-    {
-        const float width = 140f;
-        const float height = 32f;
-        float x = 12f;
-        float y = 45f;
-
-        string label = _showUpgradeHistory ? "업그레이드: ON" : "업그레이드: OFF";
-        if (GUI.Button(new Rect(x, y, width, height), label))
-        {
-            _showUpgradeHistory = !_showUpgradeHistory;
-        }
-
-        if (_showUpgradeHistory)
-        {
-            DrawUpgradeHistory(x, y + height + 8f);
-        }
-    }
-
-    private void DrawUpgradeHistory(float x, float y)
-    {
-        if (_upgradeOrder.Count == 0)
-        {
-            return;
-        }
-
-        const float panelWidth = 220f;
-        const float panelHeight = 260f;
-
-        GUI.Box(new Rect(x, y, panelWidth, panelHeight), "획득한 업그레이드");
-
-        float lineHeight = 18f;
-        float startY = y + 28f;
-        float maxLines = Mathf.Floor((panelHeight - 36f) / lineHeight);
-        int count = _upgradeOrder.Count;
-        int startIndex = Mathf.Max(0, count - (int)maxLines);
-
-        for (int i = startIndex; i < count; i++)
-        {
-            string key = _upgradeOrder[i];
-            int value = _upgradeCounts.TryGetValue(key, out var c) ? c : 0;
-            float ly = startY + (i - startIndex) * lineHeight;
-            GUI.Label(new Rect(x + 10f, ly, panelWidth - 20f, lineHeight), $"{key} x{value}");
-        }
     }
 
     private void DrawGameOverPanel()
@@ -1639,20 +1999,18 @@ public class GameSession : MonoBehaviour
 
     private void DrawUpgradeChoices()
     {
-
-        const int columns = 3;
+        const int columns = 5;
         const float boxHeight = 200f;
-        const float gap = 12f;
+        const float gap = 10f;
         const float topPadding = 36f;
         const float sidePadding = 12f;
 
-        int count = _options.Count;
-        int rows = Mathf.CeilToInt(count / (float)columns);
+        int optionCount = Mathf.Min(4, _options.Count);
 
         float maxWidth = Screen.width - 40f;
         float boxWidth = Mathf.Floor((maxWidth - sidePadding * 2f - (columns - 1) * gap) / columns);
         float w = columns * boxWidth + (columns - 1) * gap + sidePadding * 2f;
-        float h = topPadding + rows * boxHeight + (rows - 1) * gap + sidePadding;
+        float h = topPadding + boxHeight + sidePadding;
         float x = (Screen.width - w) * 0.5f;
         float y = (Screen.height - h) * 0.5f;
 
@@ -1663,13 +2021,10 @@ public class GameSession : MonoBehaviour
         style.wordWrap = true;
         style.fontSize = 13;
 
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < optionCount; i++)
         {
-            int row = i / columns;
-            int col = i % columns;
-
-            float bx = x + sidePadding + col * (boxWidth + gap);
-            float by = y + topPadding + row * (boxHeight + gap);
+            float bx = x + sidePadding + i * (boxWidth + gap);
+            float by = y + topPadding;
 
             var opt = _options[i];
             if (GUI.Button(new Rect(bx, by, boxWidth, boxHeight), $"{i + 1}. {opt.Title}\n{opt.Desc}", style))
@@ -1677,6 +2032,22 @@ public class GameSession : MonoBehaviour
                 ApplyUpgrade(i);
             }
         }
+
+        float rx = x + sidePadding + 4 * (boxWidth + gap);
+        float ry = y + topPadding;
+        var rerollStyle = new GUIStyle(GUI.skin.button);
+        rerollStyle.alignment = TextAnchor.MiddleCenter;
+        rerollStyle.wordWrap = true;
+        rerollStyle.fontSize = 13;
+
+        GUI.enabled = _rerollAvailable;
+        if (GUI.Button(new Rect(rx, ry, boxWidth, boxHeight), _rerollAvailable ? "리롤\n(1회)" : "리롤 완료", rerollStyle))
+        {
+            _rerollAvailable = false;
+            BuildUpgradeOptions(false);
+            _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+        }
+        GUI.enabled = true;
     }
 
     private void DrawAutoPlayToggle()
@@ -1686,12 +2057,13 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        const float width = 160f;
-        const float height = 36f;
-        float x = Screen.width - width - 12f;
+        const float width = 140f;
+        const float height = 40f;
+        float x = 12f;
         float y = Screen.height - height - 12f;
 
-        string label = _autoPlayEnabled ? "AutoPlay: ON" : "AutoPlay: OFF";
+        int level = PlayerExperience != null ? PlayerExperience.Level : 1;
+        string label = _autoPlayEnabled ? $"자동 Lv{level}\n켜짐" : $"자동 Lv{level}\n꺼짐";
         if (GUI.Button(new Rect(x, y, width, height), label))
         {
             _autoPlayEnabled = !_autoPlayEnabled;
@@ -1882,5 +2254,29 @@ public class GameSession : MonoBehaviour
         }
 
         _startPreviews = null;
+    }
+
+    private static Sprite CreateCircleSprite(int size)
+    {
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        var colors = new Color32[size * size];
+        float r = (size - 1) * 0.5f;
+        float cx = r;
+        float cy = r;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - cx;
+                float dy = y - cy;
+                bool inside = (dx * dx + dy * dy) <= r * r;
+                colors[y * size + x] = inside ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
+            }
+        }
+
+        texture.SetPixels32(colors);
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 }

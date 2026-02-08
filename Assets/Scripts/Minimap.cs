@@ -51,12 +51,12 @@ public class Minimap : MonoBehaviour
 
         Rect rect = new Rect(
             Screen.width - size.x - margin.x,
-            margin.y,
+            Screen.height - size.y - margin.y,
             size.x,
             size.y);
 
         GUI.DrawTexture(rect, _bgTex);
-        GUI.Box(rect, "MINIMAP");
+        GUI.Box(rect, "미니맵");
         DrawBorder(rect);
 
         Vector2 half = session.MapHalfSize;
@@ -109,6 +109,10 @@ public class Minimap : MonoBehaviour
             {
                 continue;
             }
+            if (enemy.IsDead)
+            {
+                continue;
+            }
 
             Vector2 p = WorldToMinimap(rect, half, enemy.transform.position);
             DrawDot(p, enemyDotSize, new Color(1f, 0.2f, 0.2f, 1f));
@@ -138,6 +142,18 @@ public class Minimap : MonoBehaviour
             }
 
             Vector2 p = WorldToMinimap(rect, half, boom.transform.position);
+            DrawDot(p, weaponDotSize, Color.white);
+        }
+
+        var drones = FindObjectsOfType<DroneProjectile>();
+        foreach (var drone in drones)
+        {
+            if (drone == null)
+            {
+                continue;
+            }
+
+            Vector2 p = WorldToMinimap(rect, half, drone.transform.position);
             DrawDot(p, weaponDotSize, Color.white);
         }
     }

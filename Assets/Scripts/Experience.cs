@@ -22,7 +22,10 @@ public class Experience : MonoBehaviour
     private float baseMagnetRange = 1.5f;
 
     [SerializeField]
-    private float baseMagnetSpeed = 6f;
+    private float baseMagnetSpeed = 1.5f;
+
+    private float _magnetRangeMult = 1f;
+    private float _magnetSpeedMult = 1f;
 
     public int Level => level;
     public float CurrentXp => currentXp;
@@ -58,13 +61,18 @@ public class Experience : MonoBehaviour
     public void SetXpMultiplier(float value)
     {
         xpMultiplier = Mathf.Max(0.1f, value);
+    }
+
+    public void SetMagnetMultiplier(float rangeMult, float speedMult)
+    {
+        _magnetRangeMult = Mathf.Max(0.1f, rangeMult);
+        _magnetSpeedMult = Mathf.Max(0.1f, speedMult);
         RecalculateMagnet();
     }
 
     private void RecalculateMagnet()
     {
-        float mult = Mathf.Max(0.1f, xpMultiplier);
-        MagnetRange = Mathf.Max(0.1f, baseMagnetRange * mult);
-        MagnetSpeed = Mathf.Max(0.1f, baseMagnetSpeed * mult);
+        MagnetRange = Mathf.Max(0.1f, baseMagnetRange * _magnetRangeMult);
+        MagnetSpeed = Mathf.Max(0.1f, baseMagnetSpeed * _magnetSpeedMult);
     }
 }
