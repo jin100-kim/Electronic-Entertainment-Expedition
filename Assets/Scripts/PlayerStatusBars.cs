@@ -18,15 +18,9 @@ public class PlayerStatusBars : MonoBehaviour
     [SerializeField]
     private Color hpColor = new Color(0.2f, 0.9f, 0.3f, 1f);
 
-    [SerializeField]
-    private Color xpColor = new Color(0.3f, 0.6f, 1f, 1f);
-
     private Health _health;
-    private Experience _xp;
     private Transform _hpFill;
-    private Transform _xpFill;
     private SpriteRenderer _hpFillRenderer;
-    private SpriteRenderer _xpFillRenderer;
     private readonly System.Collections.Generic.List<SpriteRenderer> _renderers = new System.Collections.Generic.List<SpriteRenderer>();
     private bool _isVisible = true;
 
@@ -63,17 +57,6 @@ public class PlayerStatusBars : MonoBehaviour
 
         float hpRatio = _health.MaxHealth <= 0f ? 0f : _health.CurrentHealth / _health.MaxHealth;
         SetFill(_hpFill, hpRatio, barWidth, barHeight);
-
-        if (_xp == null)
-        {
-            _xp = GetComponent<Experience>();
-        }
-
-        if (_xpFill != null)
-        {
-            float xpRatio = _xp != null && _xp.XpToNext > 0f ? _xp.CurrentXp / _xp.XpToNext : 0f;
-            SetFill(_xpFill, xpRatio, barWidth, barHeight);
-        }
     }
 
     private void CreateBars()
@@ -83,7 +66,6 @@ public class PlayerStatusBars : MonoBehaviour
         root.transform.localPosition = offset;
 
         _hpFill = CreateBar(root.transform, "HPBar", hpColor, 20, Vector3.zero, out _hpFillRenderer);
-        _xpFill = CreateBar(root.transform, "XPBar", xpColor, 22, new Vector3(0f, -spacing, 0f), out _xpFillRenderer);
     }
 
     private Transform CreateBar(Transform parent, string name, Color fillColor, int sortingOrder, Vector3 localOffset, out SpriteRenderer fillRenderer)

@@ -178,6 +178,10 @@ public class EnemyController : MonoBehaviour
 
         _dead = true;
         deathFadeDelay = 0f;
+        if (GameSession.Instance != null)
+        {
+            GameSession.Instance.RegisterKill(transform.position);
+        }
         SpawnXp();
 
         var col = GetComponent<Collider2D>();
