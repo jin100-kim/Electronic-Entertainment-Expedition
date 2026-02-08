@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
 public class DroneProjectile : MonoBehaviour
 {
@@ -57,6 +58,11 @@ public class DroneProjectile : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_owner == null)
         {
             Despawn();
@@ -77,11 +83,21 @@ public class DroneProjectile : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         TryHit(other);
     }
 
     private void OnTriggerStay2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         TryHit(other);
     }
 
@@ -118,6 +134,18 @@ public class DroneProjectile : MonoBehaviour
         if (_release != null)
         {
             _release(this);
+        }
+        else if (NetworkSession.IsActive)
+        {
+            var netObj = GetComponent<NetworkObject>();
+            if (NetworkSession.IsServer && netObj != null && netObj.IsSpawned)
+            {
+                netObj.Despawn(true);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
         else
         {

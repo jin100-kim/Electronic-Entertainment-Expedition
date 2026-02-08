@@ -2,6 +2,7 @@
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine.InputSystem;
+using Unity.Collections;
 
 [RequireComponent(typeof(NetworkTransform))]
 public class PlayerController : NetworkBehaviour
@@ -76,6 +77,9 @@ public class PlayerController : NetworkBehaviour
     private float autoMidCenterPull = 0.1f;
 
     private const int SpriteSize = 50;
+    private NetworkVariable<int> _startWeaponIndex = new NetworkVariable<int>(-1);
+    private NetworkVariable<bool> _gameStartedSignal = new NetworkVariable<bool>(false);
+    private readonly NetworkVariable<float> _moveSpeedMultNet = new NetworkVariable<float>(1f);
     private float _moveSpeedMult = 1f;
     private Vector2 _autoInputCurrent;
     private Transform _visualRoot;
@@ -87,10 +91,13 @@ public class PlayerController : NetworkBehaviour
     private void Awake()
     {
         ApplySettings();
+        EnsureNetworkTransform();
         _lastPosition = transform.position;
         EnsureVisual();
         EnsureShadow();
         EnsurePhysics();
+        EnsureExperience();
+        EnsureAutoAttack();
         EnsureHealth();
         EnsureStatusBars();
         EnsureDamageVignette();
@@ -113,6 +120,22 @@ public class PlayerController : NetworkBehaviour
     private void Start()
     {
         ApplyPlayerColor();
+    }
+
+    private void EnsureNetworkTransform()
+    {
+        if (!NetworkSession.IsActive)
+        {
+            return;
+        }
+
+        var transformSync = GetComponent<NetworkTransform>();
+        if (transformSync == null)
+        {
+            transformSync = gameObject.AddComponent<NetworkTransform>();
+        }
+
+        transformSync.AuthorityMode = NetworkTransform.AuthorityModes.Owner;
     }
 
     private void ApplySettings()
@@ -152,7 +175,24 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+        _startWeaponIndex.OnValueChanged += OnStartWeaponChanged;
+        _moveSpeedMultNet.OnValueChanged += OnMoveSpeedChanged;
+        if (IsServer)
+        {
+            _moveSpeedMultNet.Value = _moveSpeedMult;
+        }
         ApplyPlayerColor();
+        if (_startWeaponIndex.Value >= 0)
+        {
+            ApplyStartWeaponVisuals((StartWeaponType)_startWeaponIndex.Value);
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _startWeaponIndex.OnValueChanged -= OnStartWeaponChanged;
+        _moveSpeedMultNet.OnValueChanged -= OnMoveSpeedChanged;
+        base.OnNetworkDespawn();
     }
 
     private void Update()
@@ -161,6 +201,14 @@ public class PlayerController : NetworkBehaviour
         {
             return;
         }
+
+        if (GameSession.Instance != null && !GameSession.Instance.IsGameplayActive)
+        {
+            UpdateVisibility(false);
+            return;
+        }
+
+        UpdateVisibility(true);
 
         if (!CanReadInput())
         {
@@ -173,7 +221,8 @@ public class PlayerController : NetworkBehaviour
             input.Normalize();
         }
 
-        float speed = moveSpeed * _moveSpeedMult;
+        float mult = NetworkSession.IsActive ? _moveSpeedMultNet.Value : _moveSpeedMult;
+        float speed = moveSpeed * mult;
         Vector2 delta = input * speed * Time.deltaTime;
         transform.Translate(delta, Space.World);
         UpdateFacingFromInput(input);
@@ -186,7 +235,15 @@ public class PlayerController : NetworkBehaviour
 
     public void SetMoveSpeedMultiplier(float value)
     {
-        _moveSpeedMult = Mathf.Max(0.1f, value);
+        float clamped = Mathf.Max(0.1f, value);
+        _moveSpeedMult = clamped;
+        if (NetworkSession.IsActive)
+        {
+            if (IsServer)
+            {
+                _moveSpeedMultNet.Value = clamped;
+            }
+        }
     }
 
     public void SetAutoPlay(bool enabled)
@@ -195,6 +252,155 @@ public class PlayerController : NetworkBehaviour
     }
 
     public bool IsAutoPlayEnabled => autoPlayEnabled;
+
+    public bool HasStartWeaponSelection => _startWeaponIndex.Value >= 0;
+    public bool GameStartedSignal => _gameStartedSignal.Value;
+
+    public StartWeaponType StartWeaponSelection
+    {
+        get
+        {
+            if (_startWeaponIndex.Value < 0)
+            {
+                return StartWeaponType.Gun;
+            }
+            return (StartWeaponType)_startWeaponIndex.Value;
+        }
+    }
+
+    public void SetStartWeaponSelection(StartWeaponType weapon)
+    {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            if (IsOwner)
+            {
+                SubmitStartWeaponSelectionServerRpc((int)weapon);
+            }
+        }
+        else
+        {
+            _startWeaponIndex.Value = (int)weapon;
+            ApplyStartWeaponVisuals(weapon);
+        }
+    }
+
+    public void SetGameStartedSignal(bool value)
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        _gameStartedSignal.Value = value;
+    }
+
+    [ServerRpc]
+    private void SubmitStartWeaponSelectionServerRpc(int weaponIndex)
+    {
+        _startWeaponIndex.Value = weaponIndex;
+    }
+
+    [ClientRpc]
+    public void SyncSharedXpClientRpc(int level, float currentXp, float xpToNext)
+    {
+        var xp = GetComponent<Experience>();
+        if (xp != null)
+        {
+            xp.SetSharedState(level, currentXp, xpToNext);
+        }
+    }
+
+    [ClientRpc]
+    public void ShowUpgradeUIClientRpc(FixedString128Bytes[] titles, FixedString512Bytes[] descs, int roundId, bool rerollAvailable, ClientRpcParams rpcParams = default)
+    {
+        GameSession.Instance?.ShowUpgradeChoicesFromNetwork(ToStringArray(titles), ToStringArray(descs), roundId, rerollAvailable);
+    }
+
+    [ClientRpc]
+    public void HideUpgradeUIClientRpc(int roundId, ClientRpcParams rpcParams = default)
+    {
+        GameSession.Instance?.HideUpgradeChoicesFromNetwork(roundId);
+    }
+
+    [ClientRpc]
+    public void SyncUpgradeIconStateClientRpc(GameSession.UpgradeIconState state, ClientRpcParams rpcParams = default)
+    {
+        GameSession.Instance?.ApplyUpgradeIconState(state);
+    }
+
+    [ServerRpc]
+    public void SubmitUpgradeSelectionServerRpc(int index, int roundId)
+    {
+        GameSession.Instance?.ReceiveUpgradeSelectionServer(OwnerClientId, index, roundId);
+    }
+
+    [ServerRpc]
+    public void RequestUpgradeRerollServerRpc(int roundId)
+    {
+        GameSession.Instance?.RequestUpgradeRerollServer(OwnerClientId, roundId);
+    }
+
+    private static string[] ToStringArray(FixedString128Bytes[] values)
+    {
+        if (values == null)
+        {
+            return null;
+        }
+
+        var result = new string[values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i].ToString();
+        }
+        return result;
+    }
+
+    private static string[] ToStringArray(FixedString512Bytes[] values)
+    {
+        if (values == null)
+        {
+            return null;
+        }
+
+        var result = new string[values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i].ToString();
+        }
+        return result;
+    }
+
+    private void OnStartWeaponChanged(int previous, int next)
+    {
+        if (next < 0)
+        {
+            return;
+        }
+
+        ApplyStartWeaponVisuals((StartWeaponType)next);
+    }
+
+    private void ApplyStartWeaponVisuals(StartWeaponType weapon)
+    {
+        var visuals = GetComponent<PlayerVisuals>();
+        if (visuals == null)
+        {
+            visuals = gameObject.AddComponent<PlayerVisuals>();
+        }
+
+        switch (weapon)
+        {
+            case StartWeaponType.Boomerang:
+                visuals.SetVisual(PlayerVisuals.PlayerVisualType.Warrior);
+                break;
+            case StartWeaponType.Nova:
+                visuals.SetVisual(PlayerVisuals.PlayerVisualType.DemonLord);
+                break;
+            default:
+                visuals.SetVisual(PlayerVisuals.PlayerVisualType.Mage);
+                break;
+        }
+    }
 
     private bool CanReadInput()
     {
@@ -478,6 +684,11 @@ public class PlayerController : NetworkBehaviour
         UpdateShadowColor();
     }
 
+    private void OnMoveSpeedChanged(float previous, float next)
+    {
+        _moveSpeedMult = next;
+    }
+
     private void UpdateShadowColor()
     {
         if (_shadowRenderer == null)
@@ -488,6 +699,19 @@ public class PlayerController : NetworkBehaviour
         var shadowColor = playerColor;
         shadowColor.a = Mathf.Clamp01(shadowAlpha);
         _shadowRenderer.color = shadowColor;
+    }
+
+    private void UpdateVisibility(bool visible)
+    {
+        if (_visualRenderer != null)
+        {
+            _visualRenderer.enabled = visible;
+        }
+
+        if (_shadowRenderer != null)
+        {
+            _shadowRenderer.enabled = visible;
+        }
     }
 
     private void EnsurePhysics()
@@ -516,6 +740,22 @@ public class PlayerController : NetworkBehaviour
         if (GetComponent<Health>() == null)
         {
             gameObject.AddComponent<Health>();
+        }
+    }
+
+    private void EnsureAutoAttack()
+    {
+        if (GetComponent<AutoAttack>() == null)
+        {
+            gameObject.AddComponent<AutoAttack>();
+        }
+    }
+
+    private void EnsureExperience()
+    {
+        if (GetComponent<Experience>() == null)
+        {
+            gameObject.AddComponent<Experience>();
         }
     }
 

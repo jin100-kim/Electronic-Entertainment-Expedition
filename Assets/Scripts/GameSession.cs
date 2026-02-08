@@ -6,6 +6,7 @@ using Unity.Netcode.Components;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using Unity.Collections;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -329,7 +330,20 @@ public class GameSession : MonoBehaviour
     private bool _waitingStartWeaponChoice;
     private bool _autoPlayEnabled;
     private float _autoUpgradeStartTime = -1f;
+    private readonly System.Collections.Generic.List<string> _networkUpgradeTitles = new System.Collections.Generic.List<string>();
+    private readonly System.Collections.Generic.List<string> _networkUpgradeDescs = new System.Collections.Generic.List<string>();
+    private readonly System.Collections.Generic.Dictionary<ulong, int> _upgradeSelections = new System.Collections.Generic.Dictionary<ulong, int>();
+    private readonly System.Collections.Generic.List<ulong> _upgradePendingClients = new System.Collections.Generic.List<ulong>();
+    private readonly System.Collections.Generic.Dictionary<ulong, PlayerUpgradeState> _playerUpgradeStates = new System.Collections.Generic.Dictionary<ulong, PlayerUpgradeState>();
+    private readonly System.Collections.Generic.Dictionary<ulong, List<UpgradeOption>> _upgradeOptionsByClient = new System.Collections.Generic.Dictionary<ulong, List<UpgradeOption>>();
+    private readonly System.Collections.Generic.Dictionary<ulong, bool> _upgradeRerollAvailable = new System.Collections.Generic.Dictionary<ulong, bool>();
+    private int _upgradeRoundId;
+    private int _networkUpgradeRoundId = -1;
+    private bool _localUpgradeSubmitted;
     private GameObject[] _startPreviews;
+    private bool _startWeaponApplied;
+    private bool _hasPendingStartWeapon;
+    private StartWeaponType _pendingStartWeapon;
     private Camera _cachedCamera;
     private bool _rerollAvailable;
     private int _startPreviewHoverIndex = -1;
@@ -347,6 +361,7 @@ public class GameSession : MonoBehaviour
     private Button _gameOverButton;
     private RectTransform _startPanel;
     private Text _startTitleText;
+    private Text _startSubtitleText;
     private RectTransform _startMageRect;
     private RectTransform _startWarriorRect;
     private RectTransform _startDemonRect;
@@ -373,6 +388,10 @@ public class GameSession : MonoBehaviour
         ResetRuntimeState();
         Instance = this;
         _coinCount = PlayerPrefs.GetInt(CoinPrefKey, 0);
+        if (Unity.Netcode.NetworkManager.Singleton != null)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+        }
     }
 
     private void ApplySettings()
@@ -490,6 +509,18 @@ public class GameSession : MonoBehaviour
         _cachedSpawnerBase = false;
         _spawnerDifficultyApplied = false;
         _stageCompleted = false;
+        _startWeaponApplied = false;
+        _hasPendingStartWeapon = false;
+        _upgradeSelections.Clear();
+        _upgradePendingClients.Clear();
+        _upgradeOptionsByClient.Clear();
+        _upgradeRerollAvailable.Clear();
+        _playerUpgradeStates.Clear();
+        _networkUpgradeTitles.Clear();
+        _networkUpgradeDescs.Clear();
+        _upgradeRoundId = 0;
+        _networkUpgradeRoundId = -1;
+        _localUpgradeSubmitted = false;
     }
 
     private static WeaponStatsData CloneWeaponStats(WeaponStatsData source)
@@ -509,6 +540,96 @@ public class GameSession : MonoBehaviour
             rangeMult = source.rangeMult,
             bonusProjectiles = source.bonusProjectiles
         };
+    }
+
+    private PlayerUpgradeState CreateBaseUpgradeState()
+    {
+        var state = new PlayerUpgradeState
+        {
+            damageMult = damageMult,
+            fireRateMult = fireRateMult,
+            rangeMult = rangeMult,
+            sizeMult = sizeMult,
+            lifetimeMult = lifetimeMult,
+            projectileCount = projectileCount,
+            projectilePierceBonus = projectilePierceBonus,
+            weaponDamageMult = weaponDamageMult,
+            moveSpeedMult = moveSpeedMult,
+            xpGainMult = xpGainMult,
+            magnetRangeMult = magnetRangeMult,
+            magnetSpeedMult = magnetSpeedMult,
+            magnetRangeStep = magnetRangeStep,
+            magnetSpeedStep = magnetSpeedStep,
+            regenPerSecond = regenPerSecond,
+            gunStats = CloneWeaponStats(gunStats),
+            boomerangStats = CloneWeaponStats(boomerangStats),
+            novaStats = CloneWeaponStats(novaStats),
+            shotgunStats = CloneWeaponStats(shotgunStats),
+            laserStats = CloneWeaponStats(laserStats),
+            chainStats = CloneWeaponStats(chainStats),
+            droneStats = CloneWeaponStats(droneStats),
+            shurikenStats = CloneWeaponStats(shurikenStats),
+            frostStats = CloneWeaponStats(frostStats),
+            lightningStats = CloneWeaponStats(lightningStats),
+            startWeapon = startWeapon
+        };
+
+        if (requireStartWeaponChoice)
+        {
+            ResetWeaponToLocked(state.gunStats);
+            ResetWeaponToLocked(state.boomerangStats);
+            ResetWeaponToLocked(state.novaStats);
+            ResetWeaponToLocked(state.shotgunStats);
+            ResetWeaponToLocked(state.laserStats);
+            ResetWeaponToLocked(state.chainStats);
+            ResetWeaponToLocked(state.droneStats);
+            ResetWeaponToLocked(state.shurikenStats);
+            ResetWeaponToLocked(state.frostStats);
+            ResetWeaponToLocked(state.lightningStats);
+        }
+        else
+        {
+            ApplyStartWeaponSelection(state, startWeapon, false);
+        }
+
+        return state;
+    }
+
+    private PlayerUpgradeState GetOrCreateState(PlayerController player)
+    {
+        if (player == null)
+        {
+            return null;
+        }
+
+        return GetOrCreateState(player.OwnerClientId);
+    }
+
+    private PlayerUpgradeState GetOrCreateState(ulong clientId)
+    {
+        if (_playerUpgradeStates.TryGetValue(clientId, out var state))
+        {
+            return state;
+        }
+
+        state = CreateBaseUpgradeState();
+        _playerUpgradeStates[clientId] = state;
+        return state;
+    }
+
+    private PlayerUpgradeState GetLocalState()
+    {
+        if (NetworkSession.IsActive)
+        {
+            var owner = FindOwnerPlayer();
+            if (owner != null)
+            {
+                return GetOrCreateState(owner.OwnerClientId);
+            }
+            return null;
+        }
+
+        return GetOrCreateState(0);
     }
 
     private StageConfig ResolveStageConfig(GameConfig config)
@@ -607,6 +728,247 @@ public class GameSession : MonoBehaviour
         _spawnerDifficultyApplied = true;
     }
 
+    private static bool IsNetworkSession()
+    {
+        return NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+    }
+
+    private static bool HasUpgradeAuthority()
+    {
+        return !NetworkSession.IsActive || NetworkSession.IsServer;
+    }
+
+    private static PlayerController FindOwnerPlayer()
+    {
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player != null && player.IsOwner)
+            {
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+    private static PlayerController FindServerPlayer()
+    {
+        ulong serverId = NetworkManager.ServerClientId;
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player != null && player.OwnerClientId == serverId)
+            {
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+    private bool HasLocalStartWeaponSelection()
+    {
+        var owner = FindOwnerPlayer();
+        return owner != null && owner.HasStartWeaponSelection;
+    }
+
+    private bool AreAllPlayersReady()
+    {
+        var players = PlayerController.Active;
+        if (players.Count == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player == null)
+            {
+                return false;
+            }
+            if (!player.HasStartWeaponSelection)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void GetPlayerReadyCounts(out int readyCount, out int totalCount)
+    {
+        readyCount = 0;
+        totalCount = 0;
+
+        var players = PlayerController.Active;
+        totalCount = players.Count;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player != null && player.HasStartWeaponSelection)
+            {
+                readyCount += 1;
+            }
+        }
+    }
+
+    private string GetStartWaitingText()
+    {
+        if (!IsNetworkSession())
+        {
+            return "캐릭터 스탯은 현재 동일합니다.";
+        }
+
+        GetPlayerReadyCounts(out int ready, out int total);
+        if (total <= 0)
+        {
+            return "대기중 (0/0)";
+        }
+
+        return $"대기중 ({ready}/{total})";
+    }
+
+    private void SubmitStartWeaponSelection(StartWeaponType weapon)
+    {
+        var owner = FindOwnerPlayer();
+        if (owner == null)
+        {
+            _hasPendingStartWeapon = true;
+            _pendingStartWeapon = weapon;
+            return;
+        }
+
+        owner.SetStartWeaponSelection(weapon);
+    }
+
+    private void UpdatePendingStartWeaponSelection()
+    {
+        if (!_hasPendingStartWeapon)
+        {
+            return;
+        }
+
+        var owner = FindOwnerPlayer();
+        if (owner == null)
+        {
+            return;
+        }
+
+        owner.SetStartWeaponSelection(_pendingStartWeapon);
+        _hasPendingStartWeapon = false;
+    }
+
+    private void TryStartNetworkGameFromSelection()
+    {
+        if (_gameStarted || !IsNetworkSession())
+        {
+            return;
+        }
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            if (requireStartWeaponChoice && !AreAllPlayersReady())
+            {
+                return;
+            }
+
+            BeginNetworkGame();
+            var serverPlayer = FindServerPlayer();
+            if (serverPlayer != null)
+            {
+                serverPlayer.SetGameStartedSignal(true);
+            }
+            return;
+        }
+
+        var hostPlayer = FindServerPlayer();
+        if (hostPlayer == null || !hostPlayer.GameStartedSignal)
+        {
+            return;
+        }
+
+        BeginNetworkGame();
+    }
+
+    private void BeginNetworkGame()
+    {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            EnsureNetworkPlayers();
+        }
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            var players = PlayerController.Active;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
+                if (player == null || !player.HasStartWeaponSelection)
+                {
+                    continue;
+                }
+
+                var state = GetOrCreateState(player);
+                ApplyStartWeaponSelection(state, player.StartWeaponSelection, !state.startWeaponApplied);
+            }
+
+            SyncAllUpgradeIconStatesToClients();
+        }
+        else
+        {
+            var owner = FindOwnerPlayer();
+            if (owner != null && owner.HasStartWeaponSelection)
+            {
+                var state = GetOrCreateState(owner);
+                ApplyStartWeaponSelection(state, owner.StartWeaponSelection, !state.startWeaponApplied);
+            }
+        }
+
+        _waitingStartWeaponChoice = false;
+        _gameStarted = true;
+        StartCoroutine(WaitForOwnerPlayer());
+    }
+
+    private void EnsureNetworkPlayers()
+    {
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer)
+        {
+            return;
+        }
+
+        RuntimeNetworkPrefabs.EnsureRegistered();
+
+        foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
+        {
+            ulong clientId = kvp.Key;
+            if (HasPlayerOwnedBy(clientId))
+            {
+                continue;
+            }
+
+            CreateNetworkPlayer(clientId, localSpawnPosition);
+        }
+    }
+
+    private static bool HasPlayerOwnedBy(ulong clientId)
+    {
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player != null && player.OwnerClientId == clientId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void Start()
     {
         if (!showNetworkUI)
@@ -660,12 +1022,19 @@ public class GameSession : MonoBehaviour
 
     private void Update()
     {
-        if (!_gameStarted || IsGameOver)
+        if (IsGameOver)
         {
             return;
         }
 
-        if (_choosingUpgrade && _autoPlayEnabled)
+        if (!_gameStarted)
+        {
+            UpdatePendingStartWeaponSelection();
+            TryStartNetworkGameFromSelection();
+            return;
+        }
+
+        if (_choosingUpgrade && _autoPlayEnabled && !_localUpgradeSubmitted)
         {
             if (_selectionLocked)
             {
@@ -734,7 +1103,7 @@ public class GameSession : MonoBehaviour
     {
         bool isNetworked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
 
-        if (!isNetworked && requireStartWeaponChoice && !_waitingStartWeaponChoice)
+        if (requireStartWeaponChoice && !_waitingStartWeaponChoice)
         {
             _waitingStartWeaponChoice = true;
             _gameStarted = false;
@@ -796,9 +1165,9 @@ public class GameSession : MonoBehaviour
     private void SetupPlayer(PlayerController player)
     {
         _player = player;
-        _player.SetMoveSpeedMultiplier(moveSpeedMult);
         _player.SetAutoPlay(_autoPlayEnabled);
-        ApplyPlayerVisuals(startWeapon);
+        var state = GetOrCreateState(player);
+        ApplyPlayerVisuals(player, state != null ? state.startWeapon : startWeapon);
 
         PlayerHealth = player.GetComponent<Health>();
         if (PlayerHealth != null)
@@ -813,8 +1182,7 @@ public class GameSession : MonoBehaviour
             PlayerExperience = player.gameObject.AddComponent<Experience>();
         }
 
-        PlayerExperience.SetXpMultiplier(xpGainMult);
-        PlayerExperience.SetMagnetMultiplier(magnetRangeMult, magnetSpeedMult);
+        ApplyPlayerStatMultipliers(player, state);
         PlayerExperience.OnLevelUp += OnLevelUp;
 
         _attack = player.GetComponent<AutoAttack>();
@@ -824,20 +1192,19 @@ public class GameSession : MonoBehaviour
         }
 
         ApplyAttackStats();
-        PlayerHealth?.SetRegenPerSecond(regenPerSecond);
     }
 
-    private void ApplyPlayerVisuals(StartWeaponType weapon)
+    private void ApplyPlayerVisuals(PlayerController player, StartWeaponType weapon)
     {
-        if (_player == null)
+        if (player == null)
         {
             return;
         }
 
-        var visuals = _player.GetComponent<PlayerVisuals>();
+        var visuals = player.GetComponent<PlayerVisuals>();
         if (visuals == null)
         {
-            visuals = _player.gameObject.AddComponent<PlayerVisuals>();
+            visuals = player.gameObject.AddComponent<PlayerVisuals>();
         }
 
         switch (weapon)
@@ -874,7 +1241,18 @@ public class GameSession : MonoBehaviour
 
     private PlayerController CreateLocalPlayer(Vector3 position)
     {
-        var go = new GameObject("LocalPlayer");
+        GameObject go;
+        if (NetworkSession.IsActive)
+        {
+            var playerPrefab = NetworkManager.Singleton != null ? NetworkManager.Singleton.NetworkConfig.PlayerPrefab : null;
+            go = playerPrefab != null ? Instantiate(playerPrefab) : new GameObject("Player");
+        }
+        else
+        {
+            go = new GameObject("LocalPlayer");
+        }
+
+        go.name = "Player";
         go.transform.position = position;
 
         if (go.GetComponent<NetworkObject>() == null)
@@ -882,12 +1260,28 @@ public class GameSession : MonoBehaviour
             go.AddComponent<NetworkObject>();
         }
 
-        if (go.GetComponent<NetworkTransform>() == null)
+        if (NetworkSession.IsActive && go.GetComponent<Unity.Netcode.Components.NetworkTransform>() == null)
         {
-            go.AddComponent<NetworkTransform>();
+            go.AddComponent<Unity.Netcode.Components.NetworkTransform>();
         }
 
-        var controller = go.AddComponent<PlayerController>();
+        var controller = go.GetComponent<PlayerController>();
+        if (controller == null)
+        {
+            controller = go.AddComponent<PlayerController>();
+        }
+
+        return controller;
+    }
+
+    private PlayerController CreateNetworkPlayer(ulong clientId, Vector3 position)
+    {
+        var controller = CreateLocalPlayer(position);
+        var netObj = controller.GetComponent<NetworkObject>();
+        if (netObj != null && !netObj.IsSpawned)
+        {
+            netObj.SpawnAsPlayerObject(clientId, true);
+        }
         return controller;
     }
 
@@ -902,133 +1296,374 @@ public class GameSession : MonoBehaviour
 
     private void OnLevelUp(int newLevel)
     {
-        ShowUpgradeChoices();
+        if (NetworkSession.IsActive && NetworkSession.IsServer)
+        {
+            BeginUpgradeSelectionServer();
+            ShowUpgradeChoices(false);
+            NotifyUpgradeStartToClients();
+            return;
+        }
+
+        ShowUpgradeChoices(true);
     }
 
-    private void ShowUpgradeChoices()
+    public void ShowUpgradeChoicesFromNetwork(string[] titles, string[] descs, int roundId, bool rerollAvailable)
+    {
+        if (HasUpgradeAuthority())
+        {
+            return;
+        }
+
+        bool newRound = roundId != _networkUpgradeRoundId;
+        _networkUpgradeRoundId = roundId;
+        ApplyNetworkUpgradeOptions(titles, descs);
+        _rerollAvailable = rerollAvailable;
+        if (newRound)
+        {
+            _localUpgradeSubmitted = false;
+        }
+
+        if (!_choosingUpgrade)
+        {
+            ShowUpgradeChoices(false);
+        }
+    }
+
+    public void HideUpgradeChoicesFromNetwork(int roundId)
+    {
+        if (HasUpgradeAuthority())
+        {
+            return;
+        }
+
+        if (roundId != _networkUpgradeRoundId)
+        {
+            return;
+        }
+
+        EndUpgradeChoices();
+        _networkUpgradeRoundId = -1;
+        _networkUpgradeTitles.Clear();
+        _networkUpgradeDescs.Clear();
+    }
+
+    private void ShowUpgradeChoices(bool buildOptions)
     {
         if (_choosingUpgrade)
         {
             return;
         }
 
-        BuildUpgradeOptions(true);
+        if (buildOptions)
+        {
+            var state = GetLocalState();
+            var owner = _player != null ? _player : FindOwnerPlayer();
+            if (state != null)
+            {
+                BuildUpgradeOptions(owner, state, _options);
+            }
+            _rerollAvailable = true;
+        }
 
         _choosingUpgrade = true;
         Time.timeScale = 0f;
-        _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+        _autoUpgradeStartTime = buildOptions && _autoPlayEnabled ? Time.unscaledTime : -1f;
+        _localUpgradeSubmitted = false;
     }
 
-    private void BuildUpgradeOptions(bool resetReroll)
+    private void EndUpgradeChoices()
     {
-        _options.Clear();
+        _choosingUpgrade = false;
+        Time.timeScale = 1f;
+        _autoUpgradeStartTime = -1f;
+        _selectionLocked = false;
+        _localUpgradeSubmitted = false;
+    }
 
-        if (damageLevel < maxUpgradeLevel && CanOfferNewStat(damageLevel))
+    private void NotifyUpgradeStartToClients()
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
         {
-            _options.Add(new UpgradeOption("공격력 +10%", () => BuildPercentStatText("공격력", damageMult, damageMult + 0.10f), () => { damageMult += 0.10f; damageLevel += 1; }));
+            return;
         }
-        if (fireRateLevel < maxUpgradeLevel && CanOfferNewStat(fireRateLevel))
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
         {
-            _options.Add(new UpgradeOption("공격속도 +10%", () => BuildPercentStatText("공격속도", fireRateMult, fireRateMult + 0.10f), () => { fireRateMult += 0.10f; fireRateLevel += 1; }));
-        }
-        if (moveSpeedLevel < maxUpgradeLevel && CanOfferNewStat(moveSpeedLevel))
-        {
-            _options.Add(new UpgradeOption("이동속도 +10%", () => BuildPercentStatText("이동속도", moveSpeedMult, moveSpeedMult + 0.10f), () => { moveSpeedMult += 0.10f; moveSpeedLevel += 1; }));
-        }
-        if (healthReinforceLevel < maxUpgradeLevel && CanOfferNewStat(healthReinforceLevel))
-        {
-            _options.Add(new UpgradeOption("체력 강화", BuildHealthReinforceText, () =>
+            var player = players[i];
+            if (player == null)
             {
-                if (PlayerHealth != null)
-                {
-                    PlayerHealth.AddMaxHealth(25f, true);
-                    PlayerHealth.Heal(PlayerHealth.MaxHealth);
-                }
-                regenPerSecond += 0.5f;
-                healthReinforceLevel += 1;
-            }));
+                continue;
+            }
+
+            SendUpgradeOptionsToClient(player.OwnerClientId);
         }
-        if (rangeLevel < maxUpgradeLevel && CanOfferNewStat(rangeLevel))
+    }
+
+    private void NotifyUpgradeEndToClients()
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
         {
-            _options.Add(new UpgradeOption("사거리 +15%", () => BuildPercentStatText("사거리", rangeMult, rangeMult + 0.15f), () => { rangeMult += 0.15f; rangeLevel += 1; }));
+            return;
         }
-        if (xpGainLevel < maxUpgradeLevel && CanOfferNewStat(xpGainLevel))
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
         {
-            _options.Add(new UpgradeOption("경험치 +10%", () => BuildPercentStatText("경험치 획득", xpGainMult, xpGainMult + 0.10f), () => { xpGainMult += 0.10f; xpGainLevel += 1; }));
-        }
-        if (magnetLevel < maxUpgradeLevel && CanOfferNewStat(magnetLevel))
-        {
-            _options.Add(new UpgradeOption("경험치 자석", BuildMagnetUpgradeText, () =>
+            var player = players[i];
+            if (player == null)
             {
-                magnetRangeMult += magnetRangeStep;
-                magnetSpeedMult += magnetSpeedStep;
-                magnetLevel += 1;
-            }));
-        }
-        if (sizeLevel < maxUpgradeLevel && CanOfferNewStat(sizeLevel))
-        {
-            _options.Add(new UpgradeOption("투사체 크기 +25%", () => BuildPercentStatText("투사체 크기", sizeMult, sizeMult + 0.25f), () => { sizeMult += 0.25f; sizeLevel += 1; }));
-        }
-        if (projectileCountLevel < maxUpgradeLevel && CanOfferNewStat(projectileCountLevel))
-        {
-            _options.Add(new UpgradeOption("투사체 수", BuildProjectileCountText, () =>
+                continue;
+            }
+
+            ulong clientId = player.OwnerClientId;
+            var rpcParams = new ClientRpcParams
             {
-                projectileCountLevel += 1;
-                if (projectileCountLevel % 2 == 0)
-                {
-                    projectileCount += 1;
-                }
-            }));
+                Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } }
+            };
+            player.HideUpgradeUIClientRpc(_upgradeRoundId, rpcParams);
         }
-        if (pierceLevel < maxUpgradeLevel && CanOfferNewStat(pierceLevel))
-        {
-            _options.Add(new UpgradeOption("관통 +1", () => BuildValueStatText("관통", projectilePierceBonus, projectilePierceBonus + 1), () => { projectilePierceBonus += 1; pierceLevel += 1; }));
-        }
-        AddWeaponChoice(gunStats, BuildStraightUpgradeText, UnlockStraight, LevelUpStraightWeapon);
-        AddWeaponChoice(boomerangStats, BuildBoomerangUpgradeText, UnlockBoomerang, LevelUpBoomerangWeapon);
-        AddWeaponChoice(novaStats, BuildNovaUpgradeText, UnlockNova, LevelUpNovaWeapon);
-        AddWeaponChoice(shotgunStats, BuildShotgunUpgradeText, UnlockShotgun, LevelUpShotgunWeapon);
-        AddWeaponChoice(laserStats, BuildLaserUpgradeText, UnlockLaser, LevelUpLaserWeapon);
-        AddWeaponChoice(chainStats, BuildChainUpgradeText, UnlockChain, LevelUpChainWeapon);
-        AddWeaponChoice(droneStats, BuildDroneUpgradeText, UnlockDrone, LevelUpDroneWeapon);
-        AddWeaponChoice(shurikenStats, BuildShurikenUpgradeText, UnlockShuriken, LevelUpShurikenWeapon);
-        AddWeaponChoice(frostStats, BuildFrostUpgradeText, UnlockFrost, LevelUpFrostWeapon);
-        AddWeaponChoice(lightningStats, BuildLightningUpgradeText, UnlockLightning, LevelUpLightningWeapon);
+    }
 
-        if (_options.Count == 0)
+    private void SendUpgradeOptionsToClient(ulong clientId)
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
         {
-            _options.Add(new UpgradeOption("HP 회복 (20%)", () => "최대 체력의 20%를 회복합니다.", () =>
+            return;
+        }
+
+        var player = FindPlayerByClientId(clientId);
+        if (player == null)
+        {
+            return;
+        }
+
+        if (!_upgradeOptionsByClient.TryGetValue(clientId, out var options))
+        {
+            return;
+        }
+
+        BuildUpgradeOptionDisplayData(options, out string[] titles, out string[] descs);
+        var titleData = ToFixedString128Array(titles);
+        var descData = ToFixedString512Array(descs);
+        bool rerollAvailable = _upgradeRerollAvailable.TryGetValue(clientId, out var available) && available;
+        var rpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } }
+        };
+        player.ShowUpgradeUIClientRpc(titleData, descData, _upgradeRoundId, rerollAvailable, rpcParams);
+    }
+
+    private static PlayerController FindPlayerByClientId(ulong clientId)
+    {
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player != null && player.OwnerClientId == clientId)
             {
-                if (PlayerHealth != null)
-                {
-                    PlayerHealth.Heal(PlayerHealth.MaxHealth * 0.2f);
-                }
-            }));
-            _options.Add(new UpgradeOption("코인 +10", () => "즉시 코인 10개를 획득합니다.", () => AddCoins(10)));
+                return player;
+            }
         }
 
-        for (int i = _options.Count - 1; i > 0; i--)
+        return null;
+    }
+
+    private void BeginUpgradeSelectionServer()
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
         {
-            int j = Random.Range(0, i + 1);
-            var temp = _options[i];
-            _options[i] = _options[j];
-            _options[j] = temp;
+            return;
         }
 
-        if (_options.Count > 4)
+        _upgradeRoundId += 1;
+        _upgradeSelections.Clear();
+        _upgradePendingClients.Clear();
+        _upgradeOptionsByClient.Clear();
+        _upgradeRerollAvailable.Clear();
+
+        ulong localClientId = NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : NetworkManager.ServerClientId;
+        bool localOptionsSet = false;
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
         {
-            _options.RemoveRange(4, _options.Count - 4);
+            var player = players[i];
+            if (player == null)
+            {
+                continue;
+            }
+
+            ulong clientId = player.OwnerClientId;
+            var state = GetOrCreateState(player);
+
+            List<UpgradeOption> options;
+            if (clientId == localClientId)
+            {
+                options = _options;
+                localOptionsSet = true;
+            }
+            else
+            {
+                options = new List<UpgradeOption>(4);
+            }
+
+            BuildUpgradeOptions(player, state, options);
+            _upgradeOptionsByClient[clientId] = options;
+            _upgradeRerollAvailable[clientId] = true;
+
+            if (!_upgradePendingClients.Contains(clientId))
+            {
+                _upgradePendingClients.Add(clientId);
+            }
         }
 
-        if (resetReroll)
+        if (localOptionsSet)
         {
             _rerollAvailable = true;
         }
+        else
+        {
+            _options.Clear();
+            _rerollAvailable = false;
+        }
     }
 
-    private void ApplyUpgrade(int index)
+    public void ReceiveUpgradeSelectionServer(ulong clientId, int index, int roundId)
     {
-        if (!_choosingUpgrade || index < 0 || index >= _options.Count)
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        if (!_choosingUpgrade || roundId != _upgradeRoundId)
+        {
+            return;
+        }
+
+        if (!_upgradeOptionsByClient.TryGetValue(clientId, out var options))
+        {
+            return;
+        }
+
+        if (index < 0 || index >= options.Count)
+        {
+            return;
+        }
+
+        int pendingIndex = _upgradePendingClients.IndexOf(clientId);
+        if (pendingIndex < 0)
+        {
+            return;
+        }
+
+        _upgradeSelections[clientId] = index;
+        _upgradeRerollAvailable[clientId] = false;
+        _upgradePendingClients.RemoveAt(pendingIndex);
+
+        if (_upgradePendingClients.Count == 0)
+        {
+            ApplyUpgradeSelections();
+        }
+    }
+
+    public void RequestUpgradeRerollServer(ulong clientId, int roundId)
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        if (!_choosingUpgrade || roundId != _upgradeRoundId)
+        {
+            return;
+        }
+
+        if (_upgradeSelections.ContainsKey(clientId))
+        {
+            return;
+        }
+
+        if (!_upgradeRerollAvailable.TryGetValue(clientId, out var available) || !available)
+        {
+            return;
+        }
+
+        var player = FindPlayerByClientId(clientId);
+        if (player == null)
+        {
+            return;
+        }
+
+        var state = GetOrCreateState(player);
+        if (!_upgradeOptionsByClient.TryGetValue(clientId, out var options))
+        {
+            options = new List<UpgradeOption>(4);
+            _upgradeOptionsByClient[clientId] = options;
+        }
+
+        BuildUpgradeOptions(player, state, options);
+        _upgradeRerollAvailable[clientId] = false;
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == clientId)
+        {
+            _rerollAvailable = false;
+            _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+        }
+
+        SendUpgradeOptionsToClient(clientId);
+    }
+
+    private void ApplyUpgradeSelections()
+    {
+        if (_upgradeOptionsByClient.Count == 0)
+        {
+            EndUpgradeChoices();
+            NotifyUpgradeEndToClients();
+            return;
+        }
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player == null)
+            {
+                continue;
+            }
+
+            ulong clientId = player.OwnerClientId;
+            if (!_upgradeSelections.TryGetValue(clientId, out int index))
+            {
+                continue;
+            }
+
+            if (!_upgradeOptionsByClient.TryGetValue(clientId, out var options))
+            {
+                continue;
+            }
+
+            if (index < 0 || index >= options.Count)
+            {
+                continue;
+            }
+
+            var opt = options[index];
+            opt.Apply?.Invoke();
+            TrackUpgrade(opt.Title);
+        }
+
+        ApplyUpgradeStats();
+        SyncAllUpgradeIconStatesToClients();
+        EndUpgradeChoices();
+        NotifyUpgradeEndToClients();
+        _upgradeSelections.Clear();
+        _upgradePendingClients.Clear();
+    }
+
+    private void ApplyUpgradeEffect(int index)
+    {
+        if (index < 0 || index >= _options.Count)
         {
             return;
         }
@@ -1036,17 +1671,240 @@ public class GameSession : MonoBehaviour
         var opt = _options[index];
         opt.Apply?.Invoke();
         TrackUpgrade(opt.Title);
+    }
 
-        _choosingUpgrade = false;
-        Time.timeScale = 1f;
-        _autoUpgradeStartTime = -1f;
+    private void ApplyUpgradeStats()
+    {
+        if (NetworkSession.IsActive && NetworkSession.IsServer)
+        {
+            var players = PlayerController.Active;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
+                if (player == null)
+                {
+                    continue;
+                }
 
-        // apply updated stats
-        _player?.SetMoveSpeedMultiplier(moveSpeedMult);
-        PlayerExperience?.SetXpMultiplier(xpGainMult);
-        PlayerExperience?.SetMagnetMultiplier(magnetRangeMult, magnetSpeedMult);
-        PlayerHealth?.SetRegenPerSecond(regenPerSecond);
+                var state = GetOrCreateState(player);
+                ApplyPlayerStatMultipliers(player, state);
+            }
+        }
+        else
+        {
+            var state = GetLocalState();
+            var owner = _player != null ? _player : FindOwnerPlayer();
+            ApplyPlayerStatMultipliers(owner, state);
+        }
+
         ApplyAttackStats();
+    }
+
+    private static void ApplyPlayerStatMultipliers(PlayerController player, PlayerUpgradeState state)
+    {
+        if (player == null || state == null)
+        {
+            return;
+        }
+
+        player.SetMoveSpeedMultiplier(state.moveSpeedMult);
+        var xp = player.GetComponent<Experience>();
+        if (xp != null)
+        {
+            xp.SetXpMultiplier(state.xpGainMult);
+            xp.SetMagnetMultiplier(state.magnetRangeMult, state.magnetSpeedMult);
+        }
+
+        var health = player.GetComponent<Health>();
+        health?.SetRegenPerSecond(state.regenPerSecond);
+    }
+
+    private void BuildUpgradeOptionDisplayData(List<UpgradeOption> options, out string[] titles, out string[] descs)
+    {
+        int count = options != null ? options.Count : 0;
+        titles = new string[count];
+        descs = new string[count];
+        for (int i = 0; i < count; i++)
+        {
+            var opt = options[i];
+            titles[i] = opt != null ? opt.Title : string.Empty;
+            descs[i] = opt != null ? opt.Desc : string.Empty;
+        }
+    }
+
+    private static FixedString128Bytes[] ToFixedString128Array(string[] values)
+    {
+        if (values == null)
+        {
+            return null;
+        }
+
+        var result = new FixedString128Bytes[values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i] ?? string.Empty;
+        }
+        return result;
+    }
+
+    private static FixedString512Bytes[] ToFixedString512Array(string[] values)
+    {
+        if (values == null)
+        {
+            return null;
+        }
+
+        var result = new FixedString512Bytes[values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i] ?? string.Empty;
+        }
+        return result;
+    }
+
+    private void ApplyNetworkUpgradeOptions(string[] titles, string[] descs)
+    {
+        _networkUpgradeTitles.Clear();
+        _networkUpgradeDescs.Clear();
+
+        if (titles == null)
+        {
+            return;
+        }
+
+        _networkUpgradeTitles.AddRange(titles);
+
+        if (descs != null)
+        {
+            _networkUpgradeDescs.AddRange(descs);
+        }
+    }
+
+    private void BuildUpgradeOptions(PlayerController player, PlayerUpgradeState state, List<UpgradeOption> options)
+    {
+        if (state == null || options == null)
+        {
+            return;
+        }
+
+        options.Clear();
+
+        if (state.damageLevel < maxUpgradeLevel && CanOfferNewStat(state, state.damageLevel))
+        {
+            options.Add(new UpgradeOption("공격력 +10%", () => BuildPercentStatText("공격력", state.damageMult, state.damageMult + 0.10f), () => { state.damageMult += 0.10f; state.damageLevel += 1; }));
+        }
+        if (state.fireRateLevel < maxUpgradeLevel && CanOfferNewStat(state, state.fireRateLevel))
+        {
+            options.Add(new UpgradeOption("공격속도 +10%", () => BuildPercentStatText("공격속도", state.fireRateMult, state.fireRateMult + 0.10f), () => { state.fireRateMult += 0.10f; state.fireRateLevel += 1; }));
+        }
+        if (state.moveSpeedLevel < maxUpgradeLevel && CanOfferNewStat(state, state.moveSpeedLevel))
+        {
+            options.Add(new UpgradeOption("이동속도 +10%", () => BuildPercentStatText("이동속도", state.moveSpeedMult, state.moveSpeedMult + 0.10f), () => { state.moveSpeedMult += 0.10f; state.moveSpeedLevel += 1; }));
+        }
+        if (state.healthReinforceLevel < maxUpgradeLevel && CanOfferNewStat(state, state.healthReinforceLevel))
+        {
+            options.Add(new UpgradeOption("체력 강화", () => BuildHealthReinforceText(player, state), () =>
+            {
+                var health = player != null ? player.GetComponent<Health>() : null;
+                if (health != null)
+                {
+                    health.AddMaxHealth(25f, true);
+                    health.Heal(health.MaxHealth);
+                }
+                state.regenPerSecond += 0.5f;
+                state.healthReinforceLevel += 1;
+            }));
+        }
+        if (state.rangeLevel < maxUpgradeLevel && CanOfferNewStat(state, state.rangeLevel))
+        {
+            options.Add(new UpgradeOption("사거리 +15%", () => BuildPercentStatText("사거리", state.rangeMult, state.rangeMult + 0.15f), () => { state.rangeMult += 0.15f; state.rangeLevel += 1; }));
+        }
+        if (state.xpGainLevel < maxUpgradeLevel && CanOfferNewStat(state, state.xpGainLevel))
+        {
+            options.Add(new UpgradeOption("경험치 +10%", () => BuildPercentStatText("경험치 획득", state.xpGainMult, state.xpGainMult + 0.10f), () => { state.xpGainMult += 0.10f; state.xpGainLevel += 1; }));
+        }
+        if (state.magnetLevel < maxUpgradeLevel && CanOfferNewStat(state, state.magnetLevel))
+        {
+            options.Add(new UpgradeOption("경험치 자석", () => BuildMagnetUpgradeText(state), () =>
+            {
+                state.magnetRangeMult += state.magnetRangeStep;
+                state.magnetSpeedMult += state.magnetSpeedStep;
+                state.magnetLevel += 1;
+            }));
+        }
+        if (state.sizeLevel < maxUpgradeLevel && CanOfferNewStat(state, state.sizeLevel))
+        {
+            options.Add(new UpgradeOption("투사체 크기 +25%", () => BuildPercentStatText("투사체 크기", state.sizeMult, state.sizeMult + 0.25f), () => { state.sizeMult += 0.25f; state.sizeLevel += 1; }));
+        }
+        if (state.projectileCountLevel < maxUpgradeLevel && CanOfferNewStat(state, state.projectileCountLevel))
+        {
+            options.Add(new UpgradeOption("투사체 수", () => BuildProjectileCountText(state), () =>
+            {
+                state.projectileCountLevel += 1;
+                if (state.projectileCountLevel % 2 == 0)
+                {
+                    state.projectileCount += 1;
+                }
+            }));
+        }
+        if (state.pierceLevel < maxUpgradeLevel && CanOfferNewStat(state, state.pierceLevel))
+        {
+            options.Add(new UpgradeOption("관통 +1", () => BuildValueStatText("관통", state.projectilePierceBonus, state.projectilePierceBonus + 1), () => { state.projectilePierceBonus += 1; state.pierceLevel += 1; }));
+        }
+
+        AddWeaponChoice(options, state, state.gunStats, () => BuildStraightUpgradeText(state), () => UnlockStraight(state), () => LevelUpStraightWeapon(state));
+        AddWeaponChoice(options, state, state.boomerangStats, () => BuildBoomerangUpgradeText(state), () => UnlockBoomerang(state), () => LevelUpBoomerangWeapon(state));
+        AddWeaponChoice(options, state, state.novaStats, () => BuildNovaUpgradeText(state), () => UnlockNova(state), () => LevelUpNovaWeapon(state));
+        AddWeaponChoice(options, state, state.shotgunStats, () => BuildShotgunUpgradeText(state), () => UnlockShotgun(state), () => LevelUpShotgunWeapon(state));
+        AddWeaponChoice(options, state, state.laserStats, () => BuildLaserUpgradeText(state), () => UnlockLaser(state), () => LevelUpLaserWeapon(state));
+        AddWeaponChoice(options, state, state.chainStats, () => BuildChainUpgradeText(state), () => UnlockChain(state), () => LevelUpChainWeapon(state));
+        AddWeaponChoice(options, state, state.droneStats, () => BuildDroneUpgradeText(state), () => UnlockDrone(state), () => LevelUpDroneWeapon(state));
+        AddWeaponChoice(options, state, state.shurikenStats, () => BuildShurikenUpgradeText(state), () => UnlockShuriken(state), () => LevelUpShurikenWeapon(state));
+        AddWeaponChoice(options, state, state.frostStats, () => BuildFrostUpgradeText(state), () => UnlockFrost(state), () => LevelUpFrostWeapon(state));
+        AddWeaponChoice(options, state, state.lightningStats, () => BuildLightningUpgradeText(state), () => UnlockLightning(state), () => LevelUpLightningWeapon(state));
+
+        if (options.Count == 0)
+        {
+            options.Add(new UpgradeOption("HP 회복 (20%)", () => "최대 체력의 20%를 회복합니다.", () =>
+            {
+                var health = player != null ? player.GetComponent<Health>() : null;
+                if (health != null)
+                {
+                    health.Heal(health.MaxHealth * 0.2f);
+                }
+            }));
+            options.Add(new UpgradeOption("코인 +10", () => "즉시 코인 10개를 획득합니다.", () => AddCoins(10)));
+        }
+
+        for (int i = options.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            var temp = options[i];
+            options[i] = options[j];
+            options[j] = temp;
+        }
+
+        if (options.Count > 4)
+        {
+            options.RemoveRange(4, options.Count - 4);
+        }
+    }
+
+    private void ApplyUpgrade(int index)
+    {
+        if (NetworkSession.IsActive)
+        {
+            return;
+        }
+
+        if (!_choosingUpgrade || index < 0 || index >= _options.Count)
+        {
+            return;
+        }
+
+        ApplyUpgradeEffect(index);
+        ApplyUpgradeStats();
+        EndUpgradeChoices();
     }
 
     public struct UpgradeIconData
@@ -1063,6 +1921,78 @@ public class GameSession : MonoBehaviour
         }
     }
 
+    public struct UpgradeIconState : INetworkSerializable
+    {
+        public int damageLevel;
+        public int fireRateLevel;
+        public int moveSpeedLevel;
+        public int healthReinforceLevel;
+        public int rangeLevel;
+        public int xpGainLevel;
+        public int sizeLevel;
+        public int magnetLevel;
+        public int pierceLevel;
+        public int projectileCountLevel;
+
+        public int gunLevel;
+        public int boomerangLevel;
+        public int novaLevel;
+        public int shotgunLevel;
+        public int laserLevel;
+        public int chainLevel;
+        public int droneLevel;
+        public int shurikenLevel;
+        public int frostLevel;
+        public int lightningLevel;
+
+        public bool gunUnlocked;
+        public bool boomerangUnlocked;
+        public bool novaUnlocked;
+        public bool shotgunUnlocked;
+        public bool laserUnlocked;
+        public bool chainUnlocked;
+        public bool droneUnlocked;
+        public bool shurikenUnlocked;
+        public bool frostUnlocked;
+        public bool lightningUnlocked;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref damageLevel);
+            serializer.SerializeValue(ref fireRateLevel);
+            serializer.SerializeValue(ref moveSpeedLevel);
+            serializer.SerializeValue(ref healthReinforceLevel);
+            serializer.SerializeValue(ref rangeLevel);
+            serializer.SerializeValue(ref xpGainLevel);
+            serializer.SerializeValue(ref sizeLevel);
+            serializer.SerializeValue(ref magnetLevel);
+            serializer.SerializeValue(ref pierceLevel);
+            serializer.SerializeValue(ref projectileCountLevel);
+
+            serializer.SerializeValue(ref gunLevel);
+            serializer.SerializeValue(ref boomerangLevel);
+            serializer.SerializeValue(ref novaLevel);
+            serializer.SerializeValue(ref shotgunLevel);
+            serializer.SerializeValue(ref laserLevel);
+            serializer.SerializeValue(ref chainLevel);
+            serializer.SerializeValue(ref droneLevel);
+            serializer.SerializeValue(ref shurikenLevel);
+            serializer.SerializeValue(ref frostLevel);
+            serializer.SerializeValue(ref lightningLevel);
+
+            serializer.SerializeValue(ref gunUnlocked);
+            serializer.SerializeValue(ref boomerangUnlocked);
+            serializer.SerializeValue(ref novaUnlocked);
+            serializer.SerializeValue(ref shotgunUnlocked);
+            serializer.SerializeValue(ref laserUnlocked);
+            serializer.SerializeValue(ref chainUnlocked);
+            serializer.SerializeValue(ref droneUnlocked);
+            serializer.SerializeValue(ref shurikenUnlocked);
+            serializer.SerializeValue(ref frostUnlocked);
+            serializer.SerializeValue(ref lightningUnlocked);
+        }
+    }
+
     public void GetUpgradeIconData(List<UpgradeIconData> results)
     {
         if (results == null)
@@ -1071,28 +2001,154 @@ public class GameSession : MonoBehaviour
         }
 
         results.Clear();
+        var state = GetLocalState();
+        if (state == null)
+        {
+            return;
+        }
 
-        AddWeaponIcon(results, gunStats);
-        AddWeaponIcon(results, boomerangStats);
-        AddWeaponIcon(results, novaStats);
-        AddWeaponIcon(results, shotgunStats);
-        AddWeaponIcon(results, laserStats);
-        AddWeaponIcon(results, chainStats);
-        AddWeaponIcon(results, droneStats);
-        AddWeaponIcon(results, shurikenStats);
-        AddWeaponIcon(results, frostStats);
-        AddWeaponIcon(results, lightningStats);
+        AddWeaponIcon(results, state.gunStats);
+        AddWeaponIcon(results, state.boomerangStats);
+        AddWeaponIcon(results, state.novaStats);
+        AddWeaponIcon(results, state.shotgunStats);
+        AddWeaponIcon(results, state.laserStats);
+        AddWeaponIcon(results, state.chainStats);
+        AddWeaponIcon(results, state.droneStats);
+        AddWeaponIcon(results, state.shurikenStats);
+        AddWeaponIcon(results, state.frostStats);
+        AddWeaponIcon(results, state.lightningStats);
 
-        AddStatIcon(results, "공격력", damageLevel);
-        AddStatIcon(results, "공격속도", fireRateLevel);
-        AddStatIcon(results, "이동속도", moveSpeedLevel);
-        AddStatIcon(results, "체력강화", healthReinforceLevel);
-        AddStatIcon(results, "사거리", rangeLevel);
-        AddStatIcon(results, "경험치", xpGainLevel);
-        AddStatIcon(results, "자석", magnetLevel);
-        AddStatIcon(results, "투사체크기", sizeLevel);
-        AddStatIcon(results, "투사체수", projectileCountLevel);
-        AddStatIcon(results, "관통", pierceLevel);
+        AddStatIcon(results, "공격력", state.damageLevel);
+        AddStatIcon(results, "공격속도", state.fireRateLevel);
+        AddStatIcon(results, "이동속도", state.moveSpeedLevel);
+        AddStatIcon(results, "체력강화", state.healthReinforceLevel);
+        AddStatIcon(results, "사거리", state.rangeLevel);
+        AddStatIcon(results, "경험치", state.xpGainLevel);
+        AddStatIcon(results, "자석", state.magnetLevel);
+        AddStatIcon(results, "투사체크기", state.sizeLevel);
+        AddStatIcon(results, "투사체수", state.projectileCountLevel);
+        AddStatIcon(results, "관통", state.pierceLevel);
+    }
+
+    public void ApplyUpgradeIconState(UpgradeIconState data)
+    {
+        var state = GetLocalState();
+        if (state == null)
+        {
+            return;
+        }
+
+        state.damageLevel = data.damageLevel;
+        state.fireRateLevel = data.fireRateLevel;
+        state.moveSpeedLevel = data.moveSpeedLevel;
+        state.healthReinforceLevel = data.healthReinforceLevel;
+        state.rangeLevel = data.rangeLevel;
+        state.xpGainLevel = data.xpGainLevel;
+        state.sizeLevel = data.sizeLevel;
+        state.magnetLevel = data.magnetLevel;
+        state.pierceLevel = data.pierceLevel;
+        state.projectileCountLevel = data.projectileCountLevel;
+
+        ApplyWeaponIconState(state.gunStats, data.gunLevel, data.gunUnlocked);
+        ApplyWeaponIconState(state.boomerangStats, data.boomerangLevel, data.boomerangUnlocked);
+        ApplyWeaponIconState(state.novaStats, data.novaLevel, data.novaUnlocked);
+        ApplyWeaponIconState(state.shotgunStats, data.shotgunLevel, data.shotgunUnlocked);
+        ApplyWeaponIconState(state.laserStats, data.laserLevel, data.laserUnlocked);
+        ApplyWeaponIconState(state.chainStats, data.chainLevel, data.chainUnlocked);
+        ApplyWeaponIconState(state.droneStats, data.droneLevel, data.droneUnlocked);
+        ApplyWeaponIconState(state.shurikenStats, data.shurikenLevel, data.shurikenUnlocked);
+        ApplyWeaponIconState(state.frostStats, data.frostLevel, data.frostUnlocked);
+        ApplyWeaponIconState(state.lightningStats, data.lightningLevel, data.lightningUnlocked);
+    }
+
+    private static void ApplyWeaponIconState(WeaponStatsData stats, int level, bool unlocked)
+    {
+        if (stats == null)
+        {
+            return;
+        }
+
+        stats.level = level;
+        stats.unlocked = unlocked || level > 0;
+    }
+
+    private static UpgradeIconState BuildUpgradeIconState(PlayerUpgradeState state)
+    {
+        return new UpgradeIconState
+        {
+            damageLevel = state.damageLevel,
+            fireRateLevel = state.fireRateLevel,
+            moveSpeedLevel = state.moveSpeedLevel,
+            healthReinforceLevel = state.healthReinforceLevel,
+            rangeLevel = state.rangeLevel,
+            xpGainLevel = state.xpGainLevel,
+            sizeLevel = state.sizeLevel,
+            magnetLevel = state.magnetLevel,
+            pierceLevel = state.pierceLevel,
+            projectileCountLevel = state.projectileCountLevel,
+            gunLevel = state.gunStats != null ? state.gunStats.level : 0,
+            boomerangLevel = state.boomerangStats != null ? state.boomerangStats.level : 0,
+            novaLevel = state.novaStats != null ? state.novaStats.level : 0,
+            shotgunLevel = state.shotgunStats != null ? state.shotgunStats.level : 0,
+            laserLevel = state.laserStats != null ? state.laserStats.level : 0,
+            chainLevel = state.chainStats != null ? state.chainStats.level : 0,
+            droneLevel = state.droneStats != null ? state.droneStats.level : 0,
+            shurikenLevel = state.shurikenStats != null ? state.shurikenStats.level : 0,
+            frostLevel = state.frostStats != null ? state.frostStats.level : 0,
+            lightningLevel = state.lightningStats != null ? state.lightningStats.level : 0,
+            gunUnlocked = state.gunStats != null && state.gunStats.unlocked,
+            boomerangUnlocked = state.boomerangStats != null && state.boomerangStats.unlocked,
+            novaUnlocked = state.novaStats != null && state.novaStats.unlocked,
+            shotgunUnlocked = state.shotgunStats != null && state.shotgunStats.unlocked,
+            laserUnlocked = state.laserStats != null && state.laserStats.unlocked,
+            chainUnlocked = state.chainStats != null && state.chainStats.unlocked,
+            droneUnlocked = state.droneStats != null && state.droneStats.unlocked,
+            shurikenUnlocked = state.shurikenStats != null && state.shurikenStats.unlocked,
+            frostUnlocked = state.frostStats != null && state.frostStats.unlocked,
+            lightningUnlocked = state.lightningStats != null && state.lightningStats.unlocked
+        };
+    }
+
+    private void SyncUpgradeIconStateToClient(ulong clientId, PlayerUpgradeState state)
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer || state == null)
+        {
+            return;
+        }
+
+        var player = FindPlayerByClientId(clientId);
+        if (player == null)
+        {
+            return;
+        }
+
+        var data = BuildUpgradeIconState(state);
+        var rpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } }
+        };
+        player.SyncUpgradeIconStateClientRpc(data, rpcParams);
+    }
+
+    private void SyncAllUpgradeIconStatesToClients()
+    {
+        if (!NetworkSession.IsActive || !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player == null)
+            {
+                continue;
+            }
+
+            var state = GetOrCreateState(player);
+            SyncUpgradeIconStateToClient(player.OwnerClientId, state);
+        }
     }
 
     private static void AddWeaponIcon(List<UpgradeIconData> results, WeaponStatsData stats)
@@ -1132,9 +2188,86 @@ public class GameSession : MonoBehaviour
             return;
         }
 
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         _coinCount += amount;
         PlayerPrefs.SetInt(CoinPrefKey, _coinCount);
         PlayerPrefs.Save();
+    }
+
+    public void AddSharedXp(float amount)
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        var list = Experience.Active;
+        Experience source = PlayerExperience;
+        if (source == null)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                var xp = list[i];
+                if (xp != null)
+                {
+                    source = xp;
+                    break;
+                }
+            }
+        }
+
+        if (source == null)
+        {
+            return;
+        }
+
+        source.AddXp(amount);
+        int level = source.Level;
+        float current = source.CurrentXp;
+        float next = source.XpToNext;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var xp = list[i];
+            if (xp == null || xp == source)
+            {
+                continue;
+            }
+
+            xp.SetSharedState(level, current, next);
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            SyncSharedXpToClients(level, current, next);
+        }
+    }
+
+    private void SyncSharedXpToClients(int level, float currentXp, float xpToNext)
+    {
+        if (!NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player != null)
+            {
+                player.SyncSharedXpClientRpc(level, currentXp, xpToNext);
+            }
+        }
     }
 
     private void TrackUpgrade(string title)
@@ -1173,18 +2306,86 @@ public class GameSession : MonoBehaviour
         CoinPickup.Spawn(position, coinAmount);
     }
 
+    private int GetUpgradeOptionCount()
+    {
+        if (HasUpgradeAuthority())
+        {
+            return _options != null ? _options.Count : 0;
+        }
+
+        return _networkUpgradeTitles.Count;
+    }
+
+    private bool TryGetUpgradeOptionText(int index, out string title, out string desc)
+    {
+        title = string.Empty;
+        desc = string.Empty;
+
+        if (HasUpgradeAuthority())
+        {
+            if (_options == null || index < 0 || index >= _options.Count)
+            {
+                return false;
+            }
+
+            var opt = _options[index];
+            if (opt == null)
+            {
+                return false;
+            }
+
+            title = opt.Title;
+            desc = opt.Desc;
+            return true;
+        }
+
+        if (index < 0 || index >= _networkUpgradeTitles.Count)
+        {
+            return false;
+        }
+
+        title = _networkUpgradeTitles[index];
+        if (index < _networkUpgradeDescs.Count)
+        {
+            desc = _networkUpgradeDescs[index];
+        }
+
+        return true;
+    }
+
+    private string GetUpgradeOptionTitle(int index)
+    {
+        if (HasUpgradeAuthority())
+        {
+            if (_options == null || index < 0 || index >= _options.Count)
+            {
+                return string.Empty;
+            }
+
+            return _options[index] != null ? _options[index].Title : string.Empty;
+        }
+
+        if (index < 0 || index >= _networkUpgradeTitles.Count)
+        {
+            return string.Empty;
+        }
+
+        return _networkUpgradeTitles[index];
+    }
+
     private int PickAutoUpgradeIndex()
     {
-        if (_options == null || _options.Count == 0)
+        int optionCount = GetUpgradeOptionCount();
+        if (optionCount <= 0)
         {
             return -1;
         }
 
         float totalWeight = 0f;
-        var weights = new float[_options.Count];
-        for (int i = 0; i < _options.Count; i++)
+        var weights = new float[optionCount];
+        for (int i = 0; i < optionCount; i++)
         {
-            int score = ScoreUpgradeOption(_options[i]);
+            int score = ScoreUpgradeTitle(GetUpgradeOptionTitle(i));
             float weight = 1f + Mathf.Max(0, score);
             weights[i] = weight;
             totalWeight += weight;
@@ -1192,7 +2393,7 @@ public class GameSession : MonoBehaviour
 
         if (totalWeight <= 0.0001f)
         {
-            return Random.Range(0, _options.Count);
+            return Random.Range(0, optionCount);
         }
 
         float pick = Random.Range(0f, totalWeight);
@@ -1206,17 +2407,26 @@ public class GameSession : MonoBehaviour
             }
         }
 
-        return _options.Count - 1;
+        return optionCount - 1;
     }
 
     private int ScoreUpgradeOption(UpgradeOption option)
     {
-        if (option == null || string.IsNullOrEmpty(option.Title))
+        if (option == null)
         {
             return 0;
         }
 
-        string title = option.Title;
+        return ScoreUpgradeTitle(option.Title);
+    }
+
+    private int ScoreUpgradeTitle(string title)
+    {
+        if (string.IsNullOrEmpty(title))
+        {
+            return 0;
+        }
+
         if (title.Contains("무기:"))
         {
             return 1;
@@ -1225,9 +2435,9 @@ public class GameSession : MonoBehaviour
         return 0;
     }
 
-    private void AddWeaponChoice(WeaponStatsData stats, System.Func<string> upgradeText, System.Action unlockAction, System.Action levelUpAction)
+    private void AddWeaponChoice(List<UpgradeOption> options, PlayerUpgradeState state, WeaponStatsData stats, System.Func<string> upgradeText, System.Action unlockAction, System.Action levelUpAction)
     {
-        if (stats == null)
+        if (options == null || state == null || stats == null)
         {
             return;
         }
@@ -1235,14 +2445,14 @@ public class GameSession : MonoBehaviour
         {
             return;
         }
-        if (!stats.unlocked && !CanOfferNewWeapon(stats))
+        if (!stats.unlocked && !CanOfferNewWeapon(state, stats))
         {
             return;
         }
 
-        _options.Add(new UpgradeOption(
+        options.Add(new UpgradeOption(
             $"무기: {stats.displayName}",
-            () => stats.unlocked && stats.level > 0 ? upgradeText() : BuildWeaponAcquireText(stats),
+            () => stats.unlocked && stats.level > 0 ? upgradeText() : BuildWeaponAcquireText(state, stats),
             () =>
             {
                 if (stats.unlocked && stats.level > 0)
@@ -1256,9 +2466,9 @@ public class GameSession : MonoBehaviour
             }));
     }
 
-    private bool CanOfferNewWeapon(WeaponStatsData stats)
+    private bool CanOfferNewWeapon(PlayerUpgradeState state, WeaponStatsData stats)
     {
-        if (stats == null)
+        if (state == null || stats == null)
         {
             return false;
         }
@@ -1271,10 +2481,10 @@ public class GameSession : MonoBehaviour
             return true;
         }
 
-        return GetUnlockedWeaponCount() < maxWeaponSlots;
+        return GetUnlockedWeaponCount(state) < maxWeaponSlots;
     }
 
-    private bool CanOfferNewStat(int currentLevel)
+    private bool CanOfferNewStat(PlayerUpgradeState state, int currentLevel)
     {
         if (currentLevel > 0)
         {
@@ -1285,59 +2495,104 @@ public class GameSession : MonoBehaviour
             return true;
         }
 
-        return GetUnlockedStatCount() < maxStatSlots;
+        return GetUnlockedStatCount(state) < maxStatSlots;
     }
 
-    private int GetUnlockedWeaponCount()
+    private int GetUnlockedWeaponCount(PlayerUpgradeState state)
     {
+        if (state == null)
+        {
+            return 0;
+        }
+
         int count = 0;
-        if (gunStats != null && gunStats.unlocked && gunStats.level > 0) count++;
-        if (boomerangStats != null && boomerangStats.unlocked && boomerangStats.level > 0) count++;
-        if (novaStats != null && novaStats.unlocked && novaStats.level > 0) count++;
-        if (shotgunStats != null && shotgunStats.unlocked && shotgunStats.level > 0) count++;
-        if (laserStats != null && laserStats.unlocked && laserStats.level > 0) count++;
-        if (chainStats != null && chainStats.unlocked && chainStats.level > 0) count++;
-        if (droneStats != null && droneStats.unlocked && droneStats.level > 0) count++;
-        if (shurikenStats != null && shurikenStats.unlocked && shurikenStats.level > 0) count++;
-        if (frostStats != null && frostStats.unlocked && frostStats.level > 0) count++;
-        if (lightningStats != null && lightningStats.unlocked && lightningStats.level > 0) count++;
+        if (state.gunStats != null && state.gunStats.unlocked && state.gunStats.level > 0) count++;
+        if (state.boomerangStats != null && state.boomerangStats.unlocked && state.boomerangStats.level > 0) count++;
+        if (state.novaStats != null && state.novaStats.unlocked && state.novaStats.level > 0) count++;
+        if (state.shotgunStats != null && state.shotgunStats.unlocked && state.shotgunStats.level > 0) count++;
+        if (state.laserStats != null && state.laserStats.unlocked && state.laserStats.level > 0) count++;
+        if (state.chainStats != null && state.chainStats.unlocked && state.chainStats.level > 0) count++;
+        if (state.droneStats != null && state.droneStats.unlocked && state.droneStats.level > 0) count++;
+        if (state.shurikenStats != null && state.shurikenStats.unlocked && state.shurikenStats.level > 0) count++;
+        if (state.frostStats != null && state.frostStats.unlocked && state.frostStats.level > 0) count++;
+        if (state.lightningStats != null && state.lightningStats.unlocked && state.lightningStats.level > 0) count++;
         return count;
     }
 
-    private int GetUnlockedStatCount()
+    private int GetUnlockedStatCount(PlayerUpgradeState state)
     {
+        if (state == null)
+        {
+            return 0;
+        }
+
         int count = 0;
-        if (damageLevel > 0) count++;
-        if (fireRateLevel > 0) count++;
-        if (moveSpeedLevel > 0) count++;
-        if (healthReinforceLevel > 0) count++;
-        if (rangeLevel > 0) count++;
-        if (xpGainLevel > 0) count++;
-        if (sizeLevel > 0) count++;
-        if (magnetLevel > 0) count++;
-        if (projectileCountLevel > 0) count++;
-        if (pierceLevel > 0) count++;
+        if (state.damageLevel > 0) count++;
+        if (state.fireRateLevel > 0) count++;
+        if (state.moveSpeedLevel > 0) count++;
+        if (state.healthReinforceLevel > 0) count++;
+        if (state.rangeLevel > 0) count++;
+        if (state.xpGainLevel > 0) count++;
+        if (state.sizeLevel > 0) count++;
+        if (state.magnetLevel > 0) count++;
+        if (state.projectileCountLevel > 0) count++;
+        if (state.pierceLevel > 0) count++;
         return count;
     }
 
     private void ApplyAttackStats()
     {
-        if (_attack == null)
+        if (NetworkSession.IsActive && NetworkSession.IsServer)
+        {
+            var players = PlayerController.Active;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
+                if (player == null)
+                {
+                    continue;
+                }
+
+                var state = GetOrCreateState(player);
+                ApplyAttackStats(player, state);
+            }
+            return;
+        }
+
+        var localState = GetLocalState();
+        if (localState == null)
         {
             return;
         }
 
-        _attack.ApplyStats(damageMult, fireRateMult, rangeMult, sizeMult, lifetimeMult, projectileCount, projectilePierceBonus, weaponDamageMult);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Straight, gunStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Boomerang, boomerangStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Nova, novaStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Shotgun, shotgunStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Laser, laserStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.ChainLightning, chainStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Drone, droneStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Shuriken, shurikenStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.FrostOrb, frostStats);
-        _attack.SetWeaponStats(AutoAttack.WeaponType.Lightning, lightningStats);
+        var owner = _player != null ? _player : FindOwnerPlayer();
+        ApplyAttackStats(owner, localState);
+    }
+
+    private void ApplyAttackStats(PlayerController player, PlayerUpgradeState state)
+    {
+        if (player == null || state == null)
+        {
+            return;
+        }
+
+        var attack = player.GetComponent<AutoAttack>();
+        if (attack == null)
+        {
+            attack = player.gameObject.AddComponent<AutoAttack>();
+        }
+
+        attack.ApplyStats(state.damageMult, state.fireRateMult, state.rangeMult, state.sizeMult, state.lifetimeMult, state.projectileCount, state.projectilePierceBonus, state.weaponDamageMult);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Straight, state.gunStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Boomerang, state.boomerangStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Nova, state.novaStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Shotgun, state.shotgunStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Laser, state.laserStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.ChainLightning, state.chainStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Drone, state.droneStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Shuriken, state.shurikenStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.FrostOrb, state.frostStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Lightning, state.lightningStats);
     }
 
     private void ApplyDifficultyScaling()
@@ -1470,408 +2725,408 @@ public class GameSession : MonoBehaviour
             position.z);
     }
 
-    private void LevelUpStraightWeapon()
+    private void LevelUpStraightWeapon(PlayerUpgradeState state)
     {
-        if (gunStats == null)
+        if (state == null || state.gunStats == null)
         {
             return;
         }
-        if (gunStats.level >= maxUpgradeLevel)
+        if (state.gunStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        gunStats.level += 1;
-        gunStats.damageMult += 0.20f;
-        gunStats.fireRateMult += 0.08f;
+        state.gunStats.level += 1;
+        state.gunStats.damageMult += 0.20f;
+        state.gunStats.fireRateMult += 0.08f;
 
-        if (gunStats.level % 3 == 0)
+        if (state.gunStats.level % 3 == 0)
         {
-            gunStats.bonusProjectiles += 1;
+            state.gunStats.bonusProjectiles += 1;
         }
 
-        if (gunStats.level % 4 == 0)
+        if (state.gunStats.level % 4 == 0)
         {
-            projectilePierceBonus += 1;
+            state.projectilePierceBonus += 1;
         }
     }
 
-    private void LevelUpBoomerangWeapon()
+    private void LevelUpBoomerangWeapon(PlayerUpgradeState state)
     {
-        if (boomerangStats == null)
+        if (state == null || state.boomerangStats == null)
         {
             return;
         }
-        if (boomerangStats.level >= maxUpgradeLevel)
+        if (state.boomerangStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!boomerangStats.unlocked)
+        if (!state.boomerangStats.unlocked)
         {
-            UnlockBoomerang();
+            UnlockBoomerang(state);
         }
 
-        boomerangStats.level += 1;
-        boomerangStats.damageMult += 0.20f;
-        boomerangStats.fireRateMult += 0.10f;
+        state.boomerangStats.level += 1;
+        state.boomerangStats.damageMult += 0.20f;
+        state.boomerangStats.fireRateMult += 0.10f;
 
-        if (boomerangStats.level % 4 == 0)
+        if (state.boomerangStats.level % 4 == 0)
         {
-            boomerangStats.bonusProjectiles += 1;
-            projectilePierceBonus += 1;
+            state.boomerangStats.bonusProjectiles += 1;
+            state.projectilePierceBonus += 1;
         }
     }
 
-    private void LevelUpNovaWeapon()
+    private void LevelUpNovaWeapon(PlayerUpgradeState state)
     {
-        if (novaStats == null)
+        if (state == null || state.novaStats == null)
         {
             return;
         }
-        if (novaStats.level >= maxUpgradeLevel)
+        if (state.novaStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!novaStats.unlocked)
+        if (!state.novaStats.unlocked)
         {
-            UnlockNova();
+            UnlockNova(state);
         }
 
-        novaStats.level += 1;
-        novaStats.damageMult += 0.20f;
-        novaStats.fireRateMult += 0.12f;
+        state.novaStats.level += 1;
+        state.novaStats.damageMult += 0.20f;
+        state.novaStats.fireRateMult += 0.12f;
 
-        if (novaStats.level % 3 == 0)
+        if (state.novaStats.level % 3 == 0)
         {
-            novaStats.bonusProjectiles += 2;
+            state.novaStats.bonusProjectiles += 2;
         }
     }
 
-    private void LevelUpShotgunWeapon()
+    private void LevelUpShotgunWeapon(PlayerUpgradeState state)
     {
-        if (shotgunStats == null)
+        if (state == null || state.shotgunStats == null)
         {
             return;
         }
-        if (shotgunStats.level >= maxUpgradeLevel)
+        if (state.shotgunStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!shotgunStats.unlocked)
+        if (!state.shotgunStats.unlocked)
         {
-            UnlockShotgun();
+            UnlockShotgun(state);
         }
 
-        shotgunStats.level += 1;
-        shotgunStats.damageMult += 0.18f;
-        shotgunStats.fireRateMult += 0.05f;
+        state.shotgunStats.level += 1;
+        state.shotgunStats.damageMult += 0.18f;
+        state.shotgunStats.fireRateMult += 0.05f;
 
-        if (shotgunStats.level % 2 == 0)
+        if (state.shotgunStats.level % 2 == 0)
         {
-            shotgunStats.bonusProjectiles += 1;
+            state.shotgunStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpLaserWeapon()
+    private void LevelUpLaserWeapon(PlayerUpgradeState state)
     {
-        if (laserStats == null)
+        if (state == null || state.laserStats == null)
         {
             return;
         }
-        if (laserStats.level >= maxUpgradeLevel)
+        if (state.laserStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!laserStats.unlocked)
+        if (!state.laserStats.unlocked)
         {
-            UnlockLaser();
+            UnlockLaser(state);
         }
 
-        laserStats.level += 1;
-        laserStats.damageMult += 0.20f;
-        laserStats.fireRateMult += 0.04f;
+        state.laserStats.level += 1;
+        state.laserStats.damageMult += 0.20f;
+        state.laserStats.fireRateMult += 0.04f;
 
-        if (laserStats.level % 3 == 0)
+        if (state.laserStats.level % 3 == 0)
         {
-            laserStats.bonusProjectiles += 1;
+            state.laserStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpChainWeapon()
+    private void LevelUpChainWeapon(PlayerUpgradeState state)
     {
-        if (chainStats == null)
+        if (state == null || state.chainStats == null)
         {
             return;
         }
-        if (chainStats.level >= maxUpgradeLevel)
+        if (state.chainStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!chainStats.unlocked)
+        if (!state.chainStats.unlocked)
         {
-            UnlockChain();
+            UnlockChain(state);
         }
 
-        chainStats.level += 1;
-        chainStats.damageMult += 0.18f;
-        chainStats.fireRateMult += 0.05f;
+        state.chainStats.level += 1;
+        state.chainStats.damageMult += 0.18f;
+        state.chainStats.fireRateMult += 0.05f;
 
-        if (chainStats.level % 2 == 0)
+        if (state.chainStats.level % 2 == 0)
         {
-            chainStats.bonusProjectiles += 1;
+            state.chainStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpDroneWeapon()
+    private void LevelUpDroneWeapon(PlayerUpgradeState state)
     {
-        if (droneStats == null)
+        if (state == null || state.droneStats == null)
         {
             return;
         }
-        if (droneStats.level >= maxUpgradeLevel)
+        if (state.droneStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!droneStats.unlocked)
+        if (!state.droneStats.unlocked)
         {
-            UnlockDrone();
+            UnlockDrone(state);
         }
 
-        droneStats.level += 1;
-        droneStats.damageMult += 0.15f;
-        droneStats.fireRateMult += 0.04f;
+        state.droneStats.level += 1;
+        state.droneStats.damageMult += 0.15f;
+        state.droneStats.fireRateMult += 0.04f;
 
-        if (droneStats.level % 3 == 0)
+        if (state.droneStats.level % 3 == 0)
         {
-            droneStats.bonusProjectiles += 1;
+            state.droneStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpShurikenWeapon()
+    private void LevelUpShurikenWeapon(PlayerUpgradeState state)
     {
-        if (shurikenStats == null)
+        if (state == null || state.shurikenStats == null)
         {
             return;
         }
-        if (shurikenStats.level >= maxUpgradeLevel)
+        if (state.shurikenStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!shurikenStats.unlocked)
+        if (!state.shurikenStats.unlocked)
         {
-            UnlockShuriken();
+            UnlockShuriken(state);
         }
 
-        shurikenStats.level += 1;
-        shurikenStats.damageMult += 0.18f;
-        shurikenStats.fireRateMult += 0.06f;
+        state.shurikenStats.level += 1;
+        state.shurikenStats.damageMult += 0.18f;
+        state.shurikenStats.fireRateMult += 0.06f;
 
-        if (shurikenStats.level % 3 == 0)
+        if (state.shurikenStats.level % 3 == 0)
         {
-            shurikenStats.bonusProjectiles += 1;
+            state.shurikenStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpFrostWeapon()
+    private void LevelUpFrostWeapon(PlayerUpgradeState state)
     {
-        if (frostStats == null)
+        if (state == null || state.frostStats == null)
         {
             return;
         }
-        if (frostStats.level >= maxUpgradeLevel)
+        if (state.frostStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!frostStats.unlocked)
+        if (!state.frostStats.unlocked)
         {
-            UnlockFrost();
+            UnlockFrost(state);
         }
 
-        frostStats.level += 1;
-        frostStats.damageMult += 0.16f;
-        frostStats.fireRateMult += 0.05f;
+        state.frostStats.level += 1;
+        state.frostStats.damageMult += 0.16f;
+        state.frostStats.fireRateMult += 0.05f;
 
-        if (frostStats.level % 3 == 0)
+        if (state.frostStats.level % 3 == 0)
         {
-            frostStats.bonusProjectiles += 1;
+            state.frostStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpLightningWeapon()
+    private void LevelUpLightningWeapon(PlayerUpgradeState state)
     {
-        if (lightningStats == null)
+        if (state == null || state.lightningStats == null)
         {
             return;
         }
-        if (lightningStats.level >= maxUpgradeLevel)
+        if (state.lightningStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!lightningStats.unlocked)
+        if (!state.lightningStats.unlocked)
         {
-            UnlockLightning();
+            UnlockLightning(state);
         }
 
-        lightningStats.level += 1;
-        lightningStats.damageMult += 0.20f;
-        lightningStats.fireRateMult += 0.06f;
+        state.lightningStats.level += 1;
+        state.lightningStats.damageMult += 0.20f;
+        state.lightningStats.fireRateMult += 0.06f;
 
-        if (lightningStats.level % 2 == 0)
+        if (state.lightningStats.level % 2 == 0)
         {
-            lightningStats.bonusProjectiles += 1;
+            state.lightningStats.bonusProjectiles += 1;
         }
     }
 
-    private void UnlockBoomerang()
+    private void UnlockBoomerang(PlayerUpgradeState state)
     {
-        if (boomerangStats == null)
+        if (state == null || state.boomerangStats == null)
         {
             return;
         }
 
-        boomerangStats.unlocked = true;
-        if (boomerangStats.level < 1)
+        state.boomerangStats.unlocked = true;
+        if (state.boomerangStats.level < 1)
         {
-            boomerangStats.level = 1;
+            state.boomerangStats.level = 1;
         }
     }
 
-    private void UnlockNova()
+    private void UnlockNova(PlayerUpgradeState state)
     {
-        if (novaStats == null)
+        if (state == null || state.novaStats == null)
         {
             return;
         }
 
-        novaStats.unlocked = true;
-        if (novaStats.level < 1)
+        state.novaStats.unlocked = true;
+        if (state.novaStats.level < 1)
         {
-            novaStats.level = 1;
+            state.novaStats.level = 1;
         }
     }
 
-    private void UnlockShotgun()
+    private void UnlockShotgun(PlayerUpgradeState state)
     {
-        if (shotgunStats == null)
+        if (state == null || state.shotgunStats == null)
         {
             return;
         }
 
-        shotgunStats.unlocked = true;
-        if (shotgunStats.level < 1)
+        state.shotgunStats.unlocked = true;
+        if (state.shotgunStats.level < 1)
         {
-            shotgunStats.level = 1;
+            state.shotgunStats.level = 1;
         }
     }
 
-    private void UnlockLaser()
+    private void UnlockLaser(PlayerUpgradeState state)
     {
-        if (laserStats == null)
+        if (state == null || state.laserStats == null)
         {
             return;
         }
 
-        laserStats.unlocked = true;
-        if (laserStats.level < 1)
+        state.laserStats.unlocked = true;
+        if (state.laserStats.level < 1)
         {
-            laserStats.level = 1;
+            state.laserStats.level = 1;
         }
     }
 
-    private void UnlockChain()
+    private void UnlockChain(PlayerUpgradeState state)
     {
-        if (chainStats == null)
+        if (state == null || state.chainStats == null)
         {
             return;
         }
 
-        chainStats.unlocked = true;
-        if (chainStats.level < 1)
+        state.chainStats.unlocked = true;
+        if (state.chainStats.level < 1)
         {
-            chainStats.level = 1;
+            state.chainStats.level = 1;
         }
     }
 
-    private void UnlockDrone()
+    private void UnlockDrone(PlayerUpgradeState state)
     {
-        if (droneStats == null)
+        if (state == null || state.droneStats == null)
         {
             return;
         }
 
-        droneStats.unlocked = true;
-        if (droneStats.level < 1)
+        state.droneStats.unlocked = true;
+        if (state.droneStats.level < 1)
         {
-            droneStats.level = 1;
+            state.droneStats.level = 1;
         }
     }
 
-    private void UnlockShuriken()
+    private void UnlockShuriken(PlayerUpgradeState state)
     {
-        if (shurikenStats == null)
+        if (state == null || state.shurikenStats == null)
         {
             return;
         }
 
-        shurikenStats.unlocked = true;
-        if (shurikenStats.level < 1)
+        state.shurikenStats.unlocked = true;
+        if (state.shurikenStats.level < 1)
         {
-            shurikenStats.level = 1;
+            state.shurikenStats.level = 1;
         }
     }
 
-    private void UnlockFrost()
+    private void UnlockFrost(PlayerUpgradeState state)
     {
-        if (frostStats == null)
+        if (state == null || state.frostStats == null)
         {
             return;
         }
 
-        frostStats.unlocked = true;
-        if (frostStats.level < 1)
+        state.frostStats.unlocked = true;
+        if (state.frostStats.level < 1)
         {
-            frostStats.level = 1;
+            state.frostStats.level = 1;
         }
     }
 
-    private void UnlockLightning()
+    private void UnlockLightning(PlayerUpgradeState state)
     {
-        if (lightningStats == null)
+        if (state == null || state.lightningStats == null)
         {
             return;
         }
 
-        lightningStats.unlocked = true;
-        if (lightningStats.level < 1)
+        state.lightningStats.unlocked = true;
+        if (state.lightningStats.level < 1)
         {
-            lightningStats.level = 1;
+            state.lightningStats.level = 1;
         }
     }
 
-    private void UnlockStraight()
+    private void UnlockStraight(PlayerUpgradeState state)
     {
-        if (gunStats == null)
+        if (state == null || state.gunStats == null)
         {
             return;
         }
 
-        gunStats.unlocked = true;
-        if (gunStats.level < 1)
+        state.gunStats.unlocked = true;
+        if (state.gunStats.level < 1)
         {
-            gunStats.level = 1;
+            state.gunStats.level = 1;
         }
     }
 
-    private string BuildWeaponAcquireText(WeaponStatsData stats)
+    private string BuildWeaponAcquireText(PlayerUpgradeState state, WeaponStatsData stats)
     {
         if (stats == null)
         {
@@ -1882,194 +3137,194 @@ public class GameSession : MonoBehaviour
         int nextLevel = Mathf.Max(1, currentLevel + 1);
         float dmg = stats.damageMult;
         float rate = stats.fireRateMult;
-        int baseProjectiles = GetBaseProjectileCount(stats);
+        int baseProjectiles = GetBaseProjectileCount(state, stats);
         return $"{stats.displayName}\n레벨 {currentLevel} -> {nextLevel}\n피해량 {dmg:0.##} -> {dmg:0.##}\n속도 {rate:0.##} -> {rate:0.##}\n투사체 {baseProjectiles} -> {baseProjectiles}\n관통 0 -> 0";
     }
 
-    private string BuildStraightUpgradeText()
+    private string BuildStraightUpgradeText(PlayerUpgradeState state)
     {
-        if (gunStats == null)
+        if (state == null || state.gunStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = gunStats.level + 1;
-        float nextDamage = gunStats.damageMult + 0.20f;
-        int currentProjectile = 1 + gunStats.bonusProjectiles;
+        int nextLevel = state.gunStats.level + 1;
+        float nextDamage = state.gunStats.damageMult + 0.20f;
+        int currentProjectile = 1 + state.gunStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        int nextPierce = projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = gunStats.fireRateMult + 0.08f;
-        return BuildWeaponUpgradeText(gunStats.displayName, gunStats.level, nextLevel, gunStats.damageMult, nextDamage, gunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, nextPierce);
+        int nextPierce = state.projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
+        float nextRate = state.gunStats.fireRateMult + 0.08f;
+        return BuildWeaponUpgradeText(state.gunStats.displayName, state.gunStats.level, nextLevel, state.gunStats.damageMult, nextDamage, state.gunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
     }
 
-    private string BuildBoomerangUpgradeText()
+    private string BuildBoomerangUpgradeText(PlayerUpgradeState state)
     {
-        if (boomerangStats == null)
+        if (state == null || state.boomerangStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = boomerangStats.level + 1;
-        float nextDamage = boomerangStats.damageMult + 0.20f;
-        int currentProjectile = 1 + boomerangStats.bonusProjectiles;
+        int nextLevel = state.boomerangStats.level + 1;
+        float nextDamage = state.boomerangStats.damageMult + 0.20f;
+        int currentProjectile = 1 + state.boomerangStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 4 == 0 ? 1 : 0);
-        int nextPierce = projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = boomerangStats.fireRateMult + 0.10f;
-        return BuildWeaponUpgradeText(boomerangStats.displayName, boomerangStats.level, nextLevel, boomerangStats.damageMult, nextDamage, boomerangStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, nextPierce);
+        int nextPierce = state.projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
+        float nextRate = state.boomerangStats.fireRateMult + 0.10f;
+        return BuildWeaponUpgradeText(state.boomerangStats.displayName, state.boomerangStats.level, nextLevel, state.boomerangStats.damageMult, nextDamage, state.boomerangStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
     }
 
-    private string BuildNovaUpgradeText()
+    private string BuildNovaUpgradeText(PlayerUpgradeState state)
     {
-        if (novaStats == null)
+        if (state == null || state.novaStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = novaStats.level + 1;
-        float nextDamage = novaStats.damageMult + 0.20f;
-        int currentCount = 8 + novaStats.bonusProjectiles;
+        int nextLevel = state.novaStats.level + 1;
+        float nextDamage = state.novaStats.damageMult + 0.20f;
+        int currentCount = 8 + state.novaStats.bonusProjectiles;
         int nextCount = currentCount + (nextLevel % 3 == 0 ? 2 : 0);
-        float nextRate = novaStats.fireRateMult + 0.12f;
-        return BuildWeaponUpgradeText(novaStats.displayName, novaStats.level, nextLevel, novaStats.damageMult, nextDamage, novaStats.fireRateMult, nextRate, currentCount, nextCount, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.novaStats.fireRateMult + 0.12f;
+        return BuildWeaponUpgradeText(state.novaStats.displayName, state.novaStats.level, nextLevel, state.novaStats.damageMult, nextDamage, state.novaStats.fireRateMult, nextRate, currentCount, nextCount, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildShotgunUpgradeText()
+    private string BuildShotgunUpgradeText(PlayerUpgradeState state)
     {
-        if (shotgunStats == null)
+        if (state == null || state.shotgunStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = shotgunStats.level + 1;
-        float nextDamage = shotgunStats.damageMult + 0.18f;
-        int currentProjectile = 5 + shotgunStats.bonusProjectiles;
+        int nextLevel = state.shotgunStats.level + 1;
+        float nextDamage = state.shotgunStats.damageMult + 0.18f;
+        int currentProjectile = 5 + state.shotgunStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
-        float nextRate = shotgunStats.fireRateMult + 0.05f;
-        return BuildWeaponUpgradeText(shotgunStats.displayName, shotgunStats.level, nextLevel, shotgunStats.damageMult, nextDamage, shotgunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.shotgunStats.fireRateMult + 0.05f;
+        return BuildWeaponUpgradeText(state.shotgunStats.displayName, state.shotgunStats.level, nextLevel, state.shotgunStats.damageMult, nextDamage, state.shotgunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildLaserUpgradeText()
+    private string BuildLaserUpgradeText(PlayerUpgradeState state)
     {
-        if (laserStats == null)
+        if (state == null || state.laserStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = laserStats.level + 1;
-        float nextDamage = laserStats.damageMult + 0.20f;
-        int currentProjectile = 1 + laserStats.bonusProjectiles;
+        int nextLevel = state.laserStats.level + 1;
+        float nextDamage = state.laserStats.damageMult + 0.20f;
+        int currentProjectile = 1 + state.laserStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = laserStats.fireRateMult + 0.04f;
-        return BuildWeaponUpgradeText(laserStats.displayName, laserStats.level, nextLevel, laserStats.damageMult, nextDamage, laserStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.laserStats.fireRateMult + 0.04f;
+        return BuildWeaponUpgradeText(state.laserStats.displayName, state.laserStats.level, nextLevel, state.laserStats.damageMult, nextDamage, state.laserStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildChainUpgradeText()
+    private string BuildChainUpgradeText(PlayerUpgradeState state)
     {
-        if (chainStats == null)
+        if (state == null || state.chainStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = chainStats.level + 1;
-        float nextDamage = chainStats.damageMult + 0.18f;
-        int currentProjectile = 3 + chainStats.bonusProjectiles;
+        int nextLevel = state.chainStats.level + 1;
+        float nextDamage = state.chainStats.damageMult + 0.18f;
+        int currentProjectile = 3 + state.chainStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
-        float nextRate = chainStats.fireRateMult + 0.05f;
-        return BuildWeaponUpgradeText(chainStats.displayName, chainStats.level, nextLevel, chainStats.damageMult, nextDamage, chainStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.chainStats.fireRateMult + 0.05f;
+        return BuildWeaponUpgradeText(state.chainStats.displayName, state.chainStats.level, nextLevel, state.chainStats.damageMult, nextDamage, state.chainStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildDroneUpgradeText()
+    private string BuildDroneUpgradeText(PlayerUpgradeState state)
     {
-        if (droneStats == null)
+        if (state == null || state.droneStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = droneStats.level + 1;
-        float nextDamage = droneStats.damageMult + 0.15f;
-        int currentProjectile = 1 + droneStats.bonusProjectiles;
+        int nextLevel = state.droneStats.level + 1;
+        float nextDamage = state.droneStats.damageMult + 0.15f;
+        int currentProjectile = 1 + state.droneStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = droneStats.fireRateMult + 0.04f;
-        return BuildWeaponUpgradeText(droneStats.displayName, droneStats.level, nextLevel, droneStats.damageMult, nextDamage, droneStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.droneStats.fireRateMult + 0.04f;
+        return BuildWeaponUpgradeText(state.droneStats.displayName, state.droneStats.level, nextLevel, state.droneStats.damageMult, nextDamage, state.droneStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildShurikenUpgradeText()
+    private string BuildShurikenUpgradeText(PlayerUpgradeState state)
     {
-        if (shurikenStats == null)
+        if (state == null || state.shurikenStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = shurikenStats.level + 1;
-        float nextDamage = shurikenStats.damageMult + 0.18f;
-        int currentProjectile = 1 + shurikenStats.bonusProjectiles;
+        int nextLevel = state.shurikenStats.level + 1;
+        float nextDamage = state.shurikenStats.damageMult + 0.18f;
+        int currentProjectile = 1 + state.shurikenStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = shurikenStats.fireRateMult + 0.06f;
-        return BuildWeaponUpgradeText(shurikenStats.displayName, shurikenStats.level, nextLevel, shurikenStats.damageMult, nextDamage, shurikenStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.shurikenStats.fireRateMult + 0.06f;
+        return BuildWeaponUpgradeText(state.shurikenStats.displayName, state.shurikenStats.level, nextLevel, state.shurikenStats.damageMult, nextDamage, state.shurikenStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildFrostUpgradeText()
+    private string BuildFrostUpgradeText(PlayerUpgradeState state)
     {
-        if (frostStats == null)
+        if (state == null || state.frostStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = frostStats.level + 1;
-        float nextDamage = frostStats.damageMult + 0.16f;
-        int currentProjectile = 1 + frostStats.bonusProjectiles;
+        int nextLevel = state.frostStats.level + 1;
+        float nextDamage = state.frostStats.damageMult + 0.16f;
+        int currentProjectile = 1 + state.frostStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = frostStats.fireRateMult + 0.05f;
-        return BuildWeaponUpgradeText(frostStats.displayName, frostStats.level, nextLevel, frostStats.damageMult, nextDamage, frostStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.frostStats.fireRateMult + 0.05f;
+        return BuildWeaponUpgradeText(state.frostStats.displayName, state.frostStats.level, nextLevel, state.frostStats.damageMult, nextDamage, state.frostStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildLightningUpgradeText()
+    private string BuildLightningUpgradeText(PlayerUpgradeState state)
     {
-        if (lightningStats == null)
+        if (state == null || state.lightningStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = lightningStats.level + 1;
-        float nextDamage = lightningStats.damageMult + 0.20f;
-        int currentProjectile = 1 + lightningStats.bonusProjectiles;
+        int nextLevel = state.lightningStats.level + 1;
+        float nextDamage = state.lightningStats.damageMult + 0.20f;
+        int currentProjectile = 1 + state.lightningStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
-        float nextRate = lightningStats.fireRateMult + 0.06f;
-        return BuildWeaponUpgradeText(lightningStats.displayName, lightningStats.level, nextLevel, lightningStats.damageMult, nextDamage, lightningStats.fireRateMult, nextRate, currentProjectile, nextProjectile, projectilePierceBonus, projectilePierceBonus);
+        float nextRate = state.lightningStats.fireRateMult + 0.06f;
+        return BuildWeaponUpgradeText(state.lightningStats.displayName, state.lightningStats.level, nextLevel, state.lightningStats.damageMult, nextDamage, state.lightningStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private int GetBaseProjectileCount(WeaponStatsData stats)
+    private int GetBaseProjectileCount(PlayerUpgradeState state, WeaponStatsData stats)
     {
         if (stats == null)
         {
             return 1;
         }
 
-        if (stats == novaStats)
+        if (state != null && stats == state.novaStats)
         {
             return 8;
         }
-        if (stats == shotgunStats)
+        if (state != null && stats == state.shotgunStats)
         {
             return 5;
         }
-        if (stats == chainStats)
+        if (state != null && stats == state.chainStats)
         {
             return 3;
         }
-        if (stats == droneStats)
+        if (state != null && stats == state.droneStats)
         {
             return 1;
         }
-        if (stats == shurikenStats)
+        if (state != null && stats == state.shurikenStats)
         {
             return 1;
         }
-        if (stats == frostStats)
+        if (state != null && stats == state.frostStats)
         {
             return 1;
         }
-        if (stats == lightningStats)
+        if (state != null && stats == state.lightningStats)
         {
             return 1;
         }
@@ -2134,38 +3389,48 @@ public class GameSession : MonoBehaviour
         return $"{label} {currentValue:0.#} -> {nextValue:0.#}";
     }
 
-    private string BuildHealthReinforceText()
+    private string BuildHealthReinforceText(PlayerController player, PlayerUpgradeState state)
     {
-        float currentMax = PlayerHealth != null ? PlayerHealth.MaxHealth : 0f;
+        float currentMax = 0f;
+        var health = player != null ? player.GetComponent<Health>() : null;
+        if (health != null)
+        {
+            currentMax = health.MaxHealth;
+        }
         float nextMax = currentMax + 25f;
-        float nextRegen = regenPerSecond + 0.5f;
+        float currentRegen = state != null ? state.regenPerSecond : 0f;
+        float nextRegen = currentRegen + 0.5f;
         var lines = new List<string>
         {
             BuildValueStatText("최대 체력", currentMax, nextMax),
-            BuildValueStatText("체력 재생", regenPerSecond, nextRegen),
+            BuildValueStatText("체력 재생", currentRegen, nextRegen),
             "획득 시 체력 100% 회복"
         };
         return string.Join("\n", lines);
     }
 
-    private string BuildMagnetUpgradeText()
+    private string BuildMagnetUpgradeText(PlayerUpgradeState state)
     {
-        float nextRange = magnetRangeMult + magnetRangeStep;
-        float nextSpeed = magnetSpeedMult + magnetSpeedStep;
+        float currentRange = state != null ? state.magnetRangeMult : 0f;
+        float currentSpeed = state != null ? state.magnetSpeedMult : 0f;
+        float nextRange = currentRange + (state != null ? state.magnetRangeStep : 0f);
+        float nextSpeed = currentSpeed + (state != null ? state.magnetSpeedStep : 0f);
         var lines = new List<string>
         {
-            BuildValueStatText("자석 범위", magnetRangeMult, nextRange),
-            BuildValueStatText("자석 속도", magnetSpeedMult, nextSpeed)
+            BuildValueStatText("자석 범위", currentRange, nextRange),
+            BuildValueStatText("자석 속도", currentSpeed, nextSpeed)
         };
         return string.Join("\n", lines);
     }
 
-    private string BuildProjectileCountText()
+    private string BuildProjectileCountText(PlayerUpgradeState state)
     {
-        int nextCount = projectileCount + ((projectileCountLevel + 1) % 2 == 0 ? 1 : 0);
+        int currentCount = state != null ? state.projectileCount : 0;
+        int currentLevel = state != null ? state.projectileCountLevel : 0;
+        int nextCount = currentCount + ((currentLevel + 1) % 2 == 0 ? 1 : 0);
         var lines = new List<string>
         {
-            BuildValueStatText("투사체 수", projectileCount, nextCount),
+            BuildValueStatText("투사체 수", currentCount, nextCount),
             "2회 업그레이드마다 +1"
         };
         return string.Join("\n", lines);
@@ -2222,6 +3487,10 @@ public class GameSession : MonoBehaviour
         {
             _startTitleText.gameObject.SetActive(showStart);
         }
+        if (_startSubtitleText != null)
+        {
+            _startSubtitleText.gameObject.SetActive(showStart);
+        }
         if (_gameOverPanel != null)
         {
             _gameOverPanel.gameObject.SetActive(showGameOver);
@@ -2244,6 +3513,23 @@ public class GameSession : MonoBehaviour
         {
             string label = _stageCompleted ? "클리어 시간" : "생존 시간";
             _gameOverTimeText.text = $"{label} {ElapsedTime:0.0}s";
+        }
+
+        if (showStart && _startSubtitleText != null)
+        {
+            _startSubtitleText.text = GetStartWaitingText();
+        }
+
+        if (showUpgrade && _upgradeTitleText != null)
+        {
+            if (HasUpgradeAuthority())
+            {
+                _upgradeTitleText.text = NetworkSession.IsActive && _localUpgradeSubmitted ? "선택 완료 (대기)" : "레벨업 선택";
+            }
+            else
+            {
+                _upgradeTitleText.text = _localUpgradeSubmitted ? "선택 완료 (대기)" : "레벨업 선택";
+            }
         }
 
         if (showUpgrade)
@@ -2276,7 +3562,7 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        int optionCount = Mathf.Min(4, _options.Count);
+        int optionCount = Mathf.Min(4, GetUpgradeOptionCount());
         for (int i = 0; i < _upgradeButtons.Length; i++)
         {
             bool active = i < optionCount;
@@ -2286,13 +3572,24 @@ public class GameSession : MonoBehaviour
                 continue;
             }
 
-            var opt = _options[i];
-            _upgradeButtonTexts[i].text = $"{i + 1}. {opt.Title}\n{opt.Desc}";
+            if (TryGetUpgradeOptionText(i, out string title, out string desc))
+            {
+                _upgradeButtonTexts[i].text = $"{i + 1}. {title}\n{desc}";
+            }
+            else
+            {
+                _upgradeButtonTexts[i].text = $"{i + 1}.";
+            }
+
+            bool canInteract = !NetworkSession.IsActive || !_localUpgradeSubmitted;
+            _upgradeButtons[i].interactable = canInteract;
         }
 
         if (_rerollButton != null)
         {
-            _rerollButton.interactable = _rerollAvailable;
+            _rerollButton.gameObject.SetActive(true);
+            bool rerollAllowed = _rerollAvailable && !_localUpgradeSubmitted;
+            _rerollButton.interactable = rerollAllowed;
         }
         if (_rerollButtonText != null)
         {
@@ -2312,12 +3609,18 @@ public class GameSession : MonoBehaviour
 
     private void SelectUpgradeWithFeedback(int index)
     {
+        if (_localUpgradeSubmitted && NetworkSession.IsActive)
+        {
+            return;
+        }
+
         if (_selectionLocked)
         {
             return;
         }
 
-        if (_options == null || index < 0 || index >= _options.Count)
+        int optionCount = GetUpgradeOptionCount();
+        if (index < 0 || index >= optionCount)
         {
             return;
         }
@@ -2328,7 +3631,48 @@ public class GameSession : MonoBehaviour
             button = _upgradeButtons[index];
         }
 
-        BeginSelectionFeedback(button, upgradeButtonClickColor, () => ApplyUpgrade(index));
+        BeginSelectionFeedback(button, upgradeButtonClickColor, () => SubmitUpgradeSelection(index));
+    }
+
+    private void SubmitUpgradeSelection(int index)
+    {
+        if (!_choosingUpgrade)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            if (_localUpgradeSubmitted)
+            {
+                return;
+            }
+
+            if (NetworkSession.IsServer)
+            {
+                _localUpgradeSubmitted = true;
+                ulong clientId = NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : NetworkManager.ServerClientId;
+                ReceiveUpgradeSelectionServer(clientId, index, _upgradeRoundId);
+            }
+            else
+            {
+                if (_networkUpgradeRoundId < 0)
+                {
+                    return;
+                }
+
+                var owner = _player != null ? _player : FindOwnerPlayer();
+                if (owner != null)
+                {
+                    _localUpgradeSubmitted = true;
+                    owner.SubmitUpgradeSelectionServerRpc(index, _networkUpgradeRoundId);
+                }
+            }
+
+            return;
+        }
+
+        ApplyUpgrade(index);
     }
 
     private void BeginSelectionFeedback(Button button, Color clickColor, System.Action onComplete)
@@ -2605,13 +3949,52 @@ public class GameSession : MonoBehaviour
 
     private void TryReroll()
     {
+        if (!_choosingUpgrade)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            if (_localUpgradeSubmitted)
+            {
+                return;
+            }
+
+            if (NetworkSession.IsServer)
+            {
+                ulong clientId = NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : NetworkManager.ServerClientId;
+                RequestUpgradeRerollServer(clientId, _upgradeRoundId);
+                return;
+            }
+
+            if (_networkUpgradeRoundId < 0)
+            {
+                return;
+            }
+
+            var owner = _player != null ? _player : FindOwnerPlayer();
+            if (owner != null)
+            {
+                owner.RequestUpgradeRerollServerRpc(_networkUpgradeRoundId);
+            }
+
+            return;
+        }
+
         if (!_rerollAvailable)
         {
             return;
         }
 
+        var state = GetLocalState();
+        var localPlayer = _player != null ? _player : FindOwnerPlayer();
+        if (state != null)
+        {
+            BuildUpgradeOptions(localPlayer, state, _options);
+        }
+
         _rerollAvailable = false;
-        BuildUpgradeOptions(false);
         _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
     }
 
@@ -2660,13 +4043,14 @@ public class GameSession : MonoBehaviour
         _startTitleText.text = "시작 캐릭터 선택";
 
         var subtitle = CreateText(_startPanel, "Subtitle", fontToUse, 12, TextAnchor.UpperCenter, new Color(1f, 1f, 1f, 0.9f));
+        _startSubtitleText = subtitle;
         var subtitleRect = subtitle.rectTransform;
         subtitleRect.anchorMin = new Vector2(0.5f, 1f);
         subtitleRect.anchorMax = new Vector2(0.5f, 1f);
         subtitleRect.pivot = new Vector2(0.5f, 1f);
         subtitleRect.anchoredPosition = new Vector2(0f, -10f);
         subtitleRect.sizeDelta = new Vector2(320f, 20f);
-        subtitle.text = "캐릭터 스탯은 현재 동일합니다.";
+        subtitle.text = GetStartWaitingText();
 
         float buttonWidth = 160f;
         float buttonHeight = 120f;
@@ -2692,7 +4076,7 @@ public class GameSession : MonoBehaviour
         mageLabel.text = "마법사\n기본 무기: 총";
         _startMagePreviewRect = CreateRect(_startMageRect, "MagePreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var mageButton = _startMageRect.GetComponent<Button>();
-        mageButton.onClick.AddListener(() => SelectStartWeapon(StartWeaponType.Gun));
+        mageButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeaponType.Gun, mageButton));
         AddStartHoverTrigger(mageButton, 0);
         ApplyButtonColors(mageButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2707,7 +4091,7 @@ public class GameSession : MonoBehaviour
         warriorLabel.text = "전사\n기본 무기: 부메랑";
         _startWarriorPreviewRect = CreateRect(_startWarriorRect, "WarriorPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var warriorButton = _startWarriorRect.GetComponent<Button>();
-        warriorButton.onClick.AddListener(() => SelectStartWeapon(StartWeaponType.Boomerang));
+        warriorButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeaponType.Boomerang, warriorButton));
         AddStartHoverTrigger(warriorButton, 1);
         ApplyButtonColors(warriorButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -2722,7 +4106,7 @@ public class GameSession : MonoBehaviour
         demonLabel.text = "데몬로드\n기본 무기: 노바";
         _startDemonPreviewRect = CreateRect(_startDemonRect, "DemonPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var demonButton = _startDemonRect.GetComponent<Button>();
-        demonButton.onClick.AddListener(() => SelectStartWeapon(StartWeaponType.Nova));
+        demonButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeaponType.Nova, demonButton));
         AddStartHoverTrigger(demonButton, 2);
         ApplyButtonColors(demonButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -3116,7 +4500,18 @@ public class GameSession : MonoBehaviour
         const float topPadding = 36f;
         const float sidePadding = 12f;
 
-        int optionCount = Mathf.Min(4, _options.Count);
+        int optionCount = Mathf.Min(4, GetUpgradeOptionCount());
+        if (optionCount <= 0)
+        {
+            const float width = 360f;
+            const float height = 140f;
+            float wx = (Screen.width - width) * 0.5f;
+            float wy = (Screen.height - height) * 0.5f;
+
+            GUI.Box(new Rect(wx, wy, width, height), "레벨업 선택");
+            GUI.Label(new Rect(wx + 20f, wy + 50f, width - 40f, 24f), "옵션 수신 중...");
+            return;
+        }
 
         float maxWidth = Screen.width - 40f;
         float boxWidth = Mathf.Floor((maxWidth - sidePadding * 2f - (columns - 1) * gap) / columns);
@@ -3125,24 +4520,32 @@ public class GameSession : MonoBehaviour
         float x = (Screen.width - w) * 0.5f;
         float y = (Screen.height - h) * 0.5f;
 
-        GUI.Box(new Rect(x, y, w, h), "레벨업 선택");
+        string title = HasUpgradeAuthority()
+            ? (NetworkSession.IsActive && _localUpgradeSubmitted ? "선택 완료 (대기)" : "레벨업 선택")
+            : (_localUpgradeSubmitted ? "선택 완료 (대기)" : "레벨업 선택");
+        GUI.Box(new Rect(x, y, w, h), title);
 
         var style = new GUIStyle(GUI.skin.button);
         style.alignment = TextAnchor.UpperLeft;
         style.wordWrap = true;
         style.fontSize = 13;
 
+        bool canSelect = !NetworkSession.IsActive || !_localUpgradeSubmitted;
+        GUI.enabled = canSelect;
         for (int i = 0; i < optionCount; i++)
         {
             float bx = x + sidePadding + i * (boxWidth + gap);
             float by = y + topPadding;
 
-            var opt = _options[i];
-            if (GUI.Button(new Rect(bx, by, boxWidth, boxHeight), $"{i + 1}. {opt.Title}\n{opt.Desc}", style))
+            if (TryGetUpgradeOptionText(i, out string optTitle, out string optDesc))
             {
-                ApplyUpgrade(i);
+                if (GUI.Button(new Rect(bx, by, boxWidth, boxHeight), $"{i + 1}. {optTitle}\n{optDesc}", style))
+                {
+                    SelectUpgradeWithFeedback(i);
+                }
             }
         }
+        GUI.enabled = true;
 
         float rx = x + sidePadding + 4 * (boxWidth + gap);
         float ry = y + topPadding;
@@ -3151,7 +4554,8 @@ public class GameSession : MonoBehaviour
         rerollStyle.wordWrap = true;
         rerollStyle.fontSize = 13;
 
-        GUI.enabled = _rerollAvailable;
+        bool rerollAllowed = _rerollAvailable && !_localUpgradeSubmitted;
+        GUI.enabled = rerollAllowed;
         if (GUI.Button(new Rect(rx, ry, boxWidth, boxHeight), _rerollAvailable ? "리롤\n(1회)" : "리롤 완료", rerollStyle))
         {
             TryReroll();
@@ -3179,6 +4583,51 @@ public class GameSession : MonoBehaviour
         }
     }
 
+    private class PlayerUpgradeState
+    {
+        public float damageMult;
+        public float fireRateMult;
+        public float rangeMult;
+        public float sizeMult;
+        public float lifetimeMult;
+        public int projectileCount;
+        public int projectilePierceBonus;
+        public float weaponDamageMult;
+
+        public float moveSpeedMult;
+        public float xpGainMult;
+        public float magnetRangeMult;
+        public float magnetSpeedMult;
+        public float magnetRangeStep;
+        public float magnetSpeedStep;
+        public float regenPerSecond;
+
+        public int damageLevel;
+        public int fireRateLevel;
+        public int moveSpeedLevel;
+        public int healthReinforceLevel;
+        public int rangeLevel;
+        public int xpGainLevel;
+        public int sizeLevel;
+        public int magnetLevel;
+        public int pierceLevel;
+        public int projectileCountLevel;
+
+        public WeaponStatsData gunStats;
+        public WeaponStatsData boomerangStats;
+        public WeaponStatsData novaStats;
+        public WeaponStatsData shotgunStats;
+        public WeaponStatsData laserStats;
+        public WeaponStatsData chainStats;
+        public WeaponStatsData droneStats;
+        public WeaponStatsData shurikenStats;
+        public WeaponStatsData frostStats;
+        public WeaponStatsData lightningStats;
+
+        public StartWeaponType startWeapon;
+        public bool startWeaponApplied;
+    }
+
     private class UpgradeOption
     {
         public string Title;
@@ -3203,7 +4652,7 @@ public class GameSession : MonoBehaviour
         float y = (Screen.height - boxHeight) * 0.5f;
 
         GUI.Box(new Rect(x, y, boxWidth, boxHeight), "시작 캐릭터 선택");
-        GUI.Label(new Rect(x + 20f, y + 36f, boxWidth - 40f, 20f), "캐릭터 스탯은 현재 동일합니다.");
+        GUI.Label(new Rect(x + 20f, y + 36f, boxWidth - 40f, 20f), GetStartWaitingText());
 
         float buttonWidth = 160f;
         float buttonHeight = 120f;
@@ -3234,49 +4683,71 @@ public class GameSession : MonoBehaviour
 
     private void SelectStartWeapon(StartWeaponType weapon)
     {
-        startWeapon = weapon;
-        if (gunStats != null)
-        {
-            gunStats.unlocked = weapon == StartWeaponType.Gun;
-            gunStats.level = weapon == StartWeaponType.Gun ? 1 : 0;
-        }
+        var state = GetLocalState();
+        ApplyStartWeaponSelection(state, weapon, true);
 
-        if (boomerangStats != null)
+        if (IsNetworkSession())
         {
-            boomerangStats.unlocked = weapon == StartWeaponType.Boomerang;
-            boomerangStats.level = weapon == StartWeaponType.Boomerang ? 1 : 0;
-        }
-
-        if (novaStats != null)
-        {
-            novaStats.unlocked = weapon == StartWeaponType.Nova;
-            novaStats.level = weapon == StartWeaponType.Nova ? 1 : 0;
-        }
-
-        ResetWeaponToLocked(shotgunStats);
-        ResetWeaponToLocked(laserStats);
-        ResetWeaponToLocked(chainStats);
-        ResetWeaponToLocked(droneStats);
-        ResetWeaponToLocked(shurikenStats);
-        ResetWeaponToLocked(frostStats);
-        ResetWeaponToLocked(lightningStats);
-
-        if (weapon == StartWeaponType.Gun && gunStats != null)
-        {
-            TrackUpgrade($"무기: {gunStats.displayName}");
-        }
-        else if (weapon == StartWeaponType.Boomerang && boomerangStats != null)
-        {
-            TrackUpgrade($"무기: {boomerangStats.displayName}");
-        }
-        else if (weapon == StartWeaponType.Nova && novaStats != null)
-        {
-            TrackUpgrade($"무기: {novaStats.displayName}");
+            SubmitStartWeaponSelection(weapon);
+            return;
         }
 
         _waitingStartWeaponChoice = false;
         ClearStartCharacterPreviews();
         StartLocalGame();
+    }
+
+    private void ApplyStartWeaponSelection(PlayerUpgradeState state, StartWeaponType weapon, bool trackUpgrade)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        state.startWeapon = weapon;
+        if (state.gunStats != null)
+        {
+            state.gunStats.unlocked = weapon == StartWeaponType.Gun;
+            state.gunStats.level = weapon == StartWeaponType.Gun ? 1 : 0;
+        }
+
+        if (state.boomerangStats != null)
+        {
+            state.boomerangStats.unlocked = weapon == StartWeaponType.Boomerang;
+            state.boomerangStats.level = weapon == StartWeaponType.Boomerang ? 1 : 0;
+        }
+
+        if (state.novaStats != null)
+        {
+            state.novaStats.unlocked = weapon == StartWeaponType.Nova;
+            state.novaStats.level = weapon == StartWeaponType.Nova ? 1 : 0;
+        }
+
+        ResetWeaponToLocked(state.shotgunStats);
+        ResetWeaponToLocked(state.laserStats);
+        ResetWeaponToLocked(state.chainStats);
+        ResetWeaponToLocked(state.droneStats);
+        ResetWeaponToLocked(state.shurikenStats);
+        ResetWeaponToLocked(state.frostStats);
+        ResetWeaponToLocked(state.lightningStats);
+
+        if (trackUpgrade && !state.startWeaponApplied)
+        {
+            if (weapon == StartWeaponType.Gun && state.gunStats != null)
+            {
+                TrackUpgrade($"무기: {state.gunStats.displayName}");
+            }
+            else if (weapon == StartWeaponType.Boomerang && state.boomerangStats != null)
+            {
+                TrackUpgrade($"무기: {state.boomerangStats.displayName}");
+            }
+            else if (weapon == StartWeaponType.Nova && state.novaStats != null)
+            {
+                TrackUpgrade($"무기: {state.novaStats.displayName}");
+            }
+        }
+
+        state.startWeaponApplied = true;
     }
 
     private void EnsureStartCharacterPreviews()

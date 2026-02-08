@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Unity.Netcode;
 
 public class Projectile : MonoBehaviour
 {
@@ -96,6 +97,11 @@ public class Projectile : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_useOrbit)
         {
             _orbitRadius += _orbitRadialSpeed * Time.deltaTime;
@@ -120,6 +126,11 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_remainingHits <= 0)
         {
             return;
@@ -169,6 +180,18 @@ public class Projectile : MonoBehaviour
         if (_release != null)
         {
             _release(this);
+        }
+        else if (NetworkSession.IsActive)
+        {
+            var netObj = GetComponent<NetworkObject>();
+            if (NetworkSession.IsServer && netObj != null && netObj.IsSpawned)
+            {
+                netObj.Despawn(true);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
         else
         {

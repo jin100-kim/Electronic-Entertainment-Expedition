@@ -113,6 +113,11 @@ public class EnemyController : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_dead)
         {
             return;
@@ -166,6 +171,11 @@ public class EnemyController : MonoBehaviour
 
     private void OnTriggerStay2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_dead)
         {
             return;
@@ -194,6 +204,11 @@ public class EnemyController : MonoBehaviour
 
     private void OnDied()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_dead)
         {
             return;
@@ -324,6 +339,11 @@ public class EnemyController : MonoBehaviour
 
     private void SpawnXp()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         ExperiencePickup.Spawn(transform.position, xpReward);
     }
 

@@ -94,6 +94,13 @@ public class Experience : MonoBehaviour
         }
     }
 
+    public void SetSharedState(int newLevel, float newCurrentXp, float newXpToNext)
+    {
+        level = Mathf.Max(1, newLevel);
+        currentXp = Mathf.Max(0f, newCurrentXp);
+        xpToNext = Mathf.Max(0.1f, newXpToNext);
+    }
+
     private void ApplySettings()
     {
         if (_settingsApplied)

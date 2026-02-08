@@ -32,6 +32,17 @@
 - 레벨업 선택창 단축키: 숫자/넘버키 1~4 선택, 5는 리롤.
 - 자동 선택은 점수 기반 가중치 랜덤(높은 점수 2배 확률).
 
+## 멀티플레이 시작 흐름
+- 각 플레이어가 시작 캐릭터(무기)를 선택해야 시작됨.
+- 선택은 `PlayerController`의 네트워크 변수로 동기화.
+- 모든 플레이어 선택 완료 시 게임 시작(호스트가 스폰 시작).
+- 시작 선택 UI에 대기중(선택 완료/전체) 표시.
+- 런타임 네트워크 프리팹 등록: `RuntimeNetworkPrefabs` (Enemy/XP/Coin/Projectile/Laser/Boomerang/Drone/Player).
+- 네트워크 세션에서는 적/픽업/투사체 업데이트는 서버만 수행, 클라이언트는 동기화 결과만 표시.
+- 플레이어 이동은 `NetworkTransform` Owner 권한(클라이언트 이동 동기화).
+- 게임 시작 전에는 플레이어 비주얼/공격/적 스폰이 비활성 처리됨.
+- 네트워크 프리팹은 `Assets/Resources/NetcodePrefabs/*.prefab` 사용(에디터 자동 생성 스크립트: `Assets/Editor/NetworkPrefabGenerator.cs`).
+
 ## 스탯 업그레이드 (10종)
 - 공격력, 공격속도, 이동속도, 체력 강화, 사거리, 경험치 획득
 - 경험치 자석, 투사체 크기, 투사체 수, 관통

@@ -49,6 +49,10 @@ public class RelayLobbyUI : MonoBehaviour
 
     private async void Awake()
     {
+        if (NetworkManager.Singleton != null)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+        }
         await EnsureServices();
     }
 
@@ -147,6 +151,7 @@ public class RelayLobbyUI : MonoBehaviour
 
         try
         {
+            RuntimeNetworkPrefabs.EnsureRegistered();
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
             _joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
@@ -190,6 +195,7 @@ public class RelayLobbyUI : MonoBehaviour
 
         try
         {
+            RuntimeNetworkPrefabs.EnsureRegistered();
             _currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(_lobbyCodeInput.Trim());
             _lobbyCode = _currentLobby.LobbyCode;
 

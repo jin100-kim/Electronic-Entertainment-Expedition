@@ -1,4 +1,5 @@
-using UnityEngine;
+﻿using UnityEngine;
+using Unity.Netcode;
 
 public class CoinPickup : MonoBehaviour
 {
@@ -18,6 +19,37 @@ public class CoinPickup : MonoBehaviour
 
     public static CoinPickup Spawn(Vector3 position, int value)
     {
+        if (NetworkSession.IsActive)
+        {
+            if (!NetworkSession.IsServer)
+            {
+                return null;
+            }
+
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            var netGo = RuntimeNetworkPrefabs.InstantiateCoin();
+            if (netGo == null)
+            {
+                return null;
+            }
+
+            var netPickup = netGo.GetComponent<CoinPickup>();
+            netGo.SetActive(true);
+            netGo.transform.position = position;
+            netPickup.ApplySettings();
+            netPickup.EnsureVisuals();
+            netGo.transform.localScale = Vector3.one * GetSettings().coinPickupScale;
+            netPickup.SetAmount(value);
+
+            var netObj = netGo.GetComponent<NetworkObject>();
+            if (netObj != null && !netObj.IsSpawned)
+            {
+                netObj.Spawn();
+            }
+
+            return netPickup;
+        }
+
         CoinPickup pickup = null;
         while (_pool.Count > 0 && pickup == null)
         {
@@ -47,15 +79,22 @@ public class CoinPickup : MonoBehaviour
     {
         _magnetTarget = null;
         _nextScanTime = 0f;
+        EnsureVisuals();
     }
 
     private void Awake()
     {
         ApplySettings();
+        EnsureVisuals();
     }
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         var session = GameSession.Instance;
         if (session != null)
         {
@@ -108,6 +147,11 @@ public class CoinPickup : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         var xp = other.GetComponent<Experience>();
         if (xp == null)
         {
@@ -145,6 +189,20 @@ public class CoinPickup : MonoBehaviour
 
     private void Despawn()
     {
+        if (NetworkSession.IsActive)
+        {
+            var netObj = GetComponent<NetworkObject>();
+            if (NetworkSession.IsServer && netObj != null && netObj.IsSpawned)
+            {
+                netObj.Despawn(true);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+            return;
+        }
+
         gameObject.SetActive(false);
         _pool.Push(this);
     }
@@ -219,5 +277,44 @@ public class CoinPickup : MonoBehaviour
     {
         var config = GameConfig.LoadOrCreate();
         return config.pickups;
+    }
+
+    private void EnsureVisuals()
+    {
+        var settings = GetSettings();
+        transform.localScale = Vector3.one * settings.coinPickupScale;
+        var renderer = GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = gameObject.AddComponent<SpriteRenderer>();
+        }
+
+        renderer.sprite = GetCachedSprite(settings.coinSpriteSize);
+        if (NetworkSession.IsActive)
+        {
+            var netColor = GetComponent<NetworkColor>();
+            if (netColor != null)
+            {
+                if (NetworkSession.IsServer)
+                {
+                    netColor.SetColor(settings.coinColor);
+                }
+                else
+                {
+                    renderer.color = settings.coinColor;
+                }
+            }
+        }
+        else
+        {
+            renderer.color = settings.coinColor;
+        }
+        renderer.sortingOrder = settings.coinSortingOrder;
+
+        var col = GetComponent<CircleCollider2D>();
+        if (col != null)
+        {
+            col.radius = settings.coinColliderRadius;
+        }
     }
 }

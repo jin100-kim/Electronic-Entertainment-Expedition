@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
 public class BoomerangProjectile : MonoBehaviour
 {
@@ -71,6 +72,11 @@ public class BoomerangProjectile : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         _elapsed += Time.deltaTime;
         float half = lifetime * 0.5f;
         if (!_returning && _elapsed >= half)
@@ -128,6 +134,11 @@ public class BoomerangProjectile : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (_remainingHits <= 0)
         {
             return;
@@ -180,6 +191,18 @@ public class BoomerangProjectile : MonoBehaviour
         if (_release != null)
         {
             _release(this);
+        }
+        else if (NetworkSession.IsActive)
+        {
+            var netObj = GetComponent<NetworkObject>();
+            if (NetworkSession.IsServer && netObj != null && netObj.IsSpawned)
+            {
+                netObj.Despawn(true);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
         else
         {

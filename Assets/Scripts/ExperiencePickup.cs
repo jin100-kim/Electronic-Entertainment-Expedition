@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Unity.Netcode;
 
 public class ExperiencePickup : MonoBehaviour
 {
@@ -19,6 +20,37 @@ public class ExperiencePickup : MonoBehaviour
 
     public static ExperiencePickup Spawn(Vector3 position, float value)
     {
+        if (NetworkSession.IsActive)
+        {
+            if (!NetworkSession.IsServer)
+            {
+                return null;
+            }
+
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            var netGo = RuntimeNetworkPrefabs.InstantiateXp();
+            if (netGo == null)
+            {
+                return null;
+            }
+
+            var netPickup = netGo.GetComponent<ExperiencePickup>();
+            netGo.SetActive(true);
+            netGo.transform.position = position;
+            netPickup.ApplySettings();
+            netPickup.EnsureVisuals();
+            netGo.transform.localScale = Vector3.one * GetSettings().xpPickupScale;
+            netPickup.SetAmount(value);
+
+            var netObj = netGo.GetComponent<NetworkObject>();
+            if (netObj != null && !netObj.IsSpawned)
+            {
+                netObj.Spawn();
+            }
+
+            return netPickup;
+        }
+
         ExperiencePickup pickup = null;
         while (_pool.Count > 0 && pickup == null)
         {
@@ -52,11 +84,13 @@ public class ExperiencePickup : MonoBehaviour
         }
         _magnetTarget = null;
         _nextScanTime = 0f;
+        EnsureVisuals();
     }
 
     private void Awake()
     {
         ApplySettings();
+        EnsureVisuals();
     }
 
     private void OnDisable()
@@ -66,6 +100,11 @@ public class ExperiencePickup : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         var session = GameSession.Instance;
         if (session != null)
         {
@@ -118,13 +157,25 @@ public class ExperiencePickup : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         var xp = other.GetComponent<Experience>();
         if (xp == null)
         {
             return;
         }
 
-        xp.AddXp(amount);
+        if (NetworkSession.IsActive)
+        {
+            GameSession.Instance?.AddSharedXp(amount);
+        }
+        else
+        {
+            xp.AddXp(amount);
+        }
         Despawn();
     }
 
@@ -155,6 +206,20 @@ public class ExperiencePickup : MonoBehaviour
 
     private void Despawn()
     {
+        if (NetworkSession.IsActive)
+        {
+            var netObj = GetComponent<NetworkObject>();
+            if (NetworkSession.IsServer && netObj != null && netObj.IsSpawned)
+            {
+                netObj.Despawn(true);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+            return;
+        }
+
         gameObject.SetActive(false);
         _pool.Push(this);
     }
@@ -228,5 +293,43 @@ public class ExperiencePickup : MonoBehaviour
     {
         var config = GameConfig.LoadOrCreate();
         return config.pickups;
+    }
+
+    private void EnsureVisuals()
+    {
+        var settings = GetSettings();
+        transform.localScale = Vector3.one * settings.xpPickupScale;
+        var renderer = GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = gameObject.AddComponent<SpriteRenderer>();
+        }
+
+        renderer.sprite = GetCachedSprite(settings.xpSpriteSize);
+        if (NetworkSession.IsActive)
+        {
+            var netColor = GetComponent<NetworkColor>();
+            if (netColor != null)
+            {
+                if (NetworkSession.IsServer)
+                {
+                    netColor.SetColor(settings.xpColor);
+                }
+                else
+                {
+                    renderer.color = settings.xpColor;
+                }
+            }
+        }
+        else
+        {
+            renderer.color = settings.xpColor;
+        }
+
+        var col = GetComponent<CircleCollider2D>();
+        if (col != null)
+        {
+            col.radius = settings.xpColliderRadius;
+        }
     }
 }

@@ -283,7 +283,17 @@ public class AutoAttack : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (GameSession.Instance != null && GameSession.Instance.IsGameOver)
+        {
+            return;
+        }
+
+        if (GameSession.Instance != null && !GameSession.Instance.IsGameplayActive)
         {
             return;
         }
@@ -730,7 +740,28 @@ public class AutoAttack : MonoBehaviour
 
     private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride)
     {
-        var go = GetPooledObject(_circleProjectilePool, "Projectile");
+        bool networked = NetworkSession.IsActive;
+        if (networked && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        GameObject go = null;
+        if (networked)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            go = RuntimeNetworkPrefabs.InstantiateProjectile();
+        }
+        else
+        {
+            go = GetPooledObject(_circleProjectilePool, "Projectile");
+        }
+
+        if (go == null)
+        {
+            return;
+        }
+
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
@@ -741,7 +772,16 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateCircleSprite(_projectileSize);
-        renderer.color = new Color(0.9f, 0.9f, 0.2f, 1f);
+        var baseColor = new Color(0.9f, 0.9f, 0.2f, 1f);
+        var netColor = go.GetComponent<NetworkColor>();
+        if (netColor != null)
+        {
+            netColor.SetColor(baseColor);
+        }
+        else
+        {
+            renderer.color = baseColor;
+        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -766,12 +806,38 @@ public class AutoAttack : MonoBehaviour
         }
         float life = lifetimeOverride > 0f ? lifetimeOverride : _projectileLifetime;
         proj.Initialize(direction, speedOverride, damageOverride, life, _projectilePierce, spinSpeed);
-        proj.SetRelease(p => ReturnToPool(_circleProjectilePool, p.gameObject));
+        proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
+
+        if (networked)
+        {
+            SpawnNetworkObject(go);
+        }
     }
 
     private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign)
     {
-        var go = GetPooledObject(_circleProjectilePool, "NovaProjectile");
+        bool networked = NetworkSession.IsActive;
+        if (networked && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        GameObject go = null;
+        if (networked)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            go = RuntimeNetworkPrefabs.InstantiateProjectile();
+        }
+        else
+        {
+            go = GetPooledObject(_circleProjectilePool, "NovaProjectile");
+        }
+
+        if (go == null)
+        {
+            return;
+        }
+
         go.transform.position = transform.position;
         go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
@@ -782,7 +848,16 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateCircleSprite(_projectileSize);
-        renderer.color = new Color(0.6f, 0.8f, 1f, 1f);
+        var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
+        var netColor = go.GetComponent<NetworkColor>();
+        if (netColor != null)
+        {
+            netColor.SetColor(novaColor);
+        }
+        else
+        {
+            renderer.color = novaColor;
+        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -807,12 +882,37 @@ public class AutoAttack : MonoBehaviour
         }
         float angularSpeed = Mathf.Max(0.1f, novaOrbitAngularSpeed) * rotationSign;
         proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
-        proj.SetRelease(p => ReturnToPool(_circleProjectilePool, p.gameObject));
+        proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
+        if (networked)
+        {
+            SpawnNetworkObject(go);
+        }
     }
 
     private void SpawnLaserProjectile(Vector2 direction, float damageOverride, float lifetime, Vector2 spawnOffset, float speedOverride)
     {
-        var go = GetPooledObject(_laserProjectilePool, "Laser");
+        bool networked = NetworkSession.IsActive;
+        if (networked && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        GameObject go = null;
+        if (networked)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            go = RuntimeNetworkPrefabs.InstantiateLaser();
+        }
+        else
+        {
+            go = GetPooledObject(_laserProjectilePool, "Laser");
+        }
+
+        if (go == null)
+        {
+            return;
+        }
+
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.localScale = new Vector3(laserLengthScale, laserThickness, 1f);
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
@@ -824,7 +924,15 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateSolidSprite();
-        renderer.color = laserColor;
+        var netColor = go.GetComponent<NetworkColor>();
+        if (netColor != null)
+        {
+            netColor.SetColor(laserColor);
+        }
+        else
+        {
+            renderer.color = laserColor;
+        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -848,7 +956,11 @@ public class AutoAttack : MonoBehaviour
             proj = go.AddComponent<Projectile>();
         }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, 0f);
-        proj.SetRelease(p => ReturnToPool(_laserProjectilePool, p.gameObject));
+        proj.SetRelease(p => ReleaseProjectile(p, _laserProjectilePool));
+        if (networked)
+        {
+            SpawnNetworkObject(go);
+        }
     }
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride)
@@ -858,7 +970,28 @@ public class AutoAttack : MonoBehaviour
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, Vector2 spawnOffset)
     {
-        var go = GetPooledObject(_circleProjectilePool, "Projectile");
+        bool networked = NetworkSession.IsActive;
+        if (networked && !NetworkSession.IsServer)
+        {
+            return null;
+        }
+
+        GameObject go = null;
+        if (networked)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            go = RuntimeNetworkPrefabs.InstantiateProjectile();
+        }
+        else
+        {
+            go = GetPooledObject(_circleProjectilePool, "Projectile");
+        }
+
+        if (go == null)
+        {
+            return null;
+        }
+
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
@@ -869,7 +1002,15 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateCircleSprite(_projectileSize);
-        renderer.color = color;
+        var netColor = go.GetComponent<NetworkColor>();
+        if (netColor != null)
+        {
+            netColor.SetColor(color);
+        }
+        else
+        {
+            renderer.color = color;
+        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -893,13 +1034,38 @@ public class AutoAttack : MonoBehaviour
             proj = go.AddComponent<Projectile>();
         }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, spinSpeed);
-        proj.SetRelease(p => ReturnToPool(_circleProjectilePool, p.gameObject));
+        proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
+        if (networked)
+        {
+            SpawnNetworkObject(go);
+        }
         return proj;
     }
 
     private void SpawnDroneProjectile(float radius, float angularSpeed, float damageOverride, float lifetime, float startAngle)
     {
-        var go = GetPooledObject(_dronePool, "Drone");
+        bool networked = NetworkSession.IsActive;
+        if (networked && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        GameObject go = null;
+        if (networked)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            go = RuntimeNetworkPrefabs.InstantiateDrone();
+        }
+        else
+        {
+            go = GetPooledObject(_dronePool, "Drone");
+        }
+
+        if (go == null)
+        {
+            return;
+        }
+
         go.transform.position = transform.position;
         go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
@@ -910,7 +1076,15 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateCircleSprite(_projectileSize);
-        renderer.color = droneColor;
+        var netColor = go.GetComponent<NetworkColor>();
+        if (netColor != null)
+        {
+            netColor.SetColor(droneColor);
+        }
+        else
+        {
+            renderer.color = droneColor;
+        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -934,12 +1108,37 @@ public class AutoAttack : MonoBehaviour
             drone = go.AddComponent<DroneProjectile>();
         }
         drone.Initialize(transform, radius, angularSpeed, damageOverride, lifetime, startAngle);
-        drone.SetRelease(d => ReturnToPool(_dronePool, d.gameObject));
+        drone.SetRelease(d => ReleaseDrone(d));
+        if (networked)
+        {
+            SpawnNetworkObject(go);
+        }
     }
 
     private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime)
     {
-        var go = GetPooledObject(_boomerangPool, "Boomerang");
+        bool networked = NetworkSession.IsActive;
+        if (networked && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        GameObject go = null;
+        if (networked)
+        {
+            RuntimeNetworkPrefabs.EnsureRegistered();
+            go = RuntimeNetworkPrefabs.InstantiateBoomerang();
+        }
+        else
+        {
+            go = GetPooledObject(_boomerangPool, "Boomerang");
+        }
+
+        if (go == null)
+        {
+            return;
+        }
+
         go.transform.position = transform.position;
         go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.45f;
@@ -950,7 +1149,16 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateCircleSprite(_projectileSize);
-        renderer.color = new Color(0.2f, 0.9f, 0.9f, 1f);
+        var boomColor = new Color(0.2f, 0.9f, 0.9f, 1f);
+        var netColor = go.GetComponent<NetworkColor>();
+        if (netColor != null)
+        {
+            netColor.SetColor(boomColor);
+        }
+        else
+        {
+            renderer.color = boomColor;
+        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -974,7 +1182,11 @@ public class AutoAttack : MonoBehaviour
             boom = go.AddComponent<BoomerangProjectile>();
         }
         boom.Initialize(transform, direction, _projectileSpeed, damageOverride, lifetime, 9999);
-        boom.SetRelease(b => ReturnToPool(_boomerangPool, b.gameObject));
+        boom.SetRelease(b => ReleaseBoomerang(b));
+        if (networked)
+        {
+            SpawnNetworkObject(go);
+        }
     }
 
     private float CalculateLifetimeForRange(float range)
@@ -1078,6 +1290,95 @@ public class AutoAttack : MonoBehaviour
         tex.Apply();
         _solidSprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
         return _solidSprite;
+    }
+
+    private static void SpawnNetworkObject(GameObject go)
+    {
+        if (!NetworkSession.IsActive || go == null)
+        {
+            return;
+        }
+
+        var netObj = go.GetComponent<Unity.Netcode.NetworkObject>();
+        if (netObj != null && !netObj.IsSpawned)
+        {
+            netObj.Spawn();
+        }
+    }
+
+    private static void DespawnNetworkObject(GameObject go)
+    {
+        if (go == null)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            var netObj = go.GetComponent<Unity.Netcode.NetworkObject>();
+            if (NetworkSession.IsServer && netObj != null && netObj.IsSpawned)
+            {
+                netObj.Despawn(true);
+            }
+            else
+            {
+                Destroy(go);
+            }
+            return;
+        }
+
+        Destroy(go);
+    }
+
+    private static void ReleaseProjectile(Projectile projectile, System.Collections.Generic.Stack<GameObject> pool)
+    {
+        if (projectile == null)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            DespawnNetworkObject(projectile.gameObject);
+        }
+        else
+        {
+            ReturnToPool(pool, projectile.gameObject);
+        }
+    }
+
+    private static void ReleaseBoomerang(BoomerangProjectile boomerang)
+    {
+        if (boomerang == null)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            DespawnNetworkObject(boomerang.gameObject);
+        }
+        else
+        {
+            ReturnToPool(_boomerangPool, boomerang.gameObject);
+        }
+    }
+
+    private static void ReleaseDrone(DroneProjectile drone)
+    {
+        if (drone == null)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            DespawnNetworkObject(drone.gameObject);
+        }
+        else
+        {
+            ReturnToPool(_dronePool, drone.gameObject);
+        }
     }
 
     private static GameObject GetPooledObject(System.Collections.Generic.Stack<GameObject> pool, string name)

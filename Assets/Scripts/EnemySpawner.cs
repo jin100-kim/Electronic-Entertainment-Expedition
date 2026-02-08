@@ -185,7 +185,17 @@ public class EnemySpawner : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
         if (GameSession.Instance != null && GameSession.Instance.IsGameOver)
+        {
+            return;
+        }
+
+        if (GameSession.Instance != null && !GameSession.Instance.IsGameplayActive)
         {
             return;
         }
@@ -245,23 +255,50 @@ public class EnemySpawner : MonoBehaviour
             position = GameSession.Instance.ClampToBounds(position);
         }
 
-        var enemy = new GameObject("Enemy");
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        GameObject enemy = NetworkSession.IsActive ? RuntimeNetworkPrefabs.InstantiateEnemy() : new GameObject("Enemy");
+        if (enemy == null)
+        {
+            return;
+        }
+
+        enemy.name = "Enemy";
         enemy.transform.position = position;
 
-        var renderer = enemy.AddComponent<SpriteRenderer>();
+        var renderer = enemy.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = enemy.AddComponent<SpriteRenderer>();
+        }
         renderer.enabled = false;
 
         enemy.transform.localScale = Vector3.one;
 
-        var rb = enemy.AddComponent<Rigidbody2D>();
+        var rb = enemy.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = enemy.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = enemy.AddComponent<CircleCollider2D>();
+        var col = enemy.GetComponent<CircleCollider2D>();
+        if (col == null)
+        {
+            col = enemy.AddComponent<CircleCollider2D>();
+        }
         col.isTrigger = true;
         col.radius = 0.5f;
 
-        var controller = enemy.AddComponent<EnemyController>();
+        var controller = enemy.GetComponent<EnemyController>();
+        if (controller == null)
+        {
+            controller = enemy.AddComponent<EnemyController>();
+        }
         controller.Target = Target;
         controller.MoveSpeed = enemyMoveSpeed * GetSpeedMult(tier);
         controller.ContactDamage = enemyDamage * GetDamageMult(tier);
@@ -269,12 +306,36 @@ public class EnemySpawner : MonoBehaviour
         controller.XpReward = Mathf.Max(1, Mathf.RoundToInt(enemyXpReward * GetXpMult(tier)));
         controller.MaxHealth = enemyMaxHealth * GetHealthMult(tier);
 
-        var visuals = enemy.AddComponent<EnemyVisuals>();
+        var visuals = enemy.GetComponent<EnemyVisuals>();
+        if (visuals == null)
+        {
+            visuals = enemy.AddComponent<EnemyVisuals>();
+        }
         visuals.SetType(GetVisualType(tier));
         visuals.SetVisualScale(enemyVisualScale);
 
-        var tierInfo = enemy.AddComponent<EnemyTier>();
+        var tierInfo = enemy.GetComponent<EnemyTier>();
+        if (tierInfo == null)
+        {
+            tierInfo = enemy.AddComponent<EnemyTier>();
+        }
         tierInfo.SetTier(tier);
+
+        var netState = enemy.GetComponent<EnemyNetState>();
+        if (netState != null)
+        {
+            netState.SetTier(tier);
+            netState.SetVisualScale(enemyVisualScale);
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            var netObj = enemy.GetComponent<Unity.Netcode.NetworkObject>();
+            if (netObj != null && !netObj.IsSpawned)
+            {
+                netObj.Spawn();
+            }
+        }
 
         _enemies.Add(enemy);
     }
