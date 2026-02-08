@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class DroneProjectile : MonoBehaviour
 {
+    public static readonly List<DroneProjectile> Active = new List<DroneProjectile>();
+
     [SerializeField]
     private float damage = 6f;
 
@@ -22,9 +24,11 @@ public class DroneProjectile : MonoBehaviour
     private float _angle;
     private float _timer;
     private readonly Dictionary<Health, float> _hitTimes = new Dictionary<Health, float>();
+    private System.Action<DroneProjectile> _release;
 
     public void Initialize(Transform owner, float radius, float speed, float damageValue, float lifetimeValue, float startAngle)
     {
+        ResetState();
         _owner = owner;
         orbitRadius = Mathf.Max(0.1f, radius);
         angularSpeed = speed;
@@ -33,18 +37,36 @@ public class DroneProjectile : MonoBehaviour
         _angle = startAngle;
     }
 
+    public void SetRelease(System.Action<DroneProjectile> release)
+    {
+        _release = release;
+    }
+
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
+    }
+
     private void Update()
     {
         if (_owner == null)
         {
-            Destroy(gameObject);
+            Despawn();
             return;
         }
 
         _timer += Time.deltaTime;
         if (_timer >= lifetime)
         {
-            Destroy(gameObject);
+            Despawn();
             return;
         }
 
@@ -89,5 +111,23 @@ public class DroneProjectile : MonoBehaviour
 
         _hitTimes[health] = now;
         health.Damage(damage);
+    }
+
+    private void Despawn()
+    {
+        if (_release != null)
+        {
+            _release(this);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void ResetState()
+    {
+        _timer = 0f;
+        _hitTimes.Clear();
     }
 }

@@ -2,6 +2,8 @@
 
 public class EnemyController : MonoBehaviour
 {
+    public static readonly System.Collections.Generic.List<EnemyController> Active = new System.Collections.Generic.List<EnemyController>();
+
     [SerializeField]
     private float moveSpeed = 2.5f;
 
@@ -29,6 +31,7 @@ public class EnemyController : MonoBehaviour
     private float _slowMultiplier = 1f;
     private float _slowTimer;
     private bool _dead;
+    private SpriteRenderer[] _visualRenderers;
 
     public bool IsDead => _dead;
 
@@ -86,7 +89,21 @@ public class EnemyController : MonoBehaviour
             gameObject.AddComponent<EnemyHealthBar>();
         }
 
+        ResolveVisualRenderers();
         _health.OnDied += OnDied;
+    }
+
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
     }
 
     private void Update()
@@ -132,6 +149,7 @@ public class EnemyController : MonoBehaviour
         }
 
         Vector3 dir = toTarget.normalized;
+        UpdateFacing(dir);
         float speed = moveSpeed * _slowMultiplier;
         transform.position += dir * speed * Time.deltaTime;
 
@@ -218,6 +236,53 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    private void ResolveVisualRenderers()
+    {
+        var visualRoot = transform.Find("Visuals");
+        if (visualRoot != null)
+        {
+            _visualRenderers = visualRoot.GetComponentsInChildren<SpriteRenderer>(true);
+            if (_visualRenderers != null && _visualRenderers.Length > 0)
+            {
+                return;
+            }
+        }
+
+        var rootRenderer = GetComponent<SpriteRenderer>();
+        if (rootRenderer != null)
+        {
+            _visualRenderers = new[] { rootRenderer };
+        }
+    }
+
+    private void UpdateFacing(Vector3 direction)
+    {
+        if (_visualRenderers == null || _visualRenderers.Length == 0)
+        {
+            ResolveVisualRenderers();
+        }
+
+        if (_visualRenderers == null || _visualRenderers.Length == 0)
+        {
+            return;
+        }
+
+        if (Mathf.Abs(direction.x) < 0.001f)
+        {
+            return;
+        }
+
+        bool flip = direction.x < 0f;
+        for (int i = 0; i < _visualRenderers.Length; i++)
+        {
+            var renderer = _visualRenderers[i];
+            if (renderer != null)
+            {
+                renderer.flipX = flip;
+            }
+        }
+    }
+
     private System.Collections.IEnumerator DeathFade()
     {
         float delay = Mathf.Max(0f, deathFadeDelay);
@@ -254,47 +319,7 @@ public class EnemyController : MonoBehaviour
 
     private void SpawnXp()
     {
-        var go = new GameObject("XP");
-        go.transform.position = transform.position;
-        go.transform.localScale = Vector3.one * 0.4f;
-
-        var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = CreateCircleSprite(50);
-        renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
-
-        var rb = go.AddComponent<Rigidbody2D>();
-        rb.bodyType = RigidbodyType2D.Kinematic;
-        rb.gravityScale = 0f;
-
-        var col = go.AddComponent<CircleCollider2D>();
-        col.isTrigger = true;
-        col.radius = 0.15f;
-
-        var pickup = go.AddComponent<ExperiencePickup>();
-        pickup.SetAmount(xpReward);
+        ExperiencePickup.Spawn(transform.position, xpReward);
     }
 
-    private static Sprite CreateCircleSprite(int size)
-    {
-        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        var colors = new Color32[size * size];
-        float r = (size - 1) * 0.5f;
-        float cx = r;
-        float cy = r;
-
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - cx;
-                float dy = y - cy;
-                bool inside = (dx * dx + dy * dy) <= r * r;
-                colors[y * size + x] = inside ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
-            }
-        }
-
-        texture.SetPixels32(colors);
-        texture.Apply();
-        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-    }
 }

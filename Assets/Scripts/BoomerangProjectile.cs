@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class BoomerangProjectile : MonoBehaviour
 {
+    public static readonly List<BoomerangProjectile> Active = new List<BoomerangProjectile>();
     [SerializeField]
     private float speed = 8f;
 
@@ -32,9 +33,11 @@ public class BoomerangProjectile : MonoBehaviour
     private Collider2D _collider;
     private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
     private bool _returning;
+    private System.Action<BoomerangProjectile> _release;
 
     public void Initialize(Transform owner, Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount)
     {
+        ResetState();
         _owner = owner;
         _direction = direction.normalized;
         speed = speedValue;
@@ -82,7 +85,7 @@ public class BoomerangProjectile : MonoBehaviour
                 Vector2 toOwner = (Vector2)_owner.position - (Vector2)transform.position;
                 if (toOwner.sqrMagnitude <= catchDistance * catchDistance)
                 {
-                    Destroy(gameObject);
+                    Despawn();
                     return;
                 }
 
@@ -95,8 +98,26 @@ public class BoomerangProjectile : MonoBehaviour
 
         if (_elapsed >= lifetime)
         {
-            Destroy(gameObject);
+            Despawn();
         }
+    }
+
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
+    }
+
+    public void SetRelease(System.Action<BoomerangProjectile> release)
+    {
+        _release = release;
     }
 
     private void BeginReturn()
@@ -116,7 +137,7 @@ public class BoomerangProjectile : MonoBehaviour
         {
             if (_returning)
             {
-                Destroy(gameObject);
+                Despawn();
             }
             return;
         }
@@ -149,8 +170,31 @@ public class BoomerangProjectile : MonoBehaviour
                 {
                     _collider.enabled = false;
                 }
-                Destroy(gameObject);
+                Despawn();
             }
+        }
+    }
+
+    private void Despawn()
+    {
+        if (_release != null)
+        {
+            _release(this);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void ResetState()
+    {
+        _elapsed = 0f;
+        _returning = false;
+        _hitTargets.Clear();
+        if (_collider != null)
+        {
+            _collider.enabled = true;
         }
     }
 }

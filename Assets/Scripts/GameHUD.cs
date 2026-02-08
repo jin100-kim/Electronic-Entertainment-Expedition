@@ -1,7 +1,17 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class GameHUD : MonoBehaviour
 {
+    [SerializeField]
+    private bool useUGUI = true;
+
+    [SerializeField]
+    private Vector2 referenceResolution = new Vector2(1280f, 720f);
+
+    [SerializeField]
+    private Font uiFont;
+
     [SerializeField]
     private float margin = 12f;
 
@@ -14,6 +24,15 @@ public class GameHUD : MonoBehaviour
     [SerializeField]
     private float iconGap = 6f;
 
+    [SerializeField]
+    private int labelFontSize = 16;
+
+    [SerializeField]
+    private int smallFontSize = 12;
+
+    [SerializeField]
+    private int iconFontSize = 11;
+
     private GUIStyle _labelStyle;
     private GUIStyle _smallStyle;
     private GUIStyle _iconStyle;
@@ -22,8 +41,72 @@ public class GameHUD : MonoBehaviour
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _weaponIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _statIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
 
+    private Canvas _canvas;
+    private RectTransform _canvasRoot;
+    private Image _xpBarBg;
+    private RectTransform _xpFillRect;
+    private Text _levelText;
+    private Text _timeText;
+    private Text _infoText;
+    private RectTransform _iconRoot;
+    private bool _uiReady;
+
+    private class UpgradeIconUI
+    {
+        public RectTransform Rect;
+        public Image Bg;
+        public Text Label;
+        public Text Level;
+    }
+
+    private readonly System.Collections.Generic.List<UpgradeIconUI> _weaponIconUI = new System.Collections.Generic.List<UpgradeIconUI>();
+    private readonly System.Collections.Generic.List<UpgradeIconUI> _statIconUI = new System.Collections.Generic.List<UpgradeIconUI>();
+
+    private void Awake()
+    {
+        if (useUGUI)
+        {
+            BuildUGUI();
+        }
+    }
+
+    private void Update()
+    {
+        if (!useUGUI)
+        {
+            return;
+        }
+
+        var session = GameSession.Instance;
+        if (session == null || !session.IsGameplayActive)
+        {
+            if (_canvasRoot != null)
+            {
+                _canvasRoot.gameObject.SetActive(false);
+            }
+            return;
+        }
+
+        if (_canvasRoot != null && !_canvasRoot.gameObject.activeSelf)
+        {
+            _canvasRoot.gameObject.SetActive(true);
+        }
+
+        if (!_uiReady)
+        {
+            BuildUGUI();
+        }
+
+        UpdateUGUI(session);
+    }
+
     private void OnGUI()
     {
+        if (useUGUI)
+        {
+            return;
+        }
+
         var session = GameSession.Instance;
         if (session == null)
         {
@@ -42,26 +125,246 @@ public class GameHUD : MonoBehaviour
         DrawUpgradeIcons(session);
     }
 
+    private void BuildUGUI()
+    {
+        if (_uiReady)
+        {
+            return;
+        }
+
+        var fontToUse = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        var canvasGo = new GameObject("HUDCanvas");
+        canvasGo.transform.SetParent(transform, false);
+        _canvas = canvasGo.AddComponent<Canvas>();
+        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _canvas.sortingOrder = 1000;
+        var scaler = canvasGo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = referenceResolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+        canvasGo.AddComponent<GraphicRaycaster>();
+
+        _canvasRoot = canvasGo.GetComponent<RectTransform>();
+
+        var barGo = new GameObject("XpBar");
+        barGo.transform.SetParent(canvasGo.transform, false);
+        var barRect = barGo.AddComponent<RectTransform>();
+        barRect.anchorMin = new Vector2(0f, 1f);
+        barRect.anchorMax = new Vector2(1f, 1f);
+        barRect.pivot = new Vector2(0.5f, 1f);
+        barRect.sizeDelta = new Vector2(-margin * 2f, xpBarHeight);
+        barRect.anchoredPosition = new Vector2(0f, -margin);
+        _xpBarBg = barGo.AddComponent<Image>();
+        _xpBarBg.color = new Color(0f, 0f, 0f, 0.55f);
+
+        var fillGo = new GameObject("Fill");
+        fillGo.transform.SetParent(barGo.transform, false);
+        _xpFillRect = fillGo.AddComponent<RectTransform>();
+        _xpFillRect.anchorMin = new Vector2(0f, 0f);
+        _xpFillRect.anchorMax = new Vector2(0f, 1f);
+        _xpFillRect.pivot = new Vector2(0f, 0.5f);
+        _xpFillRect.offsetMin = Vector2.zero;
+        _xpFillRect.offsetMax = Vector2.zero;
+        var fillImg = fillGo.AddComponent<Image>();
+        fillImg.color = new Color(0.2f, 0.8f, 1f, 0.95f);
+
+        _levelText = CreateText(barGo.transform, "LevelText", fontToUse, labelFontSize, TextAnchor.MiddleLeft, Color.white);
+        var levelRect = _levelText.rectTransform;
+        levelRect.anchorMin = new Vector2(0f, 0f);
+        levelRect.anchorMax = new Vector2(0f, 1f);
+        levelRect.pivot = new Vector2(0f, 0.5f);
+        levelRect.anchoredPosition = new Vector2(6f, 0f);
+        levelRect.sizeDelta = new Vector2(200f, xpBarHeight + 4f);
+
+        _timeText = CreateText(canvasGo.transform, "TimeText", fontToUse, labelFontSize, TextAnchor.MiddleCenter, Color.white);
+        var timeRect = _timeText.rectTransform;
+        timeRect.anchorMin = new Vector2(0.5f, 1f);
+        timeRect.anchorMax = new Vector2(0.5f, 1f);
+        timeRect.pivot = new Vector2(0.5f, 1f);
+        timeRect.anchoredPosition = new Vector2(0f, -(margin + xpBarHeight + 4f));
+        timeRect.sizeDelta = new Vector2(200f, 24f);
+
+        _infoText = CreateText(canvasGo.transform, "InfoText", fontToUse, smallFontSize, TextAnchor.MiddleRight, new Color(1f, 1f, 1f, 0.9f));
+        var infoRect = _infoText.rectTransform;
+        infoRect.anchorMin = new Vector2(1f, 1f);
+        infoRect.anchorMax = new Vector2(1f, 1f);
+        infoRect.pivot = new Vector2(1f, 1f);
+        infoRect.anchoredPosition = new Vector2(-margin, -(margin + xpBarHeight + 4f));
+        infoRect.sizeDelta = new Vector2(260f, 22f);
+
+        var iconsGo = new GameObject("UpgradeIcons");
+        iconsGo.transform.SetParent(canvasGo.transform, false);
+        _iconRoot = iconsGo.AddComponent<RectTransform>();
+        _iconRoot.anchorMin = new Vector2(0f, 1f);
+        _iconRoot.anchorMax = new Vector2(0f, 1f);
+        _iconRoot.pivot = new Vector2(0f, 1f);
+        _iconRoot.anchoredPosition = new Vector2(margin, -(margin + xpBarHeight + 28f));
+        _iconRoot.sizeDelta = new Vector2(0f, 0f);
+
+        _uiReady = true;
+    }
+
+    private void UpdateUGUI(GameSession session)
+    {
+        if (_xpFillRect == null)
+        {
+            return;
+        }
+
+        int level = session.PlayerExperience != null ? session.PlayerExperience.Level : 1;
+        float xp = session.PlayerExperience != null ? session.PlayerExperience.CurrentXp : 0f;
+        float xpNext = session.PlayerExperience != null ? session.PlayerExperience.XpToNext : 0f;
+        float ratio = xpNext <= 0f ? 0f : Mathf.Clamp01(xp / xpNext);
+
+        _xpFillRect.anchorMax = new Vector2(ratio, 1f);
+        _levelText.text = $"레벨 {level}";
+
+        int totalSeconds = Mathf.FloorToInt(session.ElapsedTime);
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        _timeText.text = $"{minutes:00}:{seconds:00}";
+
+        _infoText.text = $"처치 {session.KillCount}  코인 {session.CoinCount}";
+
+        UpdateUpgradeIcons(session);
+    }
+
+    private void UpdateUpgradeIcons(GameSession session)
+    {
+        session.GetUpgradeIconData(_upgradeIcons);
+
+        _weaponIcons.Clear();
+        _statIcons.Clear();
+        for (int i = 0; i < _upgradeIcons.Count; i++)
+        {
+            if (_upgradeIcons[i].IsWeapon)
+            {
+                _weaponIcons.Add(_upgradeIcons[i]);
+            }
+            else
+            {
+                _statIcons.Add(_upgradeIcons[i]);
+            }
+        }
+
+        int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f) / (iconSize + iconGap)));
+        int weaponRows = Mathf.Max(1, Mathf.CeilToInt(_weaponIcons.Count / (float)perRow));
+
+        EnsureIconList(_weaponIconUI, _weaponIcons.Count);
+        EnsureIconList(_statIconUI, _statIcons.Count);
+
+        LayoutIcons(_weaponIconUI, _weaponIcons, perRow, 0f);
+        LayoutIcons(_statIconUI, _statIcons, perRow, weaponRows * (iconSize + iconGap));
+    }
+
+    private void EnsureIconList(System.Collections.Generic.List<UpgradeIconUI> list, int count)
+    {
+        while (list.Count < count)
+        {
+            list.Add(CreateIcon(_iconRoot));
+        }
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            list[i].Rect.gameObject.SetActive(i < count);
+        }
+    }
+
+    private void LayoutIcons(System.Collections.Generic.List<UpgradeIconUI> uiList, System.Collections.Generic.List<GameSession.UpgradeIconData> dataList, int perRow, float yOffset)
+    {
+        for (int i = 0; i < dataList.Count; i++)
+        {
+            int row = i / perRow;
+            int col = i % perRow;
+            float x = col * (iconSize + iconGap);
+            float y = -(row * (iconSize + iconGap) + yOffset);
+
+            var ui = uiList[i];
+            ui.Rect.anchoredPosition = new Vector2(x, y);
+
+            Color color;
+            string label;
+            GetIconStyle(dataList[i], out color, out label);
+            ui.Bg.color = color;
+            ui.Label.text = label;
+            ui.Level.text = $"Lv{dataList[i].Level}";
+        }
+    }
+
+    private UpgradeIconUI CreateIcon(Transform parent)
+    {
+        var go = new GameObject("Icon");
+        var rect = go.AddComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.sizeDelta = new Vector2(iconSize, iconSize);
+
+        var bg = go.AddComponent<Image>();
+
+        var fontToUse = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        var label = CreateText(go.transform, "Label", fontToUse, iconFontSize, TextAnchor.MiddleCenter, Color.white);
+        var labelRect = label.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.verticalOverflow = VerticalWrapMode.Overflow;
+
+        var level = CreateText(go.transform, "Level", fontToUse, smallFontSize, TextAnchor.LowerRight, new Color(1f, 1f, 1f, 0.9f));
+        var levelRect = level.rectTransform;
+        levelRect.anchorMin = new Vector2(1f, 0f);
+        levelRect.anchorMax = new Vector2(1f, 0f);
+        levelRect.pivot = new Vector2(1f, 0f);
+        levelRect.anchoredPosition = new Vector2(-2f, 2f);
+        levelRect.sizeDelta = new Vector2(iconSize + 12f, smallFontSize + 6f);
+        level.horizontalOverflow = HorizontalWrapMode.Overflow;
+        level.verticalOverflow = VerticalWrapMode.Overflow;
+
+        return new UpgradeIconUI
+        {
+            Rect = rect,
+            Bg = bg,
+            Label = label,
+            Level = level
+        };
+    }
+
+    private static Text CreateText(Transform parent, string name, Font font, int fontSize, TextAnchor alignment, Color color)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var text = go.AddComponent<Text>();
+        text.font = font;
+        text.fontSize = fontSize;
+        text.alignment = alignment;
+        text.color = color;
+        text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Overflow;
+        return text;
+    }
+
     private void EnsureStyles()
     {
         if (_labelStyle == null)
         {
             _labelStyle = new GUIStyle(GUI.skin.label);
-            _labelStyle.fontSize = 16;
+            _labelStyle.fontSize = labelFontSize;
             _labelStyle.normal.textColor = Color.white;
         }
 
         if (_smallStyle == null)
         {
             _smallStyle = new GUIStyle(GUI.skin.label);
-            _smallStyle.fontSize = 12;
+            _smallStyle.fontSize = smallFontSize;
             _smallStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
         }
 
         if (_iconStyle == null)
         {
             _iconStyle = new GUIStyle(GUI.skin.label);
-            _iconStyle.fontSize = 11;
+            _iconStyle.fontSize = iconFontSize;
             _iconStyle.alignment = TextAnchor.MiddleCenter;
             _iconStyle.normal.textColor = Color.white;
         }
@@ -113,7 +416,7 @@ public class GameHUD : MonoBehaviour
         string info = $"처치 {session.KillCount}  코인 {session.CoinCount}";
         var size = _smallStyle.CalcSize(new GUIContent(info));
         float x = Screen.width - margin - size.x;
-        float y = margin - 2f;
+        float y = margin + xpBarHeight + 2f;
         GUI.Label(new Rect(x, y, size.x, size.y), info, _smallStyle);
     }
 

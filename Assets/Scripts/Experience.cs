@@ -2,6 +2,8 @@
 
 public class Experience : MonoBehaviour
 {
+    public static readonly System.Collections.Generic.List<Experience> Active = new System.Collections.Generic.List<Experience>();
+
     [SerializeField]
     private int level = 1;
 
@@ -40,6 +42,19 @@ public class Experience : MonoBehaviour
         RecalculateMagnet();
     }
 
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
+    }
+
     public void AddXp(float amount)
     {
         if (amount <= 0)
@@ -47,14 +62,30 @@ public class Experience : MonoBehaviour
             return;
         }
 
+        if (xpToNext <= 0f)
+        {
+            xpToNext = Mathf.Max(0.1f, xpGrowth);
+        }
+        if (xpGrowth <= 0f)
+        {
+            xpGrowth = 0.1f;
+        }
+
         float finalAmount = Mathf.Max(0.01f, amount * xpMultiplier);
         currentXp += finalAmount;
+        int safety = 0;
         while (currentXp >= xpToNext)
         {
             currentXp -= xpToNext;
             level++;
             xpToNext += xpGrowth;
             OnLevelUp?.Invoke(level);
+
+            safety++;
+            if (safety > 1000)
+            {
+                break;
+            }
         }
     }
 

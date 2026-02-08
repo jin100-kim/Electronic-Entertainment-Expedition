@@ -13,6 +13,9 @@ public class WindowedStartup : MonoBehaviour
 
     private void Awake()
     {
-        Screen.SetResolution(width, height, fullscreenMode);
+        Application.runInBackground = true;
+        Screen.SetResolution(width, height, FullScreenMode.Windowed);
+        Screen.fullScreenMode = FullScreenMode.Windowed;
+        Screen.fullScreen = false;
     }
 }

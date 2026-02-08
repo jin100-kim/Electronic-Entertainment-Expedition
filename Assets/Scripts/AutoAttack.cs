@@ -157,6 +157,16 @@ public class AutoAttack : MonoBehaviour
     private int _projectilePierce;
     private int _projectilePierceBonus;
     private float _weaponDamageMult = 1f;
+    private float _nextTargetScanTime;
+    private Transform _cachedTarget;
+    private Vector2 _cachedDir;
+
+    private static readonly System.Collections.Generic.Stack<GameObject> _circleProjectilePool = new System.Collections.Generic.Stack<GameObject>();
+    private static readonly System.Collections.Generic.Stack<GameObject> _laserProjectilePool = new System.Collections.Generic.Stack<GameObject>();
+    private static readonly System.Collections.Generic.Stack<GameObject> _boomerangPool = new System.Collections.Generic.Stack<GameObject>();
+    private static readonly System.Collections.Generic.Stack<GameObject> _dronePool = new System.Collections.Generic.Stack<GameObject>();
+
+    private const float TargetScanInterval = 0.1f;
 
     private struct WeaponConfig
     {
@@ -217,10 +227,30 @@ public class AutoAttack : MonoBehaviour
 
         if (needsTarget)
         {
-            target = FindClosestEnemy();
+            if (_cachedTarget != null)
+            {
+                var cachedEnemy = _cachedTarget.GetComponent<EnemyController>();
+                if (cachedEnemy != null && cachedEnemy.IsDead)
+                {
+                    _cachedTarget = null;
+                }
+            }
+
+            if (Time.time >= _nextTargetScanTime || _cachedTarget == null)
+            {
+                _cachedTarget = FindClosestEnemy();
+                _nextTargetScanTime = Time.time + TargetScanInterval;
+            }
+
+            target = _cachedTarget;
             if (target != null)
             {
                 dir = (target.position - transform.position);
+                _cachedDir = dir;
+            }
+            else
+            {
+                dir = _cachedDir;
             }
         }
 
@@ -343,9 +373,10 @@ public class AutoAttack : MonoBehaviour
     {
         float best = _range * _range;
         Transform bestTarget = null;
-        var enemies = FindObjectsOfType<EnemyController>();
-        foreach (var enemy in enemies)
+        var enemies = EnemyController.Active;
+        for (int i = 0; i < enemies.Count; i++)
         {
+            var enemy = enemies[i];
             if (enemy == null)
             {
                 continue;
@@ -492,7 +523,7 @@ public class AutoAttack : MonoBehaviour
         float jumpRange = Mathf.Max(0.1f, _range * chainJumpRangeMult);
         int jumps = Mathf.Max(1, chainBaseJumps + _chain.BonusCount);
 
-        var enemies = FindObjectsOfType<EnemyController>();
+        var enemies = EnemyController.Active;
         var hit = new System.Collections.Generic.HashSet<Health>();
         var points = new System.Collections.Generic.List<Vector3>();
         points.Add(transform.position);
@@ -522,8 +553,8 @@ public class AutoAttack : MonoBehaviour
 
     private void FireLightningStrike()
     {
-        var enemies = FindObjectsOfType<EnemyController>();
-        if (enemies == null || enemies.Length == 0)
+        var enemies = EnemyController.Active;
+        if (enemies == null || enemies.Count == 0)
         {
             return;
         }
@@ -532,16 +563,16 @@ public class AutoAttack : MonoBehaviour
         var used = new System.Collections.Generic.HashSet<int>();
         for (int i = 0; i < strikes; i++)
         {
-            if (used.Count >= enemies.Length)
+            if (used.Count >= enemies.Count)
             {
                 break;
             }
 
-            int idx = Random.Range(0, enemies.Length);
+            int idx = Random.Range(0, enemies.Count);
             int safety = 0;
             while (used.Contains(idx) && safety < 10)
             {
-                idx = Random.Range(0, enemies.Length);
+                idx = Random.Range(0, enemies.Count);
                 safety++;
             }
 
@@ -632,72 +663,125 @@ public class AutoAttack : MonoBehaviour
 
     private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride)
     {
-        var go = new GameObject("Projectile");
+        var go = GetPooledObject(_circleProjectilePool, "Projectile");
         go.transform.position = transform.position + (Vector3)spawnOffset;
+        go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
 
-        var renderer = go.AddComponent<SpriteRenderer>();
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = go.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = CreateCircleSprite(_projectileSize);
         renderer.color = new Color(0.9f, 0.9f, 0.2f, 1f);
 
-        var rb = go.AddComponent<Rigidbody2D>();
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = go.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = go.AddComponent<CircleCollider2D>();
+        var col = go.GetComponent<CircleCollider2D>();
+        if (col == null)
+        {
+            col = go.AddComponent<CircleCollider2D>();
+        }
         col.isTrigger = true;
         col.radius = 0.5f;
 
-        var proj = go.AddComponent<Projectile>();
+        var proj = go.GetComponent<Projectile>();
+        if (proj == null)
+        {
+            proj = go.AddComponent<Projectile>();
+        }
         float life = lifetimeOverride > 0f ? lifetimeOverride : _projectileLifetime;
         proj.Initialize(direction, speedOverride, damageOverride, life, _projectilePierce, spinSpeed);
+        proj.SetRelease(p => ReturnToPool(_circleProjectilePool, p.gameObject));
     }
 
     private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign)
     {
-        var go = new GameObject("NovaProjectile");
+        var go = GetPooledObject(_circleProjectilePool, "NovaProjectile");
         go.transform.position = transform.position;
+        go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
 
-        var renderer = go.AddComponent<SpriteRenderer>();
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = go.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = CreateCircleSprite(_projectileSize);
         renderer.color = new Color(0.6f, 0.8f, 1f, 1f);
 
-        var rb = go.AddComponent<Rigidbody2D>();
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = go.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = go.AddComponent<CircleCollider2D>();
+        var col = go.GetComponent<CircleCollider2D>();
+        if (col == null)
+        {
+            col = go.AddComponent<CircleCollider2D>();
+        }
         col.isTrigger = true;
         col.radius = 0.5f;
 
-        var proj = go.AddComponent<Projectile>();
+        var proj = go.GetComponent<Projectile>();
+        if (proj == null)
+        {
+            proj = go.AddComponent<Projectile>();
+        }
         float angularSpeed = Mathf.Max(0.1f, novaOrbitAngularSpeed) * rotationSign;
         proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
+        proj.SetRelease(p => ReturnToPool(_circleProjectilePool, p.gameObject));
     }
 
     private void SpawnLaserProjectile(Vector2 direction, float damageOverride, float lifetime, Vector2 spawnOffset, float speedOverride)
     {
-        var go = new GameObject("Laser");
+        var go = GetPooledObject(_laserProjectilePool, "Laser");
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.localScale = new Vector3(laserLengthScale, laserThickness, 1f);
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         go.transform.rotation = Quaternion.Euler(0f, 0f, angle);
 
-        var renderer = go.AddComponent<SpriteRenderer>();
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = go.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = CreateSolidSprite();
         renderer.color = laserColor;
 
-        var rb = go.AddComponent<Rigidbody2D>();
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = go.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = go.AddComponent<BoxCollider2D>();
+        var col = go.GetComponent<BoxCollider2D>();
+        if (col == null)
+        {
+            col = go.AddComponent<BoxCollider2D>();
+        }
         col.isTrigger = true;
         col.size = Vector2.one;
 
-        var proj = go.AddComponent<Projectile>();
+        var proj = go.GetComponent<Projectile>();
+        if (proj == null)
+        {
+            proj = go.AddComponent<Projectile>();
+        }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, 0f);
+        proj.SetRelease(p => ReturnToPool(_laserProjectilePool, p.gameObject));
     }
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride)
@@ -707,69 +791,123 @@ public class AutoAttack : MonoBehaviour
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, Vector2 spawnOffset)
     {
-        var go = new GameObject("Projectile");
+        var go = GetPooledObject(_circleProjectilePool, "Projectile");
         go.transform.position = transform.position + (Vector3)spawnOffset;
+        go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
 
-        var renderer = go.AddComponent<SpriteRenderer>();
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = go.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = CreateCircleSprite(_projectileSize);
         renderer.color = color;
 
-        var rb = go.AddComponent<Rigidbody2D>();
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = go.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = go.AddComponent<CircleCollider2D>();
+        var col = go.GetComponent<CircleCollider2D>();
+        if (col == null)
+        {
+            col = go.AddComponent<CircleCollider2D>();
+        }
         col.isTrigger = true;
         col.radius = 0.5f;
 
-        var proj = go.AddComponent<Projectile>();
+        var proj = go.GetComponent<Projectile>();
+        if (proj == null)
+        {
+            proj = go.AddComponent<Projectile>();
+        }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, spinSpeed);
+        proj.SetRelease(p => ReturnToPool(_circleProjectilePool, p.gameObject));
         return proj;
     }
 
     private void SpawnDroneProjectile(float radius, float angularSpeed, float damageOverride, float lifetime, float startAngle)
     {
-        var go = new GameObject("Drone");
+        var go = GetPooledObject(_dronePool, "Drone");
         go.transform.position = transform.position;
+        go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.4f;
 
-        var renderer = go.AddComponent<SpriteRenderer>();
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = go.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = CreateCircleSprite(_projectileSize);
         renderer.color = droneColor;
 
-        var rb = go.AddComponent<Rigidbody2D>();
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = go.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = go.AddComponent<CircleCollider2D>();
+        var col = go.GetComponent<CircleCollider2D>();
+        if (col == null)
+        {
+            col = go.AddComponent<CircleCollider2D>();
+        }
         col.isTrigger = true;
         col.radius = 0.45f;
 
-        var drone = go.AddComponent<DroneProjectile>();
+        var drone = go.GetComponent<DroneProjectile>();
+        if (drone == null)
+        {
+            drone = go.AddComponent<DroneProjectile>();
+        }
         drone.Initialize(transform, radius, angularSpeed, damageOverride, lifetime, startAngle);
+        drone.SetRelease(d => ReturnToPool(_dronePool, d.gameObject));
     }
 
     private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime)
     {
-        var go = new GameObject("Boomerang");
+        var go = GetPooledObject(_boomerangPool, "Boomerang");
         go.transform.position = transform.position;
+        go.transform.rotation = Quaternion.identity;
         go.transform.localScale = Vector3.one * 0.45f;
 
-        var renderer = go.AddComponent<SpriteRenderer>();
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = go.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = CreateCircleSprite(_projectileSize);
         renderer.color = new Color(0.2f, 0.9f, 0.9f, 1f);
 
-        var rb = go.AddComponent<Rigidbody2D>();
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = go.AddComponent<Rigidbody2D>();
+        }
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
 
-        var col = go.AddComponent<CircleCollider2D>();
+        var col = go.GetComponent<CircleCollider2D>();
+        if (col == null)
+        {
+            col = go.AddComponent<CircleCollider2D>();
+        }
         col.isTrigger = true;
         col.radius = 0.5f;
 
-        var boom = go.AddComponent<BoomerangProjectile>();
+        var boom = go.GetComponent<BoomerangProjectile>();
+        if (boom == null)
+        {
+            boom = go.AddComponent<BoomerangProjectile>();
+        }
         boom.Initialize(transform, direction, _projectileSpeed, damageOverride, lifetime, 9999);
+        boom.SetRelease(b => ReturnToPool(_boomerangPool, b.gameObject));
     }
 
     private float CalculateLifetimeForRange(float range)
@@ -821,8 +959,20 @@ public class AutoAttack : MonoBehaviour
         };
     }
 
+    private static readonly System.Collections.Generic.Dictionary<int, Sprite> _circleCache = new System.Collections.Generic.Dictionary<int, Sprite>();
+
     private static Sprite CreateCircleSprite(int size)
     {
+        if (size <= 0)
+        {
+            size = 1;
+        }
+
+        if (_circleCache.TryGetValue(size, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
         var colors = new Color32[size * size];
         float r = (size - 1) * 0.5f;
@@ -842,7 +992,9 @@ public class AutoAttack : MonoBehaviour
 
         texture.SetPixels32(colors);
         texture.Apply();
-        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        var sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        _circleCache[size] = sprite;
+        return sprite;
     }
 
     private static Sprite _solidSprite;
@@ -861,7 +1013,39 @@ public class AutoAttack : MonoBehaviour
         return _solidSprite;
     }
 
-    private static Transform FindClosestEnemyToPoint(Vector3 position, EnemyController[] enemies, System.Collections.Generic.HashSet<Health> hit, float range)
+    private static GameObject GetPooledObject(System.Collections.Generic.Stack<GameObject> pool, string name)
+    {
+        GameObject go = null;
+        while (pool.Count > 0 && go == null)
+        {
+            go = pool.Pop();
+        }
+
+        if (go == null)
+        {
+            go = new GameObject(name);
+        }
+        else
+        {
+            go.name = name;
+        }
+
+        go.SetActive(true);
+        return go;
+    }
+
+    private static void ReturnToPool(System.Collections.Generic.Stack<GameObject> pool, GameObject go)
+    {
+        if (go == null)
+        {
+            return;
+        }
+
+        go.SetActive(false);
+        pool.Push(go);
+    }
+
+    private static Transform FindClosestEnemyToPoint(Vector3 position, System.Collections.Generic.IList<EnemyController> enemies, System.Collections.Generic.HashSet<Health> hit, float range)
     {
         float best = range * range;
         Transform bestTarget = null;
@@ -870,7 +1054,7 @@ public class AutoAttack : MonoBehaviour
             return null;
         }
 
-        for (int i = 0; i < enemies.Length; i++)
+        for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i];
             if (enemy == null)

@@ -4,6 +4,11 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 public class GameSession : MonoBehaviour
 {
@@ -281,15 +286,68 @@ public class GameSession : MonoBehaviour
 
     [Header("Start Character Preview")]
     [SerializeField]
-    private float startPreviewScale = 0.8f;
+    private float startPreviewScale = 2f;
+
+    [SerializeField]
+    private float startPreviewDimAlpha = 0.5f;
+
+    [SerializeField]
+    private float startPreviewHoverAlpha = 1f;
 
     [SerializeField]
     private int startPreviewSortingOrder = 5000;
+
+    [SerializeField]
+    private float startPreviewYOffset = -0.5f;
+
+    [Header("UI")]
+    [SerializeField]
+    private bool useUGUI = true;
+
+    [SerializeField]
+    private Vector2 uiReferenceResolution = new Vector2(1280f, 720f);
+
+    [SerializeField]
+    private Font uiFont;
+
+    [SerializeField]
+    private Color startButtonNormalColor = new Color(0f, 0f, 0f, 0.25f);
+
+    [SerializeField]
+    private Color startButtonHoverColor = new Color(0.25f, 0.25f, 0.25f, 0.6f);
+
+    [SerializeField]
+    private Color upgradeButtonNormalColor = new Color(0.2f, 0.2f, 0.2f, 0.9f);
+
+    [SerializeField]
+    private Color upgradeButtonHoverColor = new Color(0.35f, 0.35f, 0.35f, 0.95f);
+
+    [SerializeField]
+    private Color startButtonClickColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+
+    [SerializeField]
+    private Color upgradeButtonClickColor = new Color(0.55f, 0.55f, 0.55f, 1f);
+
+    [SerializeField]
+    private float selectionClickDuration = 0.3f;
+
+    [SerializeField]
+    private float selectionClickScale = 0.96f;
+
+    [SerializeField]
+    private Color selectionOutlineColor = new Color(1f, 1f, 1f, 0.9f);
+
+    [SerializeField]
+    private float selectionOutlineSize = 2f;
+
+    [SerializeField]
+    private float selectionFlashStrength = 1f;
 
     public Vector2 MapHalfSize => mapHalfSize;
     public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
     public bool IsWaitingStartWeaponChoice => _waitingStartWeaponChoice;
     public bool IsGameplayActive => _gameStarted && !_waitingStartWeaponChoice;
+    public bool IsChoosingUpgrade => _choosingUpgrade;
 
     private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
 
@@ -320,6 +378,31 @@ public class GameSession : MonoBehaviour
     private GameObject[] _startPreviews;
     private Camera _cachedCamera;
     private bool _rerollAvailable;
+    private int _startPreviewHoverIndex = -1;
+    private Canvas _uiCanvas;
+    private RectTransform _uiRoot;
+    private RectTransform _upgradePanel;
+    private Text _upgradeTitleText;
+    private Button[] _upgradeButtons;
+    private Text[] _upgradeButtonTexts;
+    private Button _rerollButton;
+    private Text _rerollButtonText;
+    private RectTransform _gameOverPanel;
+    private Text _gameOverTimeText;
+    private Button _gameOverButton;
+    private RectTransform _startPanel;
+    private Text _startTitleText;
+    private RectTransform _startMageRect;
+    private RectTransform _startWarriorRect;
+    private RectTransform _startDemonRect;
+    private RectTransform _startMagePreviewRect;
+    private RectTransform _startWarriorPreviewRect;
+    private RectTransform _startDemonPreviewRect;
+    private RectTransform _autoButtonRect;
+    private Text _autoButtonText;
+    private bool _uiReady;
+    private bool _selectionLocked;
+    private Coroutine _selectionFeedbackRoutine;
 
     private const string CoinPrefKey = "CoinCount";
     private int _coinCount;
@@ -400,8 +483,26 @@ public class GameSession : MonoBehaviour
         requireStartWeaponChoice = true;
         startWeapon = StartWeapon.Gun;
 
-        startPreviewScale = 0.8f;
+        startPreviewScale = 2f;
+        startPreviewDimAlpha = 0.5f;
+        startPreviewHoverAlpha = 1f;
         startPreviewSortingOrder = 5000;
+        startPreviewYOffset = -0.5f;
+
+        useUGUI = true;
+        uiReferenceResolution = new Vector2(1280f, 720f);
+        uiFont = null;
+        startButtonNormalColor = new Color(0f, 0f, 0f, 0.25f);
+        startButtonHoverColor = new Color(0.25f, 0.25f, 0.25f, 0.6f);
+        upgradeButtonNormalColor = new Color(0.2f, 0.2f, 0.2f, 0.9f);
+        upgradeButtonHoverColor = new Color(0.35f, 0.35f, 0.35f, 0.95f);
+        startButtonClickColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        upgradeButtonClickColor = new Color(0.55f, 0.55f, 0.55f, 1f);
+        selectionClickDuration = 0.3f;
+        selectionClickScale = 0.96f;
+        selectionOutlineColor = new Color(1f, 1f, 1f, 0.9f);
+        selectionOutlineSize = 2f;
+        selectionFlashStrength = 1f;
     }
 
     private void ApplyWeaponDefaults()
@@ -494,6 +595,11 @@ public class GameSession : MonoBehaviour
 
         if (_choosingUpgrade && _autoPlayEnabled)
         {
+            if (_selectionLocked)
+            {
+                return;
+            }
+
             if (_autoUpgradeStartTime < 0f)
             {
                 _autoUpgradeStartTime = Time.unscaledTime;
@@ -504,7 +610,7 @@ public class GameSession : MonoBehaviour
                 int index = PickAutoUpgradeIndex();
                 if (index >= 0)
                 {
-                    ApplyUpgrade(index);
+                    SelectUpgradeWithFeedback(index);
                 }
             }
         }
@@ -518,6 +624,25 @@ public class GameSession : MonoBehaviour
             ElapsedTime += Time.deltaTime;
             ApplyDifficultyScaling();
         }
+        else
+        {
+            HandleUpgradeHotkeys();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (!useUGUI)
+        {
+            return;
+        }
+
+        if (!_uiReady)
+        {
+            BuildUGUI();
+        }
+
+        UpdateUGUI();
     }
 
     public static void StartNetworkGame()
@@ -558,9 +683,10 @@ public class GameSession : MonoBehaviour
         PlayerController ownerPlayer = null;
         while (ownerPlayer == null)
         {
-            var players = FindObjectsOfType<PlayerController>();
-            foreach (var p in players)
+            var players = PlayerController.Active;
+            for (int i = 0; i < players.Count; i++)
             {
+                var p = players[i];
                 if (p != null && p.IsOwner)
                 {
                     ownerPlayer = p;
@@ -795,13 +921,14 @@ public class GameSession : MonoBehaviour
 
         if (_options.Count == 0)
         {
-            _options.Add(new UpgradeOption("HP 회복 (100%)", () => "현재 체력을 모두 회복합니다.", () =>
+            _options.Add(new UpgradeOption("HP 회복 (20%)", () => "최대 체력의 20%를 회복합니다.", () =>
             {
                 if (PlayerHealth != null)
                 {
-                    PlayerHealth.Heal(PlayerHealth.MaxHealth);
+                    PlayerHealth.Heal(PlayerHealth.MaxHealth * 0.2f);
                 }
             }));
+            _options.Add(new UpgradeOption("코인 +10", () => "즉시 코인 10개를 획득합니다.", () => AddCoins(10)));
         }
 
         for (int i = _options.Count - 1; i > 0; i--)
@@ -963,25 +1090,7 @@ public class GameSession : MonoBehaviour
 
     private void SpawnCoin(Vector3 position)
     {
-        var go = new GameObject("Coin");
-        go.transform.position = position;
-        go.transform.localScale = Vector3.one * 0.4f;
-
-        var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = CreateCircleSprite(40);
-        renderer.color = new Color(1f, 0.85f, 0.2f, 1f);
-        renderer.sortingOrder = 1;
-
-        var rb = go.AddComponent<Rigidbody2D>();
-        rb.bodyType = RigidbodyType2D.Kinematic;
-        rb.gravityScale = 0f;
-
-        var col = go.AddComponent<CircleCollider2D>();
-        col.isTrigger = true;
-        col.radius = 0.12f;
-
-        var pickup = go.AddComponent<CoinPickup>();
-        pickup.SetAmount(coinAmount);
+        CoinPickup.Spawn(position, coinAmount);
     }
 
     private int PickAutoUpgradeIndex()
@@ -1942,8 +2051,793 @@ public class GameSession : MonoBehaviour
         return string.Join("\n", lines);
     }
 
+    private void BuildUGUI()
+    {
+        if (_uiReady)
+        {
+            return;
+        }
+
+        var fontToUse = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        EnsureEventSystem();
+
+        var canvasGo = new GameObject("GameSessionUI");
+        canvasGo.transform.SetParent(transform, false);
+        _uiCanvas = canvasGo.AddComponent<Canvas>();
+        _uiCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _uiCanvas.sortingOrder = 1200;
+        var scaler = canvasGo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = uiReferenceResolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+        canvasGo.AddComponent<GraphicRaycaster>();
+        _uiRoot = canvasGo.GetComponent<RectTransform>();
+
+        BuildGameOverUI(fontToUse);
+        BuildStartChoiceUI(fontToUse);
+        BuildUpgradeUI(fontToUse);
+        BuildAutoButtonUI(fontToUse);
+
+        _uiReady = true;
+    }
+
+    private void UpdateUGUI()
+    {
+        if (_uiRoot == null)
+        {
+            return;
+        }
+
+        bool showStart = _waitingStartWeaponChoice && !IsGameOver;
+        bool showGameOver = IsGameOver;
+        bool showUpgrade = _choosingUpgrade && !showStart && !IsGameOver;
+        bool showAuto = _player != null && _gameStarted && !_waitingStartWeaponChoice && !IsGameOver;
+
+        if (_startPanel != null)
+        {
+            _startPanel.gameObject.SetActive(showStart);
+        }
+        if (_startTitleText != null)
+        {
+            _startTitleText.gameObject.SetActive(showStart);
+        }
+        if (_gameOverPanel != null)
+        {
+            _gameOverPanel.gameObject.SetActive(showGameOver);
+        }
+        if (_upgradePanel != null)
+        {
+            _upgradePanel.gameObject.SetActive(showUpgrade);
+        }
+        if (_autoButtonRect != null)
+        {
+            _autoButtonRect.gameObject.SetActive(showAuto);
+        }
+
+        if (showGameOver && _gameOverTimeText != null)
+        {
+            _gameOverTimeText.text = $"생존 시간 {ElapsedTime:0.0}s";
+        }
+
+        if (showUpgrade)
+        {
+            UpdateUpgradeUI();
+        }
+
+        if (_autoButtonText != null)
+        {
+            _autoButtonText.text = _autoPlayEnabled ? "자동\n켜짐" : "자동\n꺼짐";
+        }
+
+        if (showStart)
+        {
+            EnsureStartCharacterPreviews();
+            UpdateStartPreviewsFromUI();
+            UpdateStartPreviewColors();
+        }
+        else
+        {
+            _startPreviewHoverIndex = -1;
+            ClearStartCharacterPreviews();
+        }
+    }
+
+    private void UpdateUpgradeUI()
+    {
+        if (_upgradeButtons == null || _upgradeButtonTexts == null)
+        {
+            return;
+        }
+
+        int optionCount = Mathf.Min(4, _options.Count);
+        for (int i = 0; i < _upgradeButtons.Length; i++)
+        {
+            bool active = i < optionCount;
+            _upgradeButtons[i].gameObject.SetActive(active);
+            if (!active)
+            {
+                continue;
+            }
+
+            var opt = _options[i];
+            _upgradeButtonTexts[i].text = $"{i + 1}. {opt.Title}\n{opt.Desc}";
+        }
+
+        if (_rerollButton != null)
+        {
+            _rerollButton.interactable = _rerollAvailable;
+        }
+        if (_rerollButtonText != null)
+        {
+            _rerollButtonText.text = _rerollAvailable ? "리롤\n(1회)" : "리롤 완료";
+        }
+    }
+
+    private void SelectStartWeaponWithFeedback(StartWeapon weapon, Button button)
+    {
+        if (_selectionLocked)
+        {
+            return;
+        }
+
+        BeginSelectionFeedback(button, startButtonClickColor, () => SelectStartWeapon(weapon));
+    }
+
+    private void SelectUpgradeWithFeedback(int index)
+    {
+        if (_selectionLocked)
+        {
+            return;
+        }
+
+        if (_options == null || index < 0 || index >= _options.Count)
+        {
+            return;
+        }
+
+        Button button = null;
+        if (_upgradeButtons != null && index >= 0 && index < _upgradeButtons.Length)
+        {
+            button = _upgradeButtons[index];
+        }
+
+        BeginSelectionFeedback(button, upgradeButtonClickColor, () => ApplyUpgrade(index));
+    }
+
+    private void BeginSelectionFeedback(Button button, Color clickColor, System.Action onComplete)
+    {
+        if (_selectionLocked)
+        {
+            return;
+        }
+
+        _selectionLocked = true;
+
+        if (_selectionFeedbackRoutine != null)
+        {
+            StopCoroutine(_selectionFeedbackRoutine);
+        }
+
+        _selectionFeedbackRoutine = StartCoroutine(PlaySelectionFeedback(button, clickColor, onComplete));
+    }
+
+    private IEnumerator PlaySelectionFeedback(Button button, Color clickColor, System.Action onComplete)
+    {
+        var image = button != null ? button.GetComponent<Image>() : null;
+        var originalColor = image != null ? image.color : Color.white;
+        var originalScale = button != null ? button.transform.localScale : Vector3.one;
+        var originalTransition = button != null ? button.transition : Selectable.Transition.ColorTint;
+        var outline = button != null ? button.GetComponent<Outline>() : null;
+        bool createdOutline = false;
+        bool originalOutlineEnabled = false;
+        Vector2 originalOutlineDistance = Vector2.zero;
+        Color originalOutlineColor = Color.clear;
+
+        if (button != null)
+        {
+            float scale = Mathf.Clamp(selectionClickScale, 0.5f, 1.2f);
+            button.transform.localScale = originalScale * scale;
+            button.transition = Selectable.Transition.None;
+
+            if (outline == null)
+            {
+                outline = button.gameObject.AddComponent<Outline>();
+                createdOutline = true;
+            }
+
+            originalOutlineEnabled = outline.enabled;
+            originalOutlineDistance = outline.effectDistance;
+            originalOutlineColor = outline.effectColor;
+            outline.effectDistance = new Vector2(selectionOutlineSize, selectionOutlineSize);
+            outline.effectColor = selectionOutlineColor;
+            outline.enabled = true;
+        }
+
+        if (image != null)
+        {
+            image.color = clickColor;
+        }
+
+        float wait = Mathf.Max(0.05f, selectionClickDuration);
+        float half = wait * 0.5f;
+        if (half > 0f)
+        {
+            yield return new WaitForSecondsRealtime(half);
+        }
+
+        if (image != null)
+        {
+            Color flashColor = Color.Lerp(clickColor, Color.white, Mathf.Clamp01(selectionFlashStrength));
+            flashColor.a = clickColor.a;
+            image.color = flashColor;
+        }
+
+        float remaining = wait - half;
+        if (remaining > 0f)
+        {
+            yield return new WaitForSecondsRealtime(remaining);
+        }
+
+        if (button != null)
+        {
+            button.transform.localScale = originalScale;
+            button.transition = originalTransition;
+            if (outline != null)
+            {
+                outline.effectDistance = originalOutlineDistance;
+                outline.effectColor = originalOutlineColor;
+                outline.enabled = originalOutlineEnabled;
+                if (createdOutline)
+                {
+                    Destroy(outline);
+                }
+            }
+        }
+
+        if (image != null)
+        {
+            image.color = originalColor;
+        }
+
+        _selectionLocked = false;
+        onComplete?.Invoke();
+        _selectionFeedbackRoutine = null;
+    }
+
+    private void HandleUpgradeHotkeys()
+    {
+        if (!_choosingUpgrade)
+        {
+            return;
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (IsNumberKeyPressed(keyboard, 1))
+        {
+            SelectUpgradeWithFeedback(0);
+            return;
+        }
+        if (IsNumberKeyPressed(keyboard, 2))
+        {
+            SelectUpgradeWithFeedback(1);
+            return;
+        }
+        if (IsNumberKeyPressed(keyboard, 3))
+        {
+            SelectUpgradeWithFeedback(2);
+            return;
+        }
+        if (IsNumberKeyPressed(keyboard, 4))
+        {
+            SelectUpgradeWithFeedback(3);
+            return;
+        }
+        if (IsNumberKeyPressed(keyboard, 5))
+        {
+            TryReroll();
+        }
+#else
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+        {
+            SelectUpgradeWithFeedback(0);
+            return;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+        {
+            SelectUpgradeWithFeedback(1);
+            return;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
+        {
+            SelectUpgradeWithFeedback(2);
+            return;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4))
+        {
+            SelectUpgradeWithFeedback(3);
+            return;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5))
+        {
+            TryReroll();
+        }
+#endif
+    }
+
+#if ENABLE_INPUT_SYSTEM
+    private static bool IsNumberKeyPressed(Keyboard keyboard, int number)
+    {
+        switch (number)
+        {
+            case 1:
+                return keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame;
+            case 2:
+                return keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame;
+            case 3:
+                return keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame;
+            case 4:
+                return keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame;
+            case 5:
+                return keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame;
+            default:
+                return false;
+        }
+    }
+#endif
+
+    private void TryReroll()
+    {
+        if (!_rerollAvailable)
+        {
+            return;
+        }
+
+        _rerollAvailable = false;
+        BuildUpgradeOptions(false);
+        _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+    }
+
+    private void BuildGameOverUI(Font fontToUse)
+    {
+        _gameOverPanel = CreatePanel(_uiRoot, "GameOverPanel", new Vector2(360f, 180f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
+
+        var title = CreateText(_gameOverPanel, "Title", fontToUse, 20, TextAnchor.UpperCenter, Color.white);
+        var titleRect = title.rectTransform;
+        titleRect.anchorMin = new Vector2(0.5f, 1f);
+        titleRect.anchorMax = new Vector2(0.5f, 1f);
+        titleRect.pivot = new Vector2(0.5f, 1f);
+        titleRect.anchoredPosition = new Vector2(0f, -8f);
+        titleRect.sizeDelta = new Vector2(200f, 24f);
+        title.text = "게임 오버";
+
+        _gameOverTimeText = CreateText(_gameOverPanel, "Time", fontToUse, 16, TextAnchor.UpperCenter, Color.white);
+        var timeRect = _gameOverTimeText.rectTransform;
+        timeRect.anchorMin = new Vector2(0.5f, 1f);
+        timeRect.anchorMax = new Vector2(0.5f, 1f);
+        timeRect.pivot = new Vector2(0.5f, 1f);
+        timeRect.anchoredPosition = new Vector2(0f, -50f);
+        timeRect.sizeDelta = new Vector2(240f, 22f);
+
+        _gameOverButton = CreateButton(_gameOverPanel, "RestartButton", new Vector2(200f, 40f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Color(0.2f, 0.2f, 0.2f, 0.9f));
+        var btnLabel = CreateText(_gameOverButton.transform, "Label", fontToUse, 14, TextAnchor.MiddleCenter, Color.white);
+        StretchToFill(btnLabel.rectTransform, new Vector2(4f, 4f));
+        btnLabel.text = "처음 화면으로";
+        _gameOverButton.onClick.AddListener(ResetToStart);
+    }
+
+    private void BuildStartChoiceUI(Font fontToUse)
+    {
+        float panelWidth = 560f;
+        float panelHeight = 240f;
+        _startPanel = CreatePanel(_uiRoot, "StartWeaponPanel", new Vector2(panelWidth, panelHeight), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
+
+        _startTitleText = CreateText(_uiRoot, "StartWeaponTitle", fontToUse, 18, TextAnchor.MiddleCenter, Color.white);
+        var titleRect = _startTitleText.rectTransform;
+        titleRect.anchorMin = new Vector2(0.5f, 0.5f);
+        titleRect.anchorMax = new Vector2(0.5f, 0.5f);
+        titleRect.pivot = new Vector2(0.5f, 0f);
+        titleRect.anchoredPosition = new Vector2(0f, panelHeight * 0.5f + 12f);
+        titleRect.sizeDelta = new Vector2(320f, 24f);
+        _startTitleText.text = "시작 캐릭터 선택";
+
+        var subtitle = CreateText(_startPanel, "Subtitle", fontToUse, 12, TextAnchor.UpperCenter, new Color(1f, 1f, 1f, 0.9f));
+        var subtitleRect = subtitle.rectTransform;
+        subtitleRect.anchorMin = new Vector2(0.5f, 1f);
+        subtitleRect.anchorMax = new Vector2(0.5f, 1f);
+        subtitleRect.pivot = new Vector2(0.5f, 1f);
+        subtitleRect.anchoredPosition = new Vector2(0f, -10f);
+        subtitleRect.sizeDelta = new Vector2(320f, 20f);
+        subtitle.text = "캐릭터 스탯은 현재 동일합니다.";
+
+        float buttonWidth = 160f;
+        float buttonHeight = 120f;
+        float gap = 20f;
+        float totalWidth = buttonWidth * 3f + gap * 2f;
+        float leftX = -totalWidth * 0.5f + buttonWidth * 0.5f;
+        float midX = 0f;
+        float rightX = totalWidth * 0.5f - buttonWidth * 0.5f;
+        float buttonY = -80f;
+        float labelHeight = 36f;
+        float labelPadding = 6f;
+        float previewPadding = 6f;
+        float previewHeight = Mathf.Max(30f, buttonHeight - labelHeight - previewPadding - labelPadding);
+
+        _startMageRect = CreateButton(_startPanel, "MageButton", new Vector2(buttonWidth, buttonHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(leftX, buttonY), startButtonNormalColor).GetComponent<RectTransform>();
+        var mageLabel = CreateText(_startMageRect, "MageLabel", fontToUse, 12, TextAnchor.LowerCenter, Color.white);
+        var mageLabelRect = mageLabel.rectTransform;
+        mageLabelRect.anchorMin = new Vector2(0.5f, 0f);
+        mageLabelRect.anchorMax = new Vector2(0.5f, 0f);
+        mageLabelRect.pivot = new Vector2(0.5f, 0f);
+        mageLabelRect.anchoredPosition = new Vector2(0f, labelPadding);
+        mageLabelRect.sizeDelta = new Vector2(buttonWidth - 8f, labelHeight);
+        mageLabel.text = "마법사\n기본 무기: 총";
+        _startMagePreviewRect = CreateRect(_startMageRect, "MagePreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
+        var mageButton = _startMageRect.GetComponent<Button>();
+        mageButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeapon.Gun, mageButton));
+        AddStartHoverTrigger(mageButton, 0);
+        ApplyButtonColors(mageButton, startButtonNormalColor, startButtonHoverColor);
+
+        _startWarriorRect = CreateButton(_startPanel, "WarriorButton", new Vector2(buttonWidth, buttonHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(midX, buttonY), startButtonNormalColor).GetComponent<RectTransform>();
+        var warriorLabel = CreateText(_startWarriorRect, "WarriorLabel", fontToUse, 12, TextAnchor.LowerCenter, Color.white);
+        var warriorLabelRect = warriorLabel.rectTransform;
+        warriorLabelRect.anchorMin = new Vector2(0.5f, 0f);
+        warriorLabelRect.anchorMax = new Vector2(0.5f, 0f);
+        warriorLabelRect.pivot = new Vector2(0.5f, 0f);
+        warriorLabelRect.anchoredPosition = new Vector2(0f, labelPadding);
+        warriorLabelRect.sizeDelta = new Vector2(buttonWidth - 8f, labelHeight);
+        warriorLabel.text = "전사\n기본 무기: 부메랑";
+        _startWarriorPreviewRect = CreateRect(_startWarriorRect, "WarriorPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
+        var warriorButton = _startWarriorRect.GetComponent<Button>();
+        warriorButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeapon.Boomerang, warriorButton));
+        AddStartHoverTrigger(warriorButton, 1);
+        ApplyButtonColors(warriorButton, startButtonNormalColor, startButtonHoverColor);
+
+        _startDemonRect = CreateButton(_startPanel, "DemonButton", new Vector2(buttonWidth, buttonHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(rightX, buttonY), startButtonNormalColor).GetComponent<RectTransform>();
+        var demonLabel = CreateText(_startDemonRect, "DemonLabel", fontToUse, 12, TextAnchor.LowerCenter, Color.white);
+        var demonLabelRect = demonLabel.rectTransform;
+        demonLabelRect.anchorMin = new Vector2(0.5f, 0f);
+        demonLabelRect.anchorMax = new Vector2(0.5f, 0f);
+        demonLabelRect.pivot = new Vector2(0.5f, 0f);
+        demonLabelRect.anchoredPosition = new Vector2(0f, labelPadding);
+        demonLabelRect.sizeDelta = new Vector2(buttonWidth - 8f, labelHeight);
+        demonLabel.text = "데몬로드\n기본 무기: 노바";
+        _startDemonPreviewRect = CreateRect(_startDemonRect, "DemonPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
+        var demonButton = _startDemonRect.GetComponent<Button>();
+        demonButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeapon.Nova, demonButton));
+        AddStartHoverTrigger(demonButton, 2);
+        ApplyButtonColors(demonButton, startButtonNormalColor, startButtonHoverColor);
+
+    }
+
+    private void BuildUpgradeUI(Font fontToUse)
+    {
+        const int columns = 5;
+        const float boxHeight = 200f;
+        const float gap = 10f;
+        const float topPadding = 36f;
+        const float sidePadding = 12f;
+
+        float maxWidth = uiReferenceResolution.x - 40f;
+        float boxWidth = Mathf.Floor((maxWidth - sidePadding * 2f - (columns - 1) * gap) / columns);
+        float panelWidth = columns * boxWidth + (columns - 1) * gap + sidePadding * 2f;
+        float panelHeight = topPadding + boxHeight + sidePadding;
+
+        _upgradePanel = CreatePanel(_uiRoot, "UpgradePanel", new Vector2(panelWidth, panelHeight), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
+
+        _upgradeTitleText = CreateText(_upgradePanel, "Title", fontToUse, 18, TextAnchor.UpperCenter, Color.white);
+        var titleRect = _upgradeTitleText.rectTransform;
+        titleRect.anchorMin = new Vector2(0.5f, 1f);
+        titleRect.anchorMax = new Vector2(0.5f, 1f);
+        titleRect.pivot = new Vector2(0.5f, 1f);
+        titleRect.anchoredPosition = new Vector2(0f, -8f);
+        titleRect.sizeDelta = new Vector2(240f, 24f);
+        _upgradeTitleText.text = "레벨업 선택";
+
+        _upgradeButtons = new Button[4];
+        _upgradeButtonTexts = new Text[4];
+
+        for (int i = 0; i < _upgradeButtons.Length; i++)
+        {
+            float bx = sidePadding + i * (boxWidth + gap);
+            float by = -topPadding;
+            var button = CreateButton(_upgradePanel, $"UpgradeButton_{i}", new Vector2(boxWidth, boxHeight), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(bx, by), upgradeButtonNormalColor);
+            var label = CreateText(button.transform, "Label", fontToUse, 13, TextAnchor.UpperLeft, Color.white);
+            StretchToFill(label.rectTransform, new Vector2(6f, 6f));
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Overflow;
+            int index = i;
+            button.onClick.AddListener(() => SelectUpgradeWithFeedback(index));
+            ApplyButtonColors(button, upgradeButtonNormalColor, upgradeButtonHoverColor);
+            _upgradeButtons[i] = button;
+            _upgradeButtonTexts[i] = label;
+        }
+
+        float rx = sidePadding + 4 * (boxWidth + gap);
+        float ry = -topPadding;
+        _rerollButton = CreateButton(_upgradePanel, "RerollButton", new Vector2(boxWidth, boxHeight), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(rx, ry), upgradeButtonNormalColor);
+        _rerollButtonText = CreateText(_rerollButton.transform, "Label", fontToUse, 13, TextAnchor.MiddleCenter, Color.white);
+        StretchToFill(_rerollButtonText.rectTransform, new Vector2(6f, 6f));
+        _rerollButton.onClick.AddListener(TryReroll);
+        ApplyButtonColors(_rerollButton, upgradeButtonNormalColor, upgradeButtonHoverColor);
+    }
+
+    private void BuildAutoButtonUI(Font fontToUse)
+    {
+        _autoButtonRect = CreateButton(_uiRoot, "AutoPlayButton", new Vector2(140f, 40f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(12f, 12f), new Color(0.2f, 0.2f, 0.2f, 0.9f)).GetComponent<RectTransform>();
+        _autoButtonText = CreateText(_autoButtonRect, "Label", fontToUse, 12, TextAnchor.MiddleCenter, Color.white);
+        StretchToFill(_autoButtonText.rectTransform, new Vector2(4f, 4f));
+        _autoButtonRect.GetComponent<Button>().onClick.AddListener(() =>
+        {
+            _autoPlayEnabled = !_autoPlayEnabled;
+            _player?.SetAutoPlay(_autoPlayEnabled);
+        });
+    }
+
+    private void UpdateStartPreviewsFromUI()
+    {
+        if (_startPreviews == null || _startPreviews.Length != 3)
+        {
+            return;
+        }
+
+        Rect rectMage;
+        Rect rectWarrior;
+        Rect rectDemon;
+        var mageRectSource = _startMagePreviewRect != null ? _startMagePreviewRect : _startMageRect;
+        var warriorRectSource = _startWarriorPreviewRect != null ? _startWarriorPreviewRect : _startWarriorRect;
+        var demonRectSource = _startDemonPreviewRect != null ? _startDemonPreviewRect : _startDemonRect;
+        if (!TryGetGuiRect(mageRectSource, out rectMage) ||
+            !TryGetGuiRect(warriorRectSource, out rectWarrior) ||
+            !TryGetGuiRect(demonRectSource, out rectDemon))
+        {
+            return;
+        }
+
+        UpdateStartCharacterPreviews(rectMage, rectWarrior, rectDemon);
+    }
+
+    private bool TryGetGuiRect(RectTransform rectTransform, out Rect rect)
+    {
+        rect = default;
+        if (rectTransform == null)
+        {
+            return false;
+        }
+
+        Vector3[] corners = new Vector3[4];
+        rectTransform.GetWorldCorners(corners);
+        Vector3 bl = RectTransformUtility.WorldToScreenPoint(null, corners[0]);
+        Vector3 tr = RectTransformUtility.WorldToScreenPoint(null, corners[2]);
+        float width = tr.x - bl.x;
+        float height = tr.y - bl.y;
+        float guiY = Screen.height - (bl.y + height);
+        rect = new Rect(bl.x, guiY, width, height);
+        return true;
+    }
+
+    private void AddStartHoverTrigger(Button button, int index)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        var trigger = button.GetComponent<EventTrigger>();
+        if (trigger == null)
+        {
+            trigger = button.gameObject.AddComponent<EventTrigger>();
+        }
+
+        if (trigger.triggers == null)
+        {
+            trigger.triggers = new List<EventTrigger.Entry>();
+        }
+
+        AddEventTrigger(trigger, EventTriggerType.PointerEnter, _ => SetStartPreviewHover(index));
+        AddEventTrigger(trigger, EventTriggerType.PointerExit, _ => ClearStartPreviewHover(index));
+    }
+
+    private static void AddEventTrigger(EventTrigger trigger, EventTriggerType type, System.Action<BaseEventData> callback)
+    {
+        if (trigger == null)
+        {
+            return;
+        }
+
+        var entry = new EventTrigger.Entry { eventID = type };
+        entry.callback.AddListener(data => callback?.Invoke(data));
+        trigger.triggers.Add(entry);
+    }
+
+    private static void ApplyButtonColors(Button button, Color normal, Color hover)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        var colors = button.colors;
+        colors.normalColor = normal;
+        colors.highlightedColor = hover;
+        colors.selectedColor = hover;
+        colors.pressedColor = new Color(hover.r * 0.9f, hover.g * 0.9f, hover.b * 0.9f, hover.a);
+        colors.disabledColor = new Color(normal.r, normal.g, normal.b, normal.a * 0.5f);
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = 0.05f;
+        button.colors = colors;
+
+        var image = button.GetComponent<Image>();
+        if (image != null)
+        {
+            image.color = normal;
+        }
+    }
+
+    private void SetStartPreviewHover(int index)
+    {
+        if (_startPreviewHoverIndex == index)
+        {
+            return;
+        }
+
+        _startPreviewHoverIndex = index;
+        UpdateStartPreviewColors();
+    }
+
+    private void ClearStartPreviewHover(int index)
+    {
+        if (_startPreviewHoverIndex != index)
+        {
+            return;
+        }
+
+        _startPreviewHoverIndex = -1;
+        UpdateStartPreviewColors();
+    }
+
+    private void UpdateStartPreviewColors()
+    {
+        if (_startPreviews == null || _startPreviews.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _startPreviews.Length; i++)
+        {
+            var preview = _startPreviews[i];
+            if (preview == null)
+            {
+                continue;
+            }
+
+            float alpha = i == _startPreviewHoverIndex ? startPreviewHoverAlpha : startPreviewDimAlpha;
+            SetPreviewAlpha(preview, alpha);
+        }
+    }
+
+    private static void SetPreviewAlpha(GameObject preview, float alpha)
+    {
+        var renderer = preview.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            return;
+        }
+
+        Color color = renderer.color;
+        color.a = Mathf.Clamp01(alpha);
+        renderer.color = color;
+    }
+
+    private static RectTransform CreatePanel(Transform parent, string name, Vector2 size, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Color bgColor)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rect = go.AddComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = pivot;
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        var image = go.AddComponent<Image>();
+        image.color = bgColor;
+        return rect;
+    }
+
+    private static RectTransform CreateRect(Transform parent, string name, Vector2 size, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rect = go.AddComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = pivot;
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        return rect;
+    }
+
+    private static Button CreateButton(Transform parent, string name, Vector2 size, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Color bgColor)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rect = go.AddComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = pivot;
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        var image = go.AddComponent<Image>();
+        image.color = bgColor;
+        var button = go.AddComponent<Button>();
+        button.targetGraphic = image;
+        return button;
+    }
+
+    private static Text CreateText(Transform parent, string name, Font font, int fontSize, TextAnchor alignment, Color color)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var text = go.AddComponent<Text>();
+        text.font = font;
+        text.fontSize = fontSize;
+        text.alignment = alignment;
+        text.color = color;
+        text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Overflow;
+        return text;
+    }
+
+    private static void StretchToFill(RectTransform rectTransform, Vector2 padding)
+    {
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = new Vector2(padding.x, padding.y);
+        rectTransform.offsetMax = new Vector2(-padding.x, -padding.y);
+    }
+
+    private static void EnsureEventSystem()
+    {
+        var existing = FindObjectOfType<EventSystem>();
+        if (existing == null)
+        {
+            var go = new GameObject("EventSystem");
+            existing = go.AddComponent<EventSystem>();
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        if (existing.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>() == null)
+        {
+            existing.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+        }
+
+        var legacy = existing.GetComponent<StandaloneInputModule>();
+        if (legacy != null)
+        {
+            Destroy(legacy);
+        }
+#else
+        if (existing.GetComponent<StandaloneInputModule>() == null)
+        {
+            existing.gameObject.AddComponent<StandaloneInputModule>();
+        }
+#endif
+    }
+
+
     private void OnGUI()
     {
+        if (useUGUI)
+        {
+            return;
+        }
+
         if (IsGameOver)
         {
             DrawGameOverPanel();
@@ -2043,9 +2937,7 @@ public class GameSession : MonoBehaviour
         GUI.enabled = _rerollAvailable;
         if (GUI.Button(new Rect(rx, ry, boxWidth, boxHeight), _rerollAvailable ? "리롤\n(1회)" : "리롤 완료", rerollStyle))
         {
-            _rerollAvailable = false;
-            BuildUpgradeOptions(false);
-            _autoUpgradeStartTime = _autoPlayEnabled ? Time.unscaledTime : -1f;
+            TryReroll();
         }
         GUI.enabled = true;
     }
@@ -2062,8 +2954,7 @@ public class GameSession : MonoBehaviour
         float x = 12f;
         float y = Screen.height - height - 12f;
 
-        int level = PlayerExperience != null ? PlayerExperience.Level : 1;
-        string label = _autoPlayEnabled ? $"자동 Lv{level}\n켜짐" : $"자동 Lv{level}\n꺼짐";
+        string label = _autoPlayEnabled ? "자동\n켜짐" : "자동\n꺼짐";
         if (GUI.Button(new Rect(x, y, width, height), label))
         {
             _autoPlayEnabled = !_autoPlayEnabled;
@@ -2189,7 +3080,7 @@ public class GameSession : MonoBehaviour
         var go = new GameObject(name);
         var renderer = go.AddComponent<SpriteRenderer>();
         renderer.sortingOrder = startPreviewSortingOrder;
-        renderer.color = Color.white;
+        renderer.color = new Color(1f, 1f, 1f, Mathf.Clamp01(startPreviewDimAlpha));
 
         var animator = go.AddComponent<Animator>();
         var controller = Resources.Load<RuntimeAnimatorController>(controllerPath);
@@ -2227,7 +3118,6 @@ public class GameSession : MonoBehaviour
         float screenY = Screen.height - (rect.y + rect.height * 0.5f);
         Vector3 world = cam.ScreenToWorldPoint(new Vector3(screenX, screenY, depth));
         world.z = 0f;
-        preview.transform.position = world;
 
         float topY = Screen.height - rect.y;
         float bottomY = Screen.height - (rect.y + rect.height);
@@ -2236,6 +3126,8 @@ public class GameSession : MonoBehaviour
         float worldHeight = Mathf.Abs(worldTop - worldBottom);
         float scale = Mathf.Max(0.1f, worldHeight * startPreviewScale);
         preview.transform.localScale = new Vector3(scale, scale, 1f);
+        world.y += worldHeight * startPreviewYOffset;
+        preview.transform.position = world;
     }
 
     private void ClearStartCharacterPreviews()
@@ -2256,27 +3148,4 @@ public class GameSession : MonoBehaviour
         _startPreviews = null;
     }
 
-    private static Sprite CreateCircleSprite(int size)
-    {
-        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        var colors = new Color32[size * size];
-        float r = (size - 1) * 0.5f;
-        float cx = r;
-        float cy = r;
-
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - cx;
-                float dy = y - cy;
-                bool inside = (dx * dx + dy * dy) <= r * r;
-                colors[y * size + x] = inside ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
-            }
-        }
-
-        texture.SetPixels32(colors);
-        texture.Apply();
-        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-    }
 }

@@ -2,6 +2,8 @@
 
 public class Projectile : MonoBehaviour
 {
+    public static readonly System.Collections.Generic.List<Projectile> Active = new System.Collections.Generic.List<Projectile>();
+
     [SerializeField]
     private float speed = 10f;
 
@@ -28,9 +30,11 @@ public class Projectile : MonoBehaviour
     private bool _applySlow;
     private float _slowMultiplier = 1f;
     private float _slowDuration;
+    private System.Action<Projectile> _release;
 
     public void Initialize(Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount, float spinSpeed = 0f)
     {
+        ResetState();
         _direction = direction.normalized;
         speed = speedValue;
         damage = damageValue;
@@ -42,6 +46,7 @@ public class Projectile : MonoBehaviour
 
     public void InitializeOrbit(Vector2 center, Vector2 direction, float radialSpeed, float angularSpeed, float damageValue, float lifetimeValue, int pierceCount, float spinSpeed = 0f)
     {
+        ResetState();
         _useOrbit = true;
         _orbitCenter = center;
         _direction = direction.normalized;
@@ -65,10 +70,28 @@ public class Projectile : MonoBehaviour
         _slowDuration = Mathf.Max(0f, duration);
     }
 
+    public void SetRelease(System.Action<Projectile> release)
+    {
+        _release = release;
+    }
+
     private void Awake()
     {
         _collider = GetComponent<Collider2D>();
         _remainingHits = pierce + 1;
+    }
+
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
     }
 
     private void Update()
@@ -91,7 +114,7 @@ public class Projectile : MonoBehaviour
         lifetime -= Time.deltaTime;
         if (lifetime <= 0f)
         {
-            Destroy(gameObject);
+            Despawn();
         }
     }
 
@@ -137,7 +160,32 @@ public class Projectile : MonoBehaviour
             {
                 _collider.enabled = false;
             }
+            Despawn();
+        }
+    }
+
+    private void Despawn()
+    {
+        if (_release != null)
+        {
+            _release(this);
+        }
+        else
+        {
             Destroy(gameObject);
+        }
+    }
+
+    private void ResetState()
+    {
+        _useOrbit = false;
+        _applySlow = false;
+        _hitTargets.Clear();
+        _slowMultiplier = 1f;
+        _slowDuration = 0f;
+        if (_collider != null)
+        {
+            _collider.enabled = true;
         }
     }
 }

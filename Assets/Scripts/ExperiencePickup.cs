@@ -2,6 +2,10 @@
 
 public class ExperiencePickup : MonoBehaviour
 {
+    public static readonly System.Collections.Generic.List<ExperiencePickup> Active = new System.Collections.Generic.List<ExperiencePickup>();
+    private static readonly System.Collections.Generic.Stack<ExperiencePickup> _pool = new System.Collections.Generic.Stack<ExperiencePickup>();
+    private static Sprite _cachedSprite;
+
     [SerializeField]
     private float amount = 1f;
 
@@ -11,17 +15,62 @@ public class ExperiencePickup : MonoBehaviour
     private Experience _magnetTarget;
     private float _nextScanTime;
 
+    public static ExperiencePickup Spawn(Vector3 position, float value)
+    {
+        ExperiencePickup pickup = null;
+        while (_pool.Count > 0 && pickup == null)
+        {
+            pickup = _pool.Pop();
+        }
+
+        if (pickup == null)
+        {
+            pickup = CreateInstance();
+        }
+
+        var go = pickup.gameObject;
+        go.SetActive(true);
+        go.transform.position = position;
+        go.transform.localScale = Vector3.one * 0.4f;
+        pickup.SetAmount(value);
+        return pickup;
+    }
+
     public void SetAmount(float value)
     {
         amount = Mathf.Max(0.01f, value);
     }
 
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+        _magnetTarget = null;
+        _nextScanTime = 0f;
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
+    }
+
     private void Update()
     {
-        if (Time.unscaledTime >= _nextScanTime || _magnetTarget == null)
+        var session = GameSession.Instance;
+        if (session != null)
+        {
+            if (session.IsGameOver || session.IsChoosingUpgrade)
+            {
+                return;
+            }
+        }
+
+        if (Time.time >= _nextScanTime || _magnetTarget == null)
         {
             _magnetTarget = FindClosestTarget();
-            _nextScanTime = Time.unscaledTime + magnetScanInterval;
+            _nextScanTime = Time.time + magnetScanInterval;
         }
 
         if (_magnetTarget == null)
@@ -48,7 +97,7 @@ public class ExperiencePickup : MonoBehaviour
             return;
         }
 
-        Vector3 step = toTarget.normalized * speed * Time.unscaledDeltaTime;
+        Vector3 step = toTarget.normalized * speed * Time.deltaTime;
         if (step.sqrMagnitude >= toTarget.sqrMagnitude)
         {
             transform.position = _magnetTarget.transform.position;
@@ -68,15 +117,15 @@ public class ExperiencePickup : MonoBehaviour
         }
 
         xp.AddXp(amount);
-        Destroy(gameObject);
+        Despawn();
     }
 
     private Experience FindClosestTarget()
     {
         Experience closest = null;
         float bestSqr = float.MaxValue;
-        var targets = FindObjectsOfType<Experience>();
-        for (int i = 0; i < targets.Length; i++)
+        var targets = Experience.Active;
+        for (int i = 0; i < targets.Count; i++)
         {
             var target = targets[i];
             if (target == null)
@@ -94,5 +143,63 @@ public class ExperiencePickup : MonoBehaviour
         }
 
         return closest;
+    }
+
+    private void Despawn()
+    {
+        gameObject.SetActive(false);
+        _pool.Push(this);
+    }
+
+    private static ExperiencePickup CreateInstance()
+    {
+        var go = new GameObject("XP");
+        go.transform.localScale = Vector3.one * 0.4f;
+
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = GetCachedSprite();
+        renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
+
+        var rb = go.AddComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.gravityScale = 0f;
+
+        var col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.15f;
+
+        var pickup = go.AddComponent<ExperiencePickup>();
+        return pickup;
+    }
+
+    private static Sprite GetCachedSprite()
+    {
+        if (_cachedSprite != null)
+        {
+            return _cachedSprite;
+        }
+
+        const int size = 50;
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        var colors = new Color32[size * size];
+        float r = (size - 1) * 0.5f;
+        float cx = r;
+        float cy = r;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - cx;
+                float dy = y - cy;
+                bool inside = (dx * dx + dy * dy) <= r * r;
+                colors[y * size + x] = inside ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
+            }
+        }
+
+        texture.SetPixels32(colors);
+        texture.Apply();
+        _cachedSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return _cachedSprite;
     }
 }

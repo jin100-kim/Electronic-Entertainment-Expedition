@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(NetworkTransform))]
 public class PlayerController : NetworkBehaviour
 {
+    public static readonly System.Collections.Generic.List<PlayerController> Active = new System.Collections.Generic.List<PlayerController>();
+
     [SerializeField]
     private float moveSpeed = 5f;
 
@@ -22,7 +24,7 @@ public class PlayerController : NetworkBehaviour
     };
 
     [SerializeField]
-    private Vector3 shadowOffset = new Vector3(0f, -0.25f, 0f);
+    private Vector3 shadowOffset = new Vector3(0f, -0.35f, 0f);
 
     [SerializeField]
     private Vector3 shadowScale = new Vector3(0.6f, 0.25f, 1f);
@@ -37,7 +39,7 @@ public class PlayerController : NetworkBehaviour
     private bool autoPlayEnabled = false;
 
     [SerializeField]
-    private float visualScale = 4f;
+    private float visualScale = 2.5f;
 
     [Header("Auto Play")]
     [SerializeField]
@@ -88,6 +90,19 @@ public class PlayerController : NetworkBehaviour
         EnsureStatusBars();
         EnsureDamageVignette();
         EnsureVisuals();
+    }
+
+    private void OnEnable()
+    {
+        if (!Active.Contains(this))
+        {
+            Active.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
     }
 
     private void Start()
@@ -180,8 +195,8 @@ public class PlayerController : NetworkBehaviour
     {
         EnemyController closest = null;
         float bestSqr = float.MaxValue;
-        var enemies = FindObjectsOfType<EnemyController>();
-        for (int i = 0; i < enemies.Length; i++)
+        var enemies = EnemyController.Active;
+        for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i];
             if (enemy == null)
@@ -206,8 +221,8 @@ public class PlayerController : NetworkBehaviour
         if (autoSeekXp)
         {
             float rangeSqr = autoXpSeekRange * autoXpSeekRange;
-            var pickups = FindObjectsOfType<ExperiencePickup>();
-            for (int i = 0; i < pickups.Length; i++)
+            var pickups = ExperiencePickup.Active;
+            for (int i = 0; i < pickups.Count; i++)
             {
                 var pickup = pickups[i];
                 if (pickup == null)
