@@ -51,6 +51,16 @@ public class GameSession : MonoBehaviour
 
     private float enemyXpPerLevel = 0f;
 
+    [Header("Multiplayer Scaling")]
+    private bool enableMultiplayerScaling = true;
+    private float multiplayerMaxEnemiesPerPlayer = 0.6f;
+    private float multiplayerSpawnIntervalReductionPerPlayer = 0.12f;
+    private float multiplayerEnemyHealthPerPlayer = 0.7f;
+    private float multiplayerEnemyDamagePerPlayer = 0.4f;
+    private float multiplayerEnemyXpPerPlayer = 0.35f;
+    private float multiplayerEliteHealthPerPlayer = 0.8f;
+    private float multiplayerBossHealthPerPlayer = 1.2f;
+
     private float enemyHealthMultiplier = 1f;
 
     private float enemyDamageMultiplier = 1f;
@@ -316,6 +326,8 @@ public class GameSession : MonoBehaviour
     private float _baseEnemyDamage;
     private float _baseEnemyMaxHealth;
     private int _baseEnemyXp;
+    private float _baseEliteHealthMult;
+    private float _baseBossHealthMult;
     private bool _cachedSpawnerBase;
     private bool _spawnerDifficultyApplied;
     private AutoAttack _attack;
@@ -421,6 +433,15 @@ public class GameSession : MonoBehaviour
         enemyDamagePerLevel = settings.enemyDamagePerLevel;
         enemySpeedPerLevel = settings.enemySpeedPerLevel;
         enemyXpPerLevel = settings.enemyXpPerLevel;
+
+        enableMultiplayerScaling = settings.enableMultiplayerScaling;
+        multiplayerMaxEnemiesPerPlayer = settings.multiplayerMaxEnemiesPerPlayer;
+        multiplayerSpawnIntervalReductionPerPlayer = settings.multiplayerSpawnIntervalReductionPerPlayer;
+        multiplayerEnemyHealthPerPlayer = settings.multiplayerEnemyHealthPerPlayer;
+        multiplayerEnemyDamagePerPlayer = settings.multiplayerEnemyDamagePerPlayer;
+        multiplayerEnemyXpPerPlayer = settings.multiplayerEnemyXpPerPlayer;
+        multiplayerEliteHealthPerPlayer = settings.multiplayerEliteHealthPerPlayer;
+        multiplayerBossHealthPerPlayer = settings.multiplayerBossHealthPerPlayer;
 
         localSpawnPosition = settings.localSpawnPosition;
         mapHalfSize = settings.mapHalfSize;
@@ -767,6 +788,31 @@ public class GameSession : MonoBehaviour
         }
 
         return null;
+    }
+
+    private int GetActivePlayerCount()
+    {
+        if (!NetworkSession.IsActive)
+        {
+            return 1;
+        }
+
+        int count = 0;
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i] != null)
+            {
+                count++;
+            }
+        }
+
+        if (count <= 0 && NetworkManager.Singleton != null)
+        {
+            count = NetworkManager.Singleton.ConnectedClients.Count;
+        }
+
+        return Mathf.Max(1, count);
     }
 
     private bool HasLocalStartWeaponSelection()
@@ -2604,18 +2650,32 @@ public class GameSession : MonoBehaviour
 
         CacheSpawnerBaseStats();
 
-        float newInterval = Mathf.Max(minSpawnInterval, spawnInterval - ElapsedTime * spawnIntervalDecayPerSec);
+        int playerCount = GetActivePlayerCount();
+        int extraPlayers = Mathf.Max(0, playerCount - 1);
+        float playerCountFactor = enableMultiplayerScaling ? 1f + multiplayerMaxEnemiesPerPlayer * extraPlayers : 1f;
+        float spawnIntervalFactor = enableMultiplayerScaling
+            ? Mathf.Max(0.4f, 1f - multiplayerSpawnIntervalReductionPerPlayer * extraPlayers)
+            : 1f;
+        float healthFactor = enableMultiplayerScaling ? 1f + multiplayerEnemyHealthPerPlayer * extraPlayers : 1f;
+        float damageFactor = enableMultiplayerScaling ? 1f + multiplayerEnemyDamagePerPlayer * extraPlayers : 1f;
+        float xpFactor = enableMultiplayerScaling ? 1f + multiplayerEnemyXpPerPlayer * extraPlayers : 1f;
+        float eliteHealthFactor = enableMultiplayerScaling ? 1f + multiplayerEliteHealthPerPlayer * extraPlayers : 1f;
+        float bossHealthFactor = enableMultiplayerScaling ? 1f + multiplayerBossHealthPerPlayer * extraPlayers : 1f;
+
+        float newInterval = Mathf.Max(minSpawnInterval, spawnInterval * spawnIntervalFactor - ElapsedTime * spawnIntervalDecayPerSec);
         _spawner.SpawnInterval = newInterval;
 
-        int extra = Mathf.FloorToInt((ElapsedTime / 60f) * maxEnemiesPerMinute);
-        _spawner.MaxEnemies = maxEnemies + extra;
+        int extra = Mathf.FloorToInt((ElapsedTime / 60f) * maxEnemiesPerMinute * playerCountFactor);
+        _spawner.MaxEnemies = Mathf.RoundToInt(maxEnemies * playerCountFactor) + extra;
 
         int level = MonsterLevel;
         float levelFactor = Mathf.Max(0f, level - 1f);
         _spawner.EnemyMoveSpeed = _baseEnemyMoveSpeed * (1f + enemySpeedPerLevel * levelFactor);
-        _spawner.EnemyDamage = _baseEnemyDamage * (1f + enemyDamagePerLevel * levelFactor);
-        _spawner.EnemyMaxHealth = _baseEnemyMaxHealth * (1f + enemyHealthPerLevel * levelFactor);
-        _spawner.EnemyXpReward = Mathf.Max(1, Mathf.RoundToInt(_baseEnemyXp * (1f + enemyXpPerLevel * levelFactor)));
+        _spawner.EnemyDamage = _baseEnemyDamage * damageFactor * (1f + enemyDamagePerLevel * levelFactor);
+        _spawner.EnemyMaxHealth = _baseEnemyMaxHealth * healthFactor * (1f + enemyHealthPerLevel * levelFactor);
+        _spawner.EnemyXpReward = Mathf.Max(1, Mathf.RoundToInt(_baseEnemyXp * xpFactor * (1f + enemyXpPerLevel * levelFactor)));
+        _spawner.EliteHealthMult = _baseEliteHealthMult * eliteHealthFactor;
+        _spawner.BossHealthMult = _baseBossHealthMult * bossHealthFactor;
     }
 
     private void CheckStageCompletion()
@@ -2666,6 +2726,8 @@ public class GameSession : MonoBehaviour
         _baseEnemyDamage = _spawner.EnemyDamage;
         _baseEnemyMaxHealth = _spawner.EnemyMaxHealth;
         _baseEnemyXp = _spawner.EnemyXpReward;
+        _baseEliteHealthMult = _spawner.EliteHealthMult;
+        _baseBossHealthMult = _spawner.BossHealthMult;
         _cachedSpawnerBase = true;
     }
 

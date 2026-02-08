@@ -741,6 +741,11 @@ public class PlayerController : NetworkBehaviour
         {
             gameObject.AddComponent<Health>();
         }
+
+        if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)
+        {
+            gameObject.AddComponent<NetworkHealth>();
+        }
     }
 
     private void EnsureAutoAttack()

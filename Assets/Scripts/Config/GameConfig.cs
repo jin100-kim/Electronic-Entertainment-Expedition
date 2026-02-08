@@ -57,6 +57,16 @@ public class GameSessionSettings
     public float enemySpeedPerLevel = 0.05f;
     public float enemyXpPerLevel = 0f;
 
+    [Header("Multiplayer Scaling")]
+    public bool enableMultiplayerScaling = true;
+    public float multiplayerMaxEnemiesPerPlayer = 0.6f;
+    public float multiplayerSpawnIntervalReductionPerPlayer = 0.12f;
+    public float multiplayerEnemyHealthPerPlayer = 0.7f;
+    public float multiplayerEnemyDamagePerPlayer = 0.4f;
+    public float multiplayerEnemyXpPerPlayer = 0.35f;
+    public float multiplayerEliteHealthPerPlayer = 0.8f;
+    public float multiplayerBossHealthPerPlayer = 1.2f;
+
     [Header("Player")]
     public Vector3 localSpawnPosition = Vector3.zero;
 

@@ -149,6 +149,7 @@ public class NetworkStartUI : MonoBehaviour
         if (!NetworkManager.Singleton.IsListening)
         {
             ConfigureTransport();
+            RuntimeNetworkPrefabs.EnsureRegistered();
             bool ok = NetworkManager.Singleton.StartHost();
             if (!ok)
             {
@@ -168,6 +169,7 @@ public class NetworkStartUI : MonoBehaviour
         if (!NetworkManager.Singleton.IsListening)
         {
             ConfigureTransport();
+            RuntimeNetworkPrefabs.EnsureRegistered();
             bool ok = NetworkManager.Singleton.StartClient();
             if (!ok)
             {

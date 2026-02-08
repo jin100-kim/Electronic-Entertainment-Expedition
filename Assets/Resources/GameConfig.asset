@@ -26,6 +26,14 @@ MonoBehaviour:
     enemyDamagePerLevel: 0.1
     enemySpeedPerLevel: 0.05
     enemyXpPerLevel: 0
+    enableMultiplayerScaling: 1
+    multiplayerMaxEnemiesPerPlayer: 0.6
+    multiplayerSpawnIntervalReductionPerPlayer: 0.12
+    multiplayerEnemyHealthPerPlayer: 0.7
+    multiplayerEnemyDamagePerPlayer: 0.4
+    multiplayerEnemyXpPerPlayer: 0.35
+    multiplayerEliteHealthPerPlayer: 0.8
+    multiplayerBossHealthPerPlayer: 1.2
     localSpawnPosition: {x: 0, y: 0, z: 0}
     mapHalfSize: {x: 24, y: 24}
     maxUpgradeLevel: 10

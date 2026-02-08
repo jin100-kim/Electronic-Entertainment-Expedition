@@ -26,12 +26,17 @@ public class EnemyController : MonoBehaviour
     [SerializeField]
     private float deathFadeDuration = 0.6f;
 
+    [Header("Targeting")]
+    [SerializeField]
+    private float targetScanInterval = 1f;
+
     private float _nextDamageTime;
     private Health _health;
     private float _slowMultiplier = 1f;
     private float _slowTimer;
     private bool _dead;
     private SpriteRenderer[] _visualRenderers;
+    private float _nextTargetScanTime;
 
     public bool IsDead => _dead;
 
@@ -82,6 +87,11 @@ public class EnemyController : MonoBehaviour
             _health = gameObject.AddComponent<Health>();
         }
 
+        if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)
+        {
+            gameObject.AddComponent<NetworkHealth>();
+        }
+
         _health.SetMaxHealth(maxHealth, true);
 
         if (GetComponent<EnemyHealthBar>() == null)
@@ -128,13 +138,19 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        if (Target == null)
+        if (Target != null)
         {
-            var player = FindObjectOfType<PlayerController>();
-            if (player != null)
+            var targetHealth = Target.GetComponent<Health>();
+            if (targetHealth != null && targetHealth.IsDead)
             {
-                Target = player.transform;
+                Target = null;
             }
+        }
+
+        if (Target == null || Time.time >= _nextTargetScanTime)
+        {
+            Target = FindClosestPlayer();
+            _nextTargetScanTime = Time.time + Mathf.Max(0.1f, targetScanInterval);
         }
 
         if (Target == null)
@@ -254,6 +270,38 @@ public class EnemyController : MonoBehaviour
         {
             _slowTimer = duration;
         }
+    }
+
+    private Transform FindClosestPlayer()
+    {
+        Transform best = null;
+        float bestSqr = float.MaxValue;
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player == null)
+            {
+                continue;
+            }
+
+            var health = player.GetComponent<Health>();
+            if (health != null && health.IsDead)
+            {
+                continue;
+            }
+
+            Vector3 delta = player.transform.position - transform.position;
+            float sqr = delta.sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                best = player.transform;
+            }
+        }
+
+        return best;
     }
 
     private void ResolveVisualRenderers()

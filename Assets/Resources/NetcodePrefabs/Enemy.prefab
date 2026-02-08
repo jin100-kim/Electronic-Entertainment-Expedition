@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 5320284353792987591}
   - component: {fileID: 4832151003210278333}
   - component: {fileID: 3296960645141380139}
+  - component: {fileID: 7850012345678901234}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -295,3 +296,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyNetState
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &7850012345678901234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6010027017990478246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bce8e3b9c6c4b41a39ddf7d0f0a8e64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

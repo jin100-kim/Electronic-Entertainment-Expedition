@@ -62,6 +62,18 @@ public class Health : MonoBehaviour
         CurrentHealth = maxHealth;
     }
 
+    public void SetCurrentHealth(float value, bool clampToMax = true, bool invokeDamagedEvent = false)
+    {
+        float prev = CurrentHealth;
+        float next = clampToMax ? Mathf.Clamp(value, 0f, maxHealth) : value;
+        CurrentHealth = next;
+
+        if (invokeDamagedEvent && next < prev)
+        {
+            OnDamaged?.Invoke(prev - next);
+        }
+    }
+
     public void AddMaxHealth(float amount, bool healToFull = false)
     {
         if (amount <= 0f)

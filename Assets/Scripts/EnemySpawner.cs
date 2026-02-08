@@ -137,6 +137,18 @@ public class EnemySpawner : MonoBehaviour
         set => enemyMaxHealth = Mathf.Max(1f, value);
     }
 
+    public float EliteHealthMult
+    {
+        get => eliteHealthMult;
+        set => eliteHealthMult = Mathf.Max(0.1f, value);
+    }
+
+    public float BossHealthMult
+    {
+        get => bossHealthMult;
+        set => bossHealthMult = Mathf.Max(0.1f, value);
+    }
+
     private void Awake()
     {
         ApplySettings();
@@ -200,21 +212,50 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
 
-        if (Target == null)
-        {
-            return;
-        }
-
         CleanupDeadEnemies();
 
         if (Time.time >= _nextSpawnTime && _enemies.Count < maxEnemies)
         {
-            SpawnEnemyWithTier();
-            _nextSpawnTime = Time.time + spawnInterval;
+            var spawnTarget = ResolveSpawnTarget();
+            if (spawnTarget != null)
+            {
+                SpawnEnemyWithTier(spawnTarget);
+                _nextSpawnTime = Time.time + spawnInterval;
+            }
         }
     }
 
-    private void SpawnEnemyWithTier()
+    private Transform ResolveSpawnTarget()
+    {
+        if (NetworkSession.IsActive)
+        {
+            var players = PlayerController.Active;
+            if (players != null && players.Count > 0)
+            {
+                int start = Random.Range(0, players.Count);
+                for (int i = 0; i < players.Count; i++)
+                {
+                    var player = players[(start + i) % players.Count];
+                    if (player == null)
+                    {
+                        continue;
+                    }
+
+                    var health = player.GetComponent<Health>();
+                    if (health != null && health.IsDead)
+                    {
+                        continue;
+                    }
+
+                    return player.transform;
+                }
+            }
+        }
+
+        return Target;
+    }
+
+    private void SpawnEnemyWithTier(Transform spawnTarget)
     {
         float elapsed = GetElapsedTime();
         if (_nextEliteTime < 0f)
@@ -228,7 +269,7 @@ public class EnemySpawner : MonoBehaviour
 
         if (elapsed >= _nextBossTime && CountAlive(EnemyTier.Tier.Boss) < maxBossAlive)
         {
-            SpawnEnemy(EnemyTier.Tier.Boss);
+            SpawnEnemy(EnemyTier.Tier.Boss, spawnTarget);
             _nextBossTime = elapsed + bossInterval;
             return;
         }
@@ -237,19 +278,24 @@ public class EnemySpawner : MonoBehaviour
         {
             if (Random.value <= eliteChance)
             {
-                SpawnEnemy(EnemyTier.Tier.Elite);
+                SpawnEnemy(EnemyTier.Tier.Elite, spawnTarget);
             }
             _nextEliteTime = elapsed + eliteInterval;
             return;
         }
 
-        SpawnEnemy(EnemyTier.Tier.Normal);
+        SpawnEnemy(EnemyTier.Tier.Normal, spawnTarget);
     }
 
-    private void SpawnEnemy(EnemyTier.Tier tier)
+    private void SpawnEnemy(EnemyTier.Tier tier, Transform spawnTarget)
     {
+        if (spawnTarget == null)
+        {
+            return;
+        }
+
         Vector2 offset = Random.insideUnitCircle.normalized * spawnRadius;
-        Vector3 position = Target.position + new Vector3(offset.x, offset.y, 0f);
+        Vector3 position = spawnTarget.position + new Vector3(offset.x, offset.y, 0f);
         if (GameSession.Instance != null)
         {
             position = GameSession.Instance.ClampToBounds(position);
@@ -299,7 +345,7 @@ public class EnemySpawner : MonoBehaviour
         {
             controller = enemy.AddComponent<EnemyController>();
         }
-        controller.Target = Target;
+        controller.Target = spawnTarget;
         controller.MoveSpeed = enemyMoveSpeed * GetSpeedMult(tier);
         controller.ContactDamage = enemyDamage * GetDamageMult(tier);
         controller.DamageCooldown = enemyDamageCooldown;
