@@ -61,6 +61,16 @@ public class GameSession : MonoBehaviour
     private float multiplayerEliteHealthPerPlayer = 0.8f;
     private float multiplayerBossHealthPerPlayer = 1.2f;
 
+    [Header("Enrage")]
+    private bool enableEnrage = true;
+    private float enrageStartTime = 600f;
+    private float enrageHealthPerSecond = 0.004f;
+    private float enrageDamagePerSecond = 0.003f;
+    private float enrageSpeedPerSecond = 0.0015f;
+    private float enrageSpawnIntervalReductionPerSecond = 0.005f;
+    private float enrageMinSpawnInterval = 0.25f;
+    private float enrageExtraEnemiesPerSecond = 0.05f;
+
     private float enemyHealthMultiplier = 1f;
 
     private float enemyDamageMultiplier = 1f;
@@ -442,6 +452,15 @@ public class GameSession : MonoBehaviour
         multiplayerEnemyXpPerPlayer = settings.multiplayerEnemyXpPerPlayer;
         multiplayerEliteHealthPerPlayer = settings.multiplayerEliteHealthPerPlayer;
         multiplayerBossHealthPerPlayer = settings.multiplayerBossHealthPerPlayer;
+
+        enableEnrage = settings.enableEnrage;
+        enrageStartTime = settings.enrageStartTime;
+        enrageHealthPerSecond = settings.enrageHealthPerSecond;
+        enrageDamagePerSecond = settings.enrageDamagePerSecond;
+        enrageSpeedPerSecond = settings.enrageSpeedPerSecond;
+        enrageSpawnIntervalReductionPerSecond = settings.enrageSpawnIntervalReductionPerSecond;
+        enrageMinSpawnInterval = settings.enrageMinSpawnInterval;
+        enrageExtraEnemiesPerSecond = settings.enrageExtraEnemiesPerSecond;
 
         localSpawnPosition = settings.localSpawnPosition;
         mapHalfSize = settings.mapHalfSize;
@@ -2663,16 +2682,29 @@ public class GameSession : MonoBehaviour
         float bossHealthFactor = enableMultiplayerScaling ? 1f + multiplayerBossHealthPerPlayer * extraPlayers : 1f;
 
         float newInterval = Mathf.Max(minSpawnInterval, spawnInterval * spawnIntervalFactor - ElapsedTime * spawnIntervalDecayPerSec);
+        float enrageTime = enableEnrage ? Mathf.Max(0f, ElapsedTime - enrageStartTime) : 0f;
+        if (enrageTime > 0f)
+        {
+            newInterval = Mathf.Max(enrageMinSpawnInterval, newInterval - enrageSpawnIntervalReductionPerSecond * enrageTime);
+        }
         _spawner.SpawnInterval = newInterval;
 
         int extra = Mathf.FloorToInt((ElapsedTime / 60f) * maxEnemiesPerMinute * playerCountFactor);
+        if (enrageTime > 0f)
+        {
+            extra += Mathf.RoundToInt(enrageExtraEnemiesPerSecond * enrageTime);
+        }
         _spawner.MaxEnemies = Mathf.RoundToInt(maxEnemies * playerCountFactor) + extra;
 
         int level = MonsterLevel;
         float levelFactor = Mathf.Max(0f, level - 1f);
-        _spawner.EnemyMoveSpeed = _baseEnemyMoveSpeed * (1f + enemySpeedPerLevel * levelFactor);
-        _spawner.EnemyDamage = _baseEnemyDamage * damageFactor * (1f + enemyDamagePerLevel * levelFactor);
-        _spawner.EnemyMaxHealth = _baseEnemyMaxHealth * healthFactor * (1f + enemyHealthPerLevel * levelFactor);
+        float enrageHealth = enrageTime > 0f ? 1f + Mathf.Max(0f, enrageHealthPerSecond) * enrageTime : 1f;
+        float enrageDamage = enrageTime > 0f ? 1f + Mathf.Max(0f, enrageDamagePerSecond) * enrageTime : 1f;
+        float enrageSpeed = enrageTime > 0f ? 1f + Mathf.Max(0f, enrageSpeedPerSecond) * enrageTime : 1f;
+
+        _spawner.EnemyMoveSpeed = _baseEnemyMoveSpeed * (1f + enemySpeedPerLevel * levelFactor) * enrageSpeed;
+        _spawner.EnemyDamage = _baseEnemyDamage * damageFactor * (1f + enemyDamagePerLevel * levelFactor) * enrageDamage;
+        _spawner.EnemyMaxHealth = _baseEnemyMaxHealth * healthFactor * (1f + enemyHealthPerLevel * levelFactor) * enrageHealth;
         _spawner.EnemyXpReward = Mathf.Max(1, Mathf.RoundToInt(_baseEnemyXp * xpFactor * (1f + enemyXpPerLevel * levelFactor)));
         _spawner.EliteHealthMult = _baseEliteHealthMult * eliteHealthFactor;
         _spawner.BossHealthMult = _baseBossHealthMult * bossHealthFactor;

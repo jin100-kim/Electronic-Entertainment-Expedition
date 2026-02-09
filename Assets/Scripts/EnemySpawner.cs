@@ -81,6 +81,31 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField]
     private float bossXpMult = 8f;
 
+    [Header("Visual Variety")]
+    [SerializeField]
+    private bool enableVisualPhases = true;
+
+    [SerializeField]
+    private float phase1EndTime = 180f;
+
+    [SerializeField]
+    private float phase2EndTime = 360f;
+
+    [SerializeField]
+    private float phase3EndTime = 600f;
+
+    [SerializeField]
+    private Vector3 phase1Weights = new Vector3(1f, 0f, 0f);
+
+    [SerializeField]
+    private Vector3 phase2Weights = new Vector3(0.7f, 0.3f, 0f);
+
+    [SerializeField]
+    private Vector3 phase3Weights = new Vector3(0.4f, 0.4f, 0.2f);
+
+    [SerializeField]
+    private Vector3 phase4Weights = new Vector3(0.25f, 0.35f, 0.4f);
+
     private float _nextSpawnTime;
     private float _nextEliteTime = -1f;
     private float _nextBossTime = -1f;
@@ -191,6 +216,15 @@ public class EnemySpawner : MonoBehaviour
         bossDamageMult = settings.bossDamageMult;
         bossSpeedMult = settings.bossSpeedMult;
         bossXpMult = settings.bossXpMult;
+
+        enableVisualPhases = settings.enableVisualPhases;
+        phase1EndTime = settings.phase1EndTime;
+        phase2EndTime = settings.phase2EndTime;
+        phase3EndTime = settings.phase3EndTime;
+        phase1Weights = settings.phase1Weights;
+        phase2Weights = settings.phase2Weights;
+        phase3Weights = settings.phase3Weights;
+        phase4Weights = settings.phase4Weights;
 
         _settingsApplied = true;
     }
@@ -491,8 +525,53 @@ public class EnemySpawner : MonoBehaviour
             case EnemyTier.Tier.Elite:
                 return EnemyVisuals.EnemyVisualType.Mushroom;
             default:
-                return EnemyVisuals.EnemyVisualType.Slime;
+                return GetNormalVisualType();
         }
+    }
+
+    private EnemyVisuals.EnemyVisualType GetNormalVisualType()
+    {
+        if (!enableVisualPhases)
+        {
+            return EnemyVisuals.EnemyVisualType.Slime;
+        }
+
+        float elapsed = GetElapsedTime();
+        Vector3 weights = phase1Weights;
+        if (elapsed >= phase3EndTime)
+        {
+            weights = phase4Weights;
+        }
+        else if (elapsed >= phase2EndTime)
+        {
+            weights = phase3Weights;
+        }
+        else if (elapsed >= phase1EndTime)
+        {
+            weights = phase2Weights;
+        }
+
+        float total = Mathf.Max(0f, weights.x) + Mathf.Max(0f, weights.y) + Mathf.Max(0f, weights.z);
+        if (total <= 0.001f)
+        {
+            return EnemyVisuals.EnemyVisualType.Slime;
+        }
+
+        float roll = Random.value * total;
+        float slime = Mathf.Max(0f, weights.x);
+        float mushroom = Mathf.Max(0f, weights.y);
+
+        if (roll < slime)
+        {
+            return EnemyVisuals.EnemyVisualType.Slime;
+        }
+
+        if (roll < slime + mushroom)
+        {
+            return EnemyVisuals.EnemyVisualType.Mushroom;
+        }
+
+        return EnemyVisuals.EnemyVisualType.Skeleton;
     }
 
     // Visuals are now handled by EnemyVisuals + Animator.

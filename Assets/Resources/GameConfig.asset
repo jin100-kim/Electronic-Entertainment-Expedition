@@ -34,10 +34,18 @@ MonoBehaviour:
     multiplayerEnemyXpPerPlayer: 0.35
     multiplayerEliteHealthPerPlayer: 0.8
     multiplayerBossHealthPerPlayer: 1.2
+    enableEnrage: 1
+    enrageStartTime: 600
+    enrageHealthPerSecond: 0.006
+    enrageDamagePerSecond: 0.005
+    enrageSpeedPerSecond: 0.002
+    enrageSpawnIntervalReductionPerSecond: 0.008
+    enrageMinSpawnInterval: 0.2
+    enrageExtraEnemiesPerSecond: 0.08
     localSpawnPosition: {x: 0, y: 0, z: 0}
     mapHalfSize: {x: 24, y: 24}
     maxUpgradeLevel: 10
-    maxWeaponSlots: 5
+    maxWeaponSlots: 3
     maxStatSlots: 5
     damageMult: 1
     fireRateMult: 1
@@ -52,79 +60,79 @@ MonoBehaviour:
       level: 1
       unlocked: 1
       damageMult: 1
-      fireRateMult: 1.2
+      fireRateMult: 1.15
       rangeMult: 1
       bonusProjectiles: 0
     boomerangStats:
       displayName: "\uBD80\uBA54\uB791"
       level: 0
       unlocked: 0
-      damageMult: 1
-      fireRateMult: 0.8
-      rangeMult: 0.7
+      damageMult: 0.85
+      fireRateMult: 0.75
+      rangeMult: 0.8
       bonusProjectiles: 0
     novaStats:
       displayName: "\uB178\uBC14"
       level: 0
       unlocked: 0
-      damageMult: 1
-      fireRateMult: 0.6
-      rangeMult: 0.5
+      damageMult: 0.7
+      fireRateMult: 0.5
+      rangeMult: 0.55
       bonusProjectiles: 0
     shotgunStats:
       displayName: "\uC0F7\uAC74"
       level: 0
       unlocked: 0
-      damageMult: 0.9
-      fireRateMult: 0.7
-      rangeMult: 0.75
+      damageMult: 0.75
+      fireRateMult: 0.6
+      rangeMult: 0.7
       bonusProjectiles: 0
     laserStats:
       displayName: "\uB808\uC774\uC800"
       level: 0
       unlocked: 0
-      damageMult: 1.1
-      fireRateMult: 0.8
-      rangeMult: 1.4
+      damageMult: 0.95
+      fireRateMult: 0.7
+      rangeMult: 1.35
       bonusProjectiles: 0
     chainStats:
       displayName: "\uCCB4\uC778 \uB77C\uC774\uD2B8\uB2DD"
       level: 0
       unlocked: 0
-      damageMult: 0.9
-      fireRateMult: 0.75
-      rangeMult: 1.1
+      damageMult: 0.85
+      fireRateMult: 0.7
+      rangeMult: 1
       bonusProjectiles: 0
     droneStats:
       displayName: "\uB4DC\uB860"
       level: 0
       unlocked: 0
-      damageMult: 0.8
-      fireRateMult: 0.5
+      damageMult: 0.7
+      fireRateMult: 0.45
       rangeMult: 1
       bonusProjectiles: 0
     shurikenStats:
       displayName: "\uC218\uB9AC\uAC80"
       level: 0
       unlocked: 0
-      damageMult: 0.9
-      fireRateMult: 0.9
+      damageMult: 0.95
+      fireRateMult: 0.85
       rangeMult: 1
       bonusProjectiles: 0
     frostStats:
       displayName: "\uBE59\uACB0 \uAD6C\uCCB4"
       level: 0
       unlocked: 0
-      damageMult: 0.85
-      fireRateMult: 0.8
+      damageMult: 0.8
+      fireRateMult: 0.75
       rangeMult: 1
       bonusProjectiles: 0
     lightningStats:
       displayName: "\uBC88\uAC1C"
       level: 0
       unlocked: 0
-      damageMult: 1
-      fireRateMult: 0.7
+      damageMult: 0.95
+      fireRateMult: 0.65
       rangeMult: 1
       bonusProjectiles: 0
     moveSpeedMult: 1
@@ -216,6 +224,14 @@ MonoBehaviour:
     bossDamageMult: 2
     bossSpeedMult: 1.2
     bossXpMult: 8
+    enableVisualPhases: 1
+    phase1EndTime: 180
+    phase2EndTime: 360
+    phase3EndTime: 600
+    phase1Weights: {x: 1, y: 0, z: 0}
+    phase2Weights: {x: 0.7, y: 0.3, z: 0}
+    phase3Weights: {x: 0.4, y: 0.4, z: 0.2}
+    phase4Weights: {x: 0.25, y: 0.35, z: 0.4}
   autoAttack:
     baseFireInterval: 0.6
     baseProjectileSpeed: 10
@@ -228,7 +244,7 @@ MonoBehaviour:
     novaOrbitAngularSpeed: 8
     shotgunBasePellets: 5
     shotgunSpreadAngle: 32
-    shotgunPelletDamageMult: 0.75
+    shotgunPelletDamageMult: 0.65
     shotgunSpeedMult: 0.95
     laserSpeedMult: 1.8
     laserThickness: 0.12

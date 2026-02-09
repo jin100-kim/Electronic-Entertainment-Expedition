@@ -68,6 +68,16 @@ public class GameSessionSettings
     public float multiplayerEliteHealthPerPlayer = 0.8f;
     public float multiplayerBossHealthPerPlayer = 1.2f;
 
+    [Header("Enrage")]
+    public bool enableEnrage = true;
+    public float enrageStartTime = 600f;
+    public float enrageHealthPerSecond = 0.004f;
+    public float enrageDamagePerSecond = 0.003f;
+    public float enrageSpeedPerSecond = 0.0015f;
+    public float enrageSpawnIntervalReductionPerSecond = 0.005f;
+    public float enrageMinSpawnInterval = 0.25f;
+    public float enrageExtraEnemiesPerSecond = 0.05f;
+
     [Header("Player")]
     public Vector3 localSpawnPosition = Vector3.zero;
 
@@ -313,6 +323,16 @@ public class EnemySpawnerConfig
     public float bossDamageMult = 2f;
     public float bossSpeedMult = 1.2f;
     public float bossXpMult = 8f;
+
+    [Header("Visual Variety")]
+    public bool enableVisualPhases = true;
+    public float phase1EndTime = 180f;
+    public float phase2EndTime = 360f;
+    public float phase3EndTime = 600f;
+    public Vector3 phase1Weights = new Vector3(1f, 0f, 0f);
+    public Vector3 phase2Weights = new Vector3(0.7f, 0.3f, 0f);
+    public Vector3 phase3Weights = new Vector3(0.4f, 0.4f, 0.2f);
+    public Vector3 phase4Weights = new Vector3(0.25f, 0.35f, 0.4f);
 }
 
 [System.Serializable]
