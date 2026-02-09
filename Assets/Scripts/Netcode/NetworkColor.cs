@@ -6,12 +6,14 @@ using Unity.Collections;
 public class NetworkColor : NetworkBehaviour
 {
     private const int DefaultCircleSize = 50;
+    private const byte WeaponIdNone = 255;
     private static readonly System.Collections.Generic.Dictionary<int, Sprite> _circleCache = new System.Collections.Generic.Dictionary<int, Sprite>();
     private static Sprite _solidSprite;
     private static readonly System.Collections.Generic.Dictionary<string, Sprite> _resourceSpriteCache = new System.Collections.Generic.Dictionary<string, Sprite>();
 
     private readonly NetworkVariable<Color32> _color = new NetworkVariable<Color32>(new Color32(255, 255, 255, 255));
     private readonly NetworkVariable<FixedString64Bytes> _spritePath = new NetworkVariable<FixedString64Bytes>(new FixedString64Bytes());
+    private readonly NetworkVariable<byte> _weaponId = new NetworkVariable<byte>(WeaponIdNone);
     private SpriteRenderer _renderer;
 
     public override void OnNetworkSpawn()
@@ -19,15 +21,18 @@ public class NetworkColor : NetworkBehaviour
         _renderer = GetComponent<SpriteRenderer>();
         EnsureDefaultSprite();
         ApplySprite(_spritePath.Value.ToString());
+        ApplyWeaponSprite(_weaponId.Value);
         ApplyColor(_color.Value);
         _color.OnValueChanged += OnColorChanged;
         _spritePath.OnValueChanged += OnSpritePathChanged;
+        _weaponId.OnValueChanged += OnWeaponIdChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         _color.OnValueChanged -= OnColorChanged;
         _spritePath.OnValueChanged -= OnSpritePathChanged;
+        _weaponId.OnValueChanged -= OnWeaponIdChanged;
         base.OnNetworkDespawn();
     }
 
@@ -55,6 +60,17 @@ public class NetworkColor : NetworkBehaviour
         ApplySprite(path);
     }
 
+    public void SetWeaponId(byte weaponId)
+    {
+        if (NetworkSession.IsActive && !IsServer)
+        {
+            return;
+        }
+
+        _weaponId.Value = weaponId;
+        ApplyWeaponSprite(weaponId);
+    }
+
     private void OnColorChanged(Color32 previous, Color32 next)
     {
         ApplyColor(next);
@@ -63,6 +79,11 @@ public class NetworkColor : NetworkBehaviour
     private void OnSpritePathChanged(FixedString64Bytes previous, FixedString64Bytes next)
     {
         ApplySprite(next.ToString());
+    }
+
+    private void OnWeaponIdChanged(byte previous, byte next)
+    {
+        ApplyWeaponSprite(next);
     }
 
     private void ApplyColor(Color32 color)
@@ -102,6 +123,32 @@ public class NetworkColor : NetworkBehaviour
         }
     }
 
+    private void ApplyWeaponSprite(byte weaponId)
+    {
+        if (_renderer == null)
+        {
+            _renderer = GetComponent<SpriteRenderer>();
+        }
+
+        if (weaponId == WeaponIdNone)
+        {
+            ApplySprite(_spritePath.Value.ToString());
+            return;
+        }
+
+        var path = GetWeaponSpritePath(weaponId);
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        var sprite = LoadResourceSprite(path);
+        if (sprite != null)
+        {
+            _renderer.sprite = sprite;
+        }
+    }
+
     private void EnsureDefaultSprite()
     {
         if (_renderer == null)
@@ -138,6 +185,31 @@ public class NetworkColor : NetworkBehaviour
         var sprite = Resources.Load<Sprite>(path);
         _resourceSpriteCache[path] = sprite;
         return sprite;
+    }
+
+    private static string GetWeaponSpritePath(byte weaponId)
+    {
+        var config = GameConfig.LoadOrCreate();
+        var settings = config.autoAttack;
+        switch ((AutoAttack.WeaponType)weaponId)
+        {
+            case AutoAttack.WeaponType.Straight:
+                return settings.straightSpritePath;
+            case AutoAttack.WeaponType.Boomerang:
+                return settings.boomerangSpritePath;
+            case AutoAttack.WeaponType.Nova:
+                return settings.novaSpritePath;
+            case AutoAttack.WeaponType.Shotgun:
+                return settings.shotgunSpritePath;
+            case AutoAttack.WeaponType.Drone:
+                return settings.droneSpritePath;
+            case AutoAttack.WeaponType.Shuriken:
+                return settings.shurikenSpritePath;
+            case AutoAttack.WeaponType.FrostOrb:
+                return settings.frostSpritePath;
+            default:
+                return null;
+        }
     }
 
     private static Sprite GetCircleSprite(int size)

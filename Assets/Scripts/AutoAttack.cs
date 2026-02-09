@@ -171,6 +171,9 @@ public class AutoAttack : MonoBehaviour
     [SerializeField]
     private string frostSpritePath;
 
+    [SerializeField]
+    private float projectileSpriteScale = 2.5f;
+
     private float _fireInterval;
     private float _baseInterval;
     private float _projectileSpeed;
@@ -192,6 +195,9 @@ public class AutoAttack : MonoBehaviour
     private static readonly System.Collections.Generic.Stack<GameObject> _dronePool = new System.Collections.Generic.Stack<GameObject>();
 
     private const float TargetScanInterval = 0.1f;
+    private const byte WeaponIdNone = 255;
+
+    private static byte ToWeaponId(WeaponType type) => (byte)type;
 
     private struct WeaponConfig
     {
@@ -307,6 +313,7 @@ public class AutoAttack : MonoBehaviour
         droneSpritePath = settings.droneSpritePath;
         shurikenSpritePath = settings.shurikenSpritePath;
         frostSpritePath = settings.frostSpritePath;
+        projectileSpriteScale = settings.projectileSpriteScale;
 
         _settingsApplied = true;
     }
@@ -509,11 +516,12 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _straight.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.Straight);
 
         int count = GetWeaponCount(_straight);
         if (count <= 1)
         {
-            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, straightSpritePath);
+            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, straightSpritePath, weaponId);
             _range = savedRange;
             return;
         }
@@ -524,7 +532,7 @@ public class AutoAttack : MonoBehaviour
         {
             float offsetIndex = start + i;
             Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
-            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, spawnOffset, straightSpritePath);
+            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, spawnOffset, straightSpritePath, weaponId);
         }
 
         _range = savedRange;
@@ -535,11 +543,12 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _boomerang.RangeMult;
         float lifetime = CalculateBoomerangLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.Boomerang);
 
         int count = GetWeaponCount(_boomerang);
         if (count <= 1)
         {
-            SpawnBoomerang(direction, _projectileDamage * _boomerang.DamageMult, lifetime);
+            SpawnBoomerang(direction, _projectileDamage * _boomerang.DamageMult, lifetime, weaponId);
             _range = savedRange;
             return;
         }
@@ -550,7 +559,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnBoomerang(dir, _projectileDamage * _boomerang.DamageMult, lifetime);
+            SpawnBoomerang(dir, _projectileDamage * _boomerang.DamageMult, lifetime, weaponId);
         }
 
         _range = savedRange;
@@ -561,6 +570,7 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _nova.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.Nova);
 
         int count = 8 + _nova.BonusCount;
         float angleStep = 360f / count;
@@ -568,7 +578,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = angleStep * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
-            SpawnNovaProjectile(dir, lifetime, 1f);
+            SpawnNovaProjectile(dir, lifetime, 1f, weaponId);
         }
 
         _range = savedRange;
@@ -579,6 +589,7 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _shotgun.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.Shotgun);
 
         int count = Mathf.Max(1, shotgunBasePellets + _shotgun.BonusCount + Mathf.Max(0, _projectileCount - 1));
         float spread = Mathf.Max(0f, shotgunSpreadAngle);
@@ -591,7 +602,7 @@ public class AutoAttack : MonoBehaviour
         {
             float angle = start + step * i;
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnProjectile(dir, pelletDamage, 0f, lifetime, Vector2.zero, speed, shotgunSpritePath);
+            SpawnProjectile(dir, pelletDamage, 0f, lifetime, Vector2.zero, speed, shotgunSpritePath, weaponId);
         }
 
         _range = savedRange;
@@ -602,6 +613,7 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _laser.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = WeaponIdNone;
 
         int count = GetWeaponCount(_laser);
         Vector2 perp = new Vector2(-direction.y, direction.x);
@@ -612,7 +624,7 @@ public class AutoAttack : MonoBehaviour
         {
             float offsetIndex = start + i;
             Vector2 spawnOffset = perp * (offsetIndex * laserParallelSpacing);
-            SpawnLaserProjectile(direction, _projectileDamage * _laser.DamageMult, lifetime, spawnOffset, speed);
+            SpawnLaserProjectile(direction, _projectileDamage * _laser.DamageMult, lifetime, spawnOffset, speed, weaponId);
         }
 
         _range = savedRange;
@@ -706,10 +718,11 @@ public class AutoAttack : MonoBehaviour
         float radius = Mathf.Max(0.4f, droneOrbitRadius * _drone.RangeMult);
         float speed = droneAngularSpeed;
         float lifetime = Mathf.Max(0.2f, droneLifetime);
+        byte weaponId = ToWeaponId(WeaponType.Drone);
         for (int i = 0; i < count; i++)
         {
             float angle = (Mathf.PI * 2f / count) * i;
-            SpawnDroneProjectile(radius, speed, _projectileDamage * _drone.DamageMult * droneDamageMult, lifetime, angle);
+            SpawnDroneProjectile(radius, speed, _projectileDamage * _drone.DamageMult * droneDamageMult, lifetime, angle, weaponId);
         }
     }
 
@@ -718,11 +731,12 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _shuriken.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.Shuriken);
 
         int count = GetWeaponCount(_shuriken);
         if (count <= 1)
         {
-            SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult);
+            SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, weaponId);
             _range = savedRange;
             return;
         }
@@ -733,7 +747,7 @@ public class AutoAttack : MonoBehaviour
         {
             float offsetIndex = start + i;
             Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
-            SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, spawnOffset);
+            SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, weaponId, spawnOffset);
         }
 
         _range = savedRange;
@@ -744,11 +758,12 @@ public class AutoAttack : MonoBehaviour
         float savedRange = _range;
         _range *= _frost.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.FrostOrb);
 
         int count = GetWeaponCount(_frost);
         for (int i = 0; i < count; i++)
         {
-            var proj = SpawnColoredProjectile(direction, _projectileDamage * _frost.DamageMult * frostDamageMult, frostColor, 360f, lifetime, _projectileSpeed * frostSpeedMult, frostSpritePath);
+            var proj = SpawnColoredProjectile(direction, _projectileDamage * _frost.DamageMult * frostDamageMult, frostColor, 360f, lifetime, _projectileSpeed * frostSpeedMult, frostSpritePath, weaponId);
             if (proj != null)
             {
                 proj.SetSlowEffect(frostSlowMultiplier, frostSlowDuration);
@@ -758,17 +773,17 @@ public class AutoAttack : MonoBehaviour
         _range = savedRange;
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath, byte weaponId)
     {
-        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero, _projectileSpeed, spritePath);
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero, _projectileSpeed, spritePath, weaponId);
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, string spritePath)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, string spritePath, byte weaponId)
     {
-        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, spawnOffset, _projectileSpeed, spritePath);
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, spawnOffset, _projectileSpeed, spritePath, weaponId);
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride, string spritePath)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride, string spritePath, byte weaponId)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -794,25 +809,18 @@ public class AutoAttack : MonoBehaviour
 
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.rotation = Quaternion.identity;
-        go.transform.localScale = Vector3.one * 0.4f;
 
         var renderer = go.GetComponent<SpriteRenderer>();
         if (renderer == null)
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = ResolveProjectileSprite(spritePath, _projectileSize);
+        const float fallbackScale = 0.4f;
+        bool hasSprite = TryResolveProjectileSprite(spritePath, _projectileSize, out var projectileSprite);
+        renderer.sprite = projectileSprite;
+        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var baseColor = new Color(0.9f, 0.9f, 0.2f, 1f);
         var netColor = go.GetComponent<NetworkColor>();
-        if (netColor != null)
-        {
-            netColor.SetColor(baseColor);
-            netColor.SetSpritePath(spritePath);
-        }
-        else
-        {
-            renderer.color = baseColor;
-        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -828,7 +836,7 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = GetScaledColliderRadius(0.5f, fallbackScale, hasSprite);
 
         var proj = go.GetComponent<Projectile>();
         if (proj == null)
@@ -843,9 +851,10 @@ public class AutoAttack : MonoBehaviour
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, baseColor, weaponId);
     }
 
-    private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign)
+    private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign, byte weaponId)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -871,25 +880,18 @@ public class AutoAttack : MonoBehaviour
 
         go.transform.position = transform.position;
         go.transform.rotation = Quaternion.identity;
-        go.transform.localScale = Vector3.one * 0.4f;
 
         var renderer = go.GetComponent<SpriteRenderer>();
         if (renderer == null)
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = ResolveProjectileSprite(novaSpritePath, _projectileSize);
+        const float fallbackScale = 0.4f;
+        bool hasSprite = TryResolveProjectileSprite(novaSpritePath, _projectileSize, out var novaSprite);
+        renderer.sprite = novaSprite;
+        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
         var netColor = go.GetComponent<NetworkColor>();
-        if (netColor != null)
-        {
-            netColor.SetColor(novaColor);
-            netColor.SetSpritePath(novaSpritePath);
-        }
-        else
-        {
-            renderer.color = novaColor;
-        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -905,7 +907,7 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = GetScaledColliderRadius(0.5f, fallbackScale, hasSprite);
 
         var proj = go.GetComponent<Projectile>();
         if (proj == null)
@@ -919,9 +921,10 @@ public class AutoAttack : MonoBehaviour
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, novaColor, weaponId);
     }
 
-    private void SpawnLaserProjectile(Vector2 direction, float damageOverride, float lifetime, Vector2 spawnOffset, float speedOverride)
+    private void SpawnLaserProjectile(Vector2 direction, float damageOverride, float lifetime, Vector2 spawnOffset, float speedOverride, byte weaponId)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -957,14 +960,6 @@ public class AutoAttack : MonoBehaviour
         }
         renderer.sprite = CreateSolidSprite();
         var netColor = go.GetComponent<NetworkColor>();
-        if (netColor != null)
-        {
-            netColor.SetColor(laserColor);
-        }
-        else
-        {
-            renderer.color = laserColor;
-        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -993,14 +988,15 @@ public class AutoAttack : MonoBehaviour
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, laserColor, weaponId);
     }
 
-    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath)
+    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId)
     {
-        return SpawnColoredProjectile(direction, damageOverride, color, spinSpeed, lifetime, speedOverride, spritePath, Vector2.zero);
+        return SpawnColoredProjectile(direction, damageOverride, color, spinSpeed, lifetime, speedOverride, spritePath, weaponId, Vector2.zero);
     }
 
-    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, Vector2 spawnOffset)
+    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId, Vector2 spawnOffset)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -1026,24 +1022,17 @@ public class AutoAttack : MonoBehaviour
 
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.rotation = Quaternion.identity;
-        go.transform.localScale = Vector3.one * 0.4f;
 
         var renderer = go.GetComponent<SpriteRenderer>();
         if (renderer == null)
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = ResolveProjectileSprite(spritePath, _projectileSize);
+        const float fallbackScale = 0.4f;
+        bool hasSprite = TryResolveProjectileSprite(spritePath, _projectileSize, out var coloredSprite);
+        renderer.sprite = coloredSprite;
+        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var netColor = go.GetComponent<NetworkColor>();
-        if (netColor != null)
-        {
-            netColor.SetColor(color);
-            netColor.SetSpritePath(spritePath);
-        }
-        else
-        {
-            renderer.color = color;
-        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -1059,7 +1048,7 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = GetScaledColliderRadius(0.5f, fallbackScale, hasSprite);
 
         var proj = go.GetComponent<Projectile>();
         if (proj == null)
@@ -1072,10 +1061,11 @@ public class AutoAttack : MonoBehaviour
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, color, weaponId);
         return proj;
     }
 
-    private void SpawnDroneProjectile(float radius, float angularSpeed, float damageOverride, float lifetime, float startAngle)
+    private void SpawnDroneProjectile(float radius, float angularSpeed, float damageOverride, float lifetime, float startAngle, byte weaponId)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -1101,24 +1091,17 @@ public class AutoAttack : MonoBehaviour
 
         go.transform.position = transform.position;
         go.transform.rotation = Quaternion.identity;
-        go.transform.localScale = Vector3.one * 0.4f;
 
         var renderer = go.GetComponent<SpriteRenderer>();
         if (renderer == null)
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = ResolveProjectileSprite(droneSpritePath, _projectileSize);
+        const float fallbackScale = 0.4f;
+        bool hasSprite = TryResolveProjectileSprite(droneSpritePath, _projectileSize, out var droneSprite);
+        renderer.sprite = droneSprite;
+        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var netColor = go.GetComponent<NetworkColor>();
-        if (netColor != null)
-        {
-            netColor.SetColor(droneColor);
-            netColor.SetSpritePath(droneSpritePath);
-        }
-        else
-        {
-            renderer.color = droneColor;
-        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -1134,7 +1117,7 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = 0.45f;
+        col.radius = GetScaledColliderRadius(0.45f, fallbackScale, hasSprite);
 
         var drone = go.GetComponent<DroneProjectile>();
         if (drone == null)
@@ -1147,9 +1130,10 @@ public class AutoAttack : MonoBehaviour
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, droneColor, weaponId);
     }
 
-    private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime)
+    private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime, byte weaponId)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -1175,25 +1159,18 @@ public class AutoAttack : MonoBehaviour
 
         go.transform.position = transform.position;
         go.transform.rotation = Quaternion.identity;
-        go.transform.localScale = Vector3.one * 0.45f;
 
         var renderer = go.GetComponent<SpriteRenderer>();
         if (renderer == null)
         {
             renderer = go.AddComponent<SpriteRenderer>();
         }
-        renderer.sprite = ResolveProjectileSprite(boomerangSpritePath, _projectileSize);
+        const float fallbackScale = 0.45f;
+        bool hasSprite = TryResolveProjectileSprite(boomerangSpritePath, _projectileSize, out var boomerangSprite);
+        renderer.sprite = boomerangSprite;
+        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var boomColor = new Color(0.2f, 0.9f, 0.9f, 1f);
         var netColor = go.GetComponent<NetworkColor>();
-        if (netColor != null)
-        {
-            netColor.SetColor(boomColor);
-            netColor.SetSpritePath(boomerangSpritePath);
-        }
-        else
-        {
-            renderer.color = boomColor;
-        }
 
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb == null)
@@ -1209,7 +1186,7 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = GetScaledColliderRadius(0.5f, fallbackScale, hasSprite);
 
         var boom = go.GetComponent<BoomerangProjectile>();
         if (boom == null)
@@ -1222,6 +1199,7 @@ public class AutoAttack : MonoBehaviour
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, boomColor, weaponId);
     }
 
     private float CalculateLifetimeForRange(float range)
@@ -1329,10 +1307,27 @@ public class AutoAttack : MonoBehaviour
         return sprite;
     }
 
-    private static Sprite ResolveProjectileSprite(string path, int fallbackSize)
+    private static bool TryResolveProjectileSprite(string path, int fallbackSize, out Sprite sprite)
     {
-        var sprite = LoadResourceSprite(path);
-        return sprite != null ? sprite : CreateCircleSprite(fallbackSize);
+        sprite = LoadResourceSprite(path);
+        if (sprite != null)
+        {
+            return true;
+        }
+
+        sprite = CreateCircleSprite(fallbackSize);
+        return false;
+    }
+
+    private float GetScaledColliderRadius(float baseRadius, float fallbackScale, bool hasSprite)
+    {
+        if (!hasSprite)
+        {
+            return baseRadius;
+        }
+
+        float scale = Mathf.Max(0.01f, projectileSpriteScale);
+        return baseRadius * fallbackScale / scale;
     }
 
     private static Sprite _solidSprite;
@@ -1565,5 +1560,23 @@ public class AutoAttack : MonoBehaviour
 
         _chainMaterial = new Material(Shader.Find("Sprites/Default"));
         return _chainMaterial;
+    }
+
+    private static void ApplyNetworkVisual(SpriteRenderer renderer, NetworkColor netColor, Color color, byte weaponId)
+    {
+        if (netColor != null)
+        {
+            netColor.SetColor(color);
+            if (weaponId != WeaponIdNone)
+            {
+                netColor.SetWeaponId(weaponId);
+            }
+            return;
+        }
+
+        if (renderer != null)
+        {
+            renderer.color = color;
+        }
     }
 }

@@ -265,6 +265,7 @@ MonoBehaviour:
     droneSpritePath: Art/Projectiles/drone
     shurikenSpritePath: Art/Projectiles/shuriken
     frostSpritePath: Art/Projectiles/frost
+    projectileSpriteScale: 2.5
   player:
     moveSpeed: 5
     playerColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
@@ -296,12 +297,12 @@ MonoBehaviour:
     baseMagnetRange: 1.5
     baseMagnetSpeed: 1.5
   pickups:
-    xpPickupScale: 0.4
-    coinPickupScale: 0.4
+    xpPickupScale: 1.6
+    coinPickupScale: 0.65
     xpMagnetScanInterval: 0.2
     coinMagnetScanInterval: 0.2
-    xpSpriteSize: 50
-    coinSpriteSize: 40
+    xpSpriteSize: 70
+    coinSpriteSize: 60
     xpSpritePath: Art/Pickups/xp
     coinSpritePath: Art/Pickups/coin
     xpColor: {r: 0.2, g: 0.8, b: 1, a: 1}
@@ -310,10 +311,19 @@ MonoBehaviour:
     coinColliderRadius: 0.12
     coinSortingOrder: 1
   mapBackground:
-    backgroundSpritePath: Art/Map/tilemaps
+    backgroundSpritePath: 
     tileScale: 1
     tint: {r: 1, g: 1, b: 1, a: 1}
     sortingOrder: -10
+    useGrid: 0
+    gridCellSize: 32
+    gridLineThickness: 1
+    gridLineColor: {r: 1, g: 1, b: 1, a: 0.4}
+    gridBackgroundColor: {r: 0.6, g: 0.85, b: 0.55, a: 1}
+    useChecker: 1
+    checkerCellSize: 16
+    checkerColorA: {r: 0.55, g: 0.74, b: 0.34, a: 1}
+    checkerColorB: {r: 0.46, g: 0.66, b: 0.3, a: 1}
   mapBorder:
     color: {r: 1, g: 1, b: 1, a: 0.6}
     width: 0.05

@@ -375,6 +375,7 @@ public class AutoAttackConfig
     public string droneSpritePath;
     public string shurikenSpritePath;
     public string frostSpritePath;
+    public float projectileSpriteScale = 2.5f;
 }
 
 [System.Serializable]
@@ -443,6 +444,15 @@ public class MapBackgroundConfig
     public float tileScale = 1f;
     public Color tint = Color.white;
     public int sortingOrder = -10;
+    public bool useGrid = true;
+    public int gridCellSize = 32;
+    public int gridLineThickness = 1;
+    public Color gridLineColor = new Color(0.3f, 0.35f, 0.45f, 0.35f);
+    public Color gridBackgroundColor = new Color(0.16f, 0.18f, 0.22f, 1f);
+    public bool useChecker = false;
+    public int checkerCellSize = 32;
+    public Color checkerColorA = new Color(0.6f, 0.85f, 0.55f, 1f);
+    public Color checkerColorB = Color.white;
 }
 
 [System.Serializable]
