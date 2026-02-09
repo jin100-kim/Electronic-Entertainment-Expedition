@@ -847,11 +847,11 @@ public class AutoAttack : MonoBehaviour
         proj.Initialize(direction, speedOverride, damageOverride, life, _projectilePierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
 
+        ApplyNetworkVisual(renderer, netColor, baseColor, spritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
-        ApplyNetworkVisual(renderer, netColor, baseColor, weaponId);
     }
 
     private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign, byte weaponId)
@@ -917,11 +917,11 @@ public class AutoAttack : MonoBehaviour
         float angularSpeed = Mathf.Max(0.1f, novaOrbitAngularSpeed) * rotationSign;
         proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
+        ApplyNetworkVisual(renderer, netColor, novaColor, novaSpritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
-        ApplyNetworkVisual(renderer, netColor, novaColor, weaponId);
     }
 
     private void SpawnLaserProjectile(Vector2 direction, float damageOverride, float lifetime, Vector2 spawnOffset, float speedOverride, byte weaponId)
@@ -984,11 +984,11 @@ public class AutoAttack : MonoBehaviour
         }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, 0f);
         proj.SetRelease(p => ReleaseProjectile(p, _laserProjectilePool));
+        ApplyNetworkVisual(renderer, netColor, laserColor, null, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
-        ApplyNetworkVisual(renderer, netColor, laserColor, weaponId);
     }
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId)
@@ -1057,11 +1057,11 @@ public class AutoAttack : MonoBehaviour
         }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
+        ApplyNetworkVisual(renderer, netColor, color, spritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
-        ApplyNetworkVisual(renderer, netColor, color, weaponId);
         return proj;
     }
 
@@ -1126,11 +1126,11 @@ public class AutoAttack : MonoBehaviour
         }
         drone.Initialize(transform, radius, angularSpeed, damageOverride, lifetime, startAngle);
         drone.SetRelease(d => ReleaseDrone(d));
+        ApplyNetworkVisual(renderer, netColor, droneColor, droneSpritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
-        ApplyNetworkVisual(renderer, netColor, droneColor, weaponId);
     }
 
     private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime, byte weaponId)
@@ -1195,11 +1195,11 @@ public class AutoAttack : MonoBehaviour
         }
         boom.Initialize(transform, direction, _projectileSpeed, damageOverride, lifetime, 9999);
         boom.SetRelease(b => ReleaseBoomerang(b));
+        ApplyNetworkVisual(renderer, netColor, boomColor, boomerangSpritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
-        ApplyNetworkVisual(renderer, netColor, boomColor, weaponId);
     }
 
     private float CalculateLifetimeForRange(float range)
@@ -1303,6 +1303,14 @@ public class AutoAttack : MonoBehaviour
         }
 
         var sprite = Resources.Load<Sprite>(path);
+        if (sprite == null)
+        {
+            var sprites = Resources.LoadAll<Sprite>(path);
+            if (sprites != null && sprites.Length > 0)
+            {
+                sprite = sprites[0];
+            }
+        }
         _resourceSpriteCache[path] = sprite;
         return sprite;
     }
@@ -1562,11 +1570,15 @@ public class AutoAttack : MonoBehaviour
         return _chainMaterial;
     }
 
-    private static void ApplyNetworkVisual(SpriteRenderer renderer, NetworkColor netColor, Color color, byte weaponId)
+    private static void ApplyNetworkVisual(SpriteRenderer renderer, NetworkColor netColor, Color color, string spritePath, byte weaponId)
     {
         if (netColor != null)
         {
             netColor.SetColor(color);
+            if (!string.IsNullOrWhiteSpace(spritePath))
+            {
+                netColor.SetSpritePath(spritePath);
+            }
             if (weaponId != WeaponIdNone)
             {
                 netColor.SetWeaponId(weaponId);

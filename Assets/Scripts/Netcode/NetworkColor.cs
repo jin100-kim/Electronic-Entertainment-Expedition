@@ -38,7 +38,7 @@ public class NetworkColor : NetworkBehaviour
 
     public void SetColor(Color color)
     {
-        if (NetworkSession.IsActive && !IsServer)
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
         {
             return;
         }
@@ -50,7 +50,7 @@ public class NetworkColor : NetworkBehaviour
 
     public void SetSpritePath(string resourcePath)
     {
-        if (NetworkSession.IsActive && !IsServer)
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
         {
             return;
         }
@@ -62,7 +62,7 @@ public class NetworkColor : NetworkBehaviour
 
     public void SetWeaponId(byte weaponId)
     {
-        if (NetworkSession.IsActive && !IsServer)
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
         {
             return;
         }
@@ -183,6 +183,14 @@ public class NetworkColor : NetworkBehaviour
         }
 
         var sprite = Resources.Load<Sprite>(path);
+        if (sprite == null)
+        {
+            var sprites = Resources.LoadAll<Sprite>(path);
+            if (sprites != null && sprites.Length > 0)
+            {
+                sprite = sprites[0];
+            }
+        }
         _resourceSpriteCache[path] = sprite;
         return sprite;
     }
