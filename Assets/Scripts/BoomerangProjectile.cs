@@ -26,6 +26,9 @@ public class BoomerangProjectile : MonoBehaviour
     [SerializeField]
     private float catchDistance = 0.35f;
 
+    [SerializeField]
+    private float spinSpeed = 1440f;
+
     private Vector2 _direction;
     private Transform _owner;
     private float _elapsed;
@@ -78,6 +81,7 @@ public class BoomerangProjectile : MonoBehaviour
     {
         if (NetworkSession.IsActive && !NetworkSession.IsServer)
         {
+            ApplySpin();
             return;
         }
 
@@ -105,6 +109,7 @@ public class BoomerangProjectile : MonoBehaviour
         }
 
         transform.position += (Vector3)(_direction * speed * Time.deltaTime);
+        ApplySpin();
 
         if (_elapsed >= lifetime)
         {
@@ -236,6 +241,14 @@ public class BoomerangProjectile : MonoBehaviour
         if (_collider != null)
         {
             _collider.enabled = true;
+        }
+    }
+
+    private void ApplySpin()
+    {
+        if (Mathf.Abs(spinSpeed) > 0.01f)
+        {
+            transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
         }
     }
 }

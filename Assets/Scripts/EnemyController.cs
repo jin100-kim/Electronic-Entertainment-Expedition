@@ -92,6 +92,11 @@ public class EnemyController : MonoBehaviour
             gameObject.AddComponent<ElementStatus>();
         }
 
+        if (GetComponent<EnemyHitFlash>() == null)
+        {
+            gameObject.AddComponent<EnemyHitFlash>();
+        }
+
         if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)
         {
             gameObject.AddComponent<NetworkHealth>();

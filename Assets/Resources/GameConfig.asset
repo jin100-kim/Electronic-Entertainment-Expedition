@@ -314,7 +314,7 @@ MonoBehaviour:
     baseMagnetSpeed: 1.5
   pickups:
     xpPickupScale: 1.6
-    coinPickupScale: 0.65
+    coinPickupScale: 1.6
     xpMagnetScanInterval: 0.2
     coinMagnetScanInterval: 0.2
     xpSpriteSize: 70
