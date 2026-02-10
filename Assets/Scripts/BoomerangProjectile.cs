@@ -35,6 +35,10 @@ public class BoomerangProjectile : MonoBehaviour
     private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
     private bool _returning;
     private System.Action<BoomerangProjectile> _release;
+    private ElementType _elementFirst = ElementType.None;
+    private ElementType _elementSecond = ElementType.None;
+    private ElementType _elementThird = ElementType.None;
+    private int _elementCount;
 
     public void Initialize(Transform owner, Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount)
     {
@@ -126,6 +130,14 @@ public class BoomerangProjectile : MonoBehaviour
         _release = release;
     }
 
+    public void SetElements(ElementType first, ElementType second, ElementType third, int count)
+    {
+        _elementCount = Mathf.Clamp(count, 0, 3);
+        _elementFirst = _elementCount >= 1 ? first : ElementType.None;
+        _elementSecond = _elementCount >= 2 ? second : ElementType.None;
+        _elementThird = _elementCount >= 3 ? third : ElementType.None;
+    }
+
     private void BeginReturn()
     {
         _returning = true;
@@ -171,6 +183,12 @@ public class BoomerangProjectile : MonoBehaviour
 
         _hitTargets.Add(health);
         health.Damage(damage);
+
+        var status = other.GetComponent<ElementStatus>();
+        if (status != null)
+        {
+            ElementSystem.ApplyElementsOnHit(_elementFirst, _elementSecond, _elementThird, _elementCount, status);
+        }
 
         if (!_infinitePierce)
         {

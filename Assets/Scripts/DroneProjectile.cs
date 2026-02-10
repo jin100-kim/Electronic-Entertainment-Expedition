@@ -26,6 +26,10 @@ public class DroneProjectile : MonoBehaviour
     private float _timer;
     private readonly Dictionary<Health, float> _hitTimes = new Dictionary<Health, float>();
     private System.Action<DroneProjectile> _release;
+    private ElementType _elementFirst = ElementType.None;
+    private ElementType _elementSecond = ElementType.None;
+    private ElementType _elementThird = ElementType.None;
+    private int _elementCount;
 
     public void Initialize(Transform owner, float radius, float speed, float damageValue, float lifetimeValue, float startAngle)
     {
@@ -41,6 +45,14 @@ public class DroneProjectile : MonoBehaviour
     public void SetRelease(System.Action<DroneProjectile> release)
     {
         _release = release;
+    }
+
+    public void SetElements(ElementType first, ElementType second, ElementType third, int count)
+    {
+        _elementCount = Mathf.Clamp(count, 0, 3);
+        _elementFirst = _elementCount >= 1 ? first : ElementType.None;
+        _elementSecond = _elementCount >= 2 ? second : ElementType.None;
+        _elementThird = _elementCount >= 3 ? third : ElementType.None;
     }
 
     private void OnEnable()
@@ -127,6 +139,12 @@ public class DroneProjectile : MonoBehaviour
 
         _hitTimes[health] = now;
         health.Damage(damage);
+
+        var status = other.GetComponent<ElementStatus>();
+        if (status != null)
+        {
+            ElementSystem.ApplyElementsOnHit(_elementFirst, _elementSecond, _elementThird, _elementCount, status);
+        }
     }
 
     private void Despawn()

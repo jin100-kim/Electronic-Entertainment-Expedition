@@ -31,6 +31,10 @@ public class Projectile : MonoBehaviour
     private bool _applySlow;
     private float _slowMultiplier = 1f;
     private float _slowDuration;
+    private ElementType _elementFirst = ElementType.None;
+    private ElementType _elementSecond = ElementType.None;
+    private ElementType _elementThird = ElementType.None;
+    private int _elementCount;
     private System.Action<Projectile> _release;
 
     public void Initialize(Vector2 direction, float speedValue, float damageValue, float lifetimeValue, int pierceCount, float spinSpeed = 0f)
@@ -69,6 +73,14 @@ public class Projectile : MonoBehaviour
         _applySlow = duration > 0f;
         _slowMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
         _slowDuration = Mathf.Max(0f, duration);
+    }
+
+    public void SetElements(ElementType first, ElementType second, ElementType third, int count)
+    {
+        _elementCount = Mathf.Clamp(count, 0, 3);
+        _elementFirst = _elementCount >= 1 ? first : ElementType.None;
+        _elementSecond = _elementCount >= 2 ? second : ElementType.None;
+        _elementThird = _elementCount >= 3 ? third : ElementType.None;
     }
 
     public void SetRelease(System.Action<Projectile> release)
@@ -154,6 +166,12 @@ public class Projectile : MonoBehaviour
 
         _hitTargets.Add(health);
         health.Damage(damage);
+
+        var status = other.GetComponent<ElementStatus>();
+        if (status != null)
+        {
+            ElementSystem.ApplyElementsOnHit(_elementFirst, _elementSecond, _elementThird, _elementCount, status);
+        }
 
         if (_applySlow)
         {

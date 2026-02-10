@@ -87,6 +87,11 @@ public class EnemyController : MonoBehaviour
             _health = gameObject.AddComponent<Health>();
         }
 
+        if (GetComponent<ElementStatus>() == null)
+        {
+            gameObject.AddComponent<ElementStatus>();
+        }
+
         if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)
         {
             gameObject.AddComponent<NetworkHealth>();

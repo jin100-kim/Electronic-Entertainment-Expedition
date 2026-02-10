@@ -97,8 +97,10 @@ public class PlayerController : NetworkBehaviour
         EnsureShadow();
         EnsurePhysics();
         EnsureExperience();
+        EnsureElementLoadout();
         EnsureAutoAttack();
         EnsureHealth();
+        EnsureElementStatus();
         EnsureStatusBars();
         EnsureDamageVignette();
         EnsureVisuals();
@@ -745,6 +747,27 @@ public class PlayerController : NetworkBehaviour
         if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)
         {
             gameObject.AddComponent<NetworkHealth>();
+        }
+    }
+
+    private void EnsureElementStatus()
+    {
+        if (GetComponent<ElementStatus>() == null)
+        {
+            gameObject.AddComponent<ElementStatus>();
+        }
+    }
+
+    private void EnsureElementLoadout()
+    {
+        if (GetComponent<ElementLoadout>() == null)
+        {
+            gameObject.AddComponent<ElementLoadout>();
+        }
+
+        if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkElementLoadout>() == null)
+        {
+            gameObject.AddComponent<NetworkElementLoadout>();
         }
     }
 

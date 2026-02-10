@@ -10,6 +10,7 @@ public class GameConfig : ScriptableObject
     public MinimapConfig minimap = new MinimapConfig();
     public EnemySpawnerConfig enemySpawner = new EnemySpawnerConfig();
     public AutoAttackConfig autoAttack = new AutoAttackConfig();
+    public ElementSystemConfig elementSystem = new ElementSystemConfig();
     public PlayerConfig player = new PlayerConfig();
     public ExperienceConfig experience = new ExperienceConfig();
     public PickupConfig pickups = new PickupConfig();
