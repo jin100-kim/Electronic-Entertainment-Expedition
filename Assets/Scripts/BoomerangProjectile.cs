@@ -38,6 +38,8 @@ public class BoomerangProjectile : MonoBehaviour
     private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
     private bool _returning;
     private System.Action<BoomerangProjectile> _release;
+    private float _hitStunDuration;
+    private float _knockbackDistance;
     private ElementType _elementFirst = ElementType.None;
     private ElementType _elementSecond = ElementType.None;
     private ElementType _elementThird = ElementType.None;
@@ -135,6 +137,12 @@ public class BoomerangProjectile : MonoBehaviour
         _release = release;
     }
 
+    public void SetHitReaction(float knockbackDistance, float hitStunDuration)
+    {
+        _knockbackDistance = Mathf.Max(0f, knockbackDistance);
+        _hitStunDuration = Mathf.Max(0f, hitStunDuration);
+    }
+
     public void SetElements(ElementType first, ElementType second, ElementType third, int count)
     {
         _elementCount = Mathf.Clamp(count, 0, 3);
@@ -195,6 +203,20 @@ public class BoomerangProjectile : MonoBehaviour
             ElementSystem.ApplyElementsOnHit(_elementFirst, _elementSecond, _elementThird, _elementCount, status);
         }
 
+        if (_hitStunDuration > 0f || _knockbackDistance > 0f)
+        {
+            var enemy = other.GetComponent<EnemyController>();
+            if (enemy != null)
+            {
+                Vector2 dir = (Vector2)(other.transform.position - transform.position);
+                if (dir.sqrMagnitude < 0.0001f)
+                {
+                    dir = _direction;
+                }
+                enemy.ApplyHitReaction(dir, _knockbackDistance, _hitStunDuration);
+            }
+        }
+
         if (!_infinitePierce)
         {
             _remainingHits -= 1;
@@ -238,6 +260,8 @@ public class BoomerangProjectile : MonoBehaviour
         _elapsed = 0f;
         _returning = false;
         _hitTargets.Clear();
+        _hitStunDuration = 0f;
+        _knockbackDistance = 0f;
         if (_collider != null)
         {
             _collider.enabled = true;

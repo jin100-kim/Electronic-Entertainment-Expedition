@@ -76,6 +76,8 @@ public class PlayerController : NetworkBehaviour
     [SerializeField]
     private float autoMidCenterPull = 0.1f;
 
+    private bool _showColliderGizmos;
+
     private const int SpriteSize = 50;
     private NetworkVariable<int> _startWeaponIndex = new NetworkVariable<int>(-1);
     private NetworkVariable<bool> _gameStartedSignal = new NetworkVariable<bool>(false);
@@ -87,6 +89,17 @@ public class PlayerController : NetworkBehaviour
     private SpriteRenderer _shadowRenderer;
     private Vector3 _lastPosition;
     private bool _settingsApplied;
+    private static readonly Vector2[] AutoSampleDirections = new[]
+    {
+        Vector2.right,
+        Vector2.left,
+        Vector2.up,
+        Vector2.down,
+        new Vector2(1f, 1f).normalized,
+        new Vector2(-1f, 1f).normalized,
+        new Vector2(1f, -1f).normalized,
+        new Vector2(-1f, -1f).normalized
+    };
 
     private void Awake()
     {
@@ -96,6 +109,7 @@ public class PlayerController : NetworkBehaviour
         EnsureVisual();
         EnsureShadow();
         EnsurePhysics();
+        EnsureColliderGizmos();
         EnsureExperience();
         EnsureElementLoadout();
         EnsureAutoAttack();
@@ -149,6 +163,7 @@ public class PlayerController : NetworkBehaviour
 
         var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
         var settings = config.player;
+        _showColliderGizmos = config.game.showColliderGizmos;
 
         moveSpeed = settings.moveSpeed;
         playerColor = settings.playerColor;
@@ -172,6 +187,19 @@ public class PlayerController : NetworkBehaviour
         autoMidCenterPull = settings.autoMidCenterPull;
 
         _settingsApplied = true;
+    }
+
+    private void EnsureColliderGizmos()
+    {
+        if (!_showColliderGizmos)
+        {
+            return;
+        }
+
+        if (GetComponent<ColliderGizmos>() == null)
+        {
+            gameObject.AddComponent<ColliderGizmos>();
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -503,34 +531,86 @@ public class PlayerController : NetworkBehaviour
 
         Vector2 desired = Vector2.zero;
         bool hasTarget = false;
-        if (closestXp != null && (autoXpPriority || !hasEnemy || enemyInBand))
+        Vector2 enemyDesire = Vector2.zero;
+        bool hasXpTarget = false;
+
+        if (closestXp != null)
         {
-            hasTarget = true;
             Vector2 toXp = (closestXp.transform.position - transform.position);
             float dist = toXp.magnitude;
             if (dist > 0.001f)
             {
                 desired = toXp / dist;
+                hasTarget = true;
+                hasXpTarget = true;
             }
         }
-        else if (hasEnemy)
+
+        if (hasEnemy && enemyDist > 0.001f)
         {
-            hasTarget = true;
-            if (enemyDist > 0.001f)
+            Vector2 dir = toEnemy / enemyDist;
+            float danger = Mathf.Clamp01((autoMinDistance - enemyDist) / Mathf.Max(0.01f, autoMinDistance));
+            if (enemyDist < autoMinDistance)
             {
-                Vector2 dir = toEnemy / enemyDist;
-                if (enemyDist < autoMinDistance)
+                enemyDesire = -dir * Mathf.Lerp(autoKeepDistanceStrength * 0.5f, autoKeepDistanceStrength * 1.2f, danger);
+            }
+            else if (enemyDist > autoMaxDistance)
+            {
+                if (!hasXpTarget)
                 {
-                    desired = -dir;
+                    enemyDesire = dir * autoKeepDistanceStrength * 0.65f;
                 }
-                else if (enemyDist > autoMaxDistance)
+            }
+            else
+            {
+                if (!hasXpTarget)
                 {
-                    desired = dir;
+                    Vector2 orbit = new Vector2(-dir.y, dir.x);
+                    float orbitSign = Mathf.Sin(Time.time * 0.7f) >= 0f ? 1f : -1f;
+                    enemyDesire = orbit * autoOrbitStrength * orbitSign;
                 }
-                else
+            }
+        }
+
+        if (hasEnemy && enemyDesire != Vector2.zero)
+        {
+            bool shouldOverride = !hasTarget || !autoXpPriority || enemyDist < autoMinDistance * 0.9f;
+            if (shouldOverride)
+            {
+                desired = enemyDesire;
+                hasTarget = true;
+            }
+            else if (desired != Vector2.zero)
+            {
+                float blend = hasXpTarget ? 0.2f : 0.35f;
+                desired = Vector2.Lerp(desired, enemyDesire, blend);
+            }
+        }
+
+        float avoidRadius = Mathf.Max(autoMaxDistance, autoMinDistance) * 1.6f;
+        int threatCount;
+        Vector2 avoidDir = GetAvoidDirection(transform.position, avoidRadius, enemies, out threatCount);
+        if (avoidDir != Vector2.zero)
+        {
+            float weight = Mathf.Lerp(0.1f, 0.35f, Mathf.Clamp01(threatCount / 5f));
+            if (hasXpTarget)
+            {
+                weight *= 0.6f;
+            }
+            desired = Vector2.Lerp(desired, avoidDir, weight);
+        }
+
+        if (threatCount >= 4)
+        {
+            Vector2 safeDir = GetSafestDirection(transform.position, avoidRadius, enemies);
+            if (safeDir != Vector2.zero)
+            {
+                float weight = Mathf.Lerp(0.2f, 0.5f, Mathf.Clamp01((threatCount - 3f) / 5f));
+                if (hasXpTarget)
                 {
-                    desired = Vector2.zero;
+                    weight *= 0.6f;
                 }
+                desired = Vector2.Lerp(desired, safeDir, weight);
             }
         }
 
@@ -547,19 +627,31 @@ public class PlayerController : NetworkBehaviour
 
             Vector2 bounds = GameSession.Instance.MapHalfSize;
             Vector2 pos = transform.position;
-            float margin = 1.2f;
-            Vector2 centerPush = Vector2.zero;
-            if (Mathf.Abs(pos.x) > bounds.x - margin)
+            float wallRange = 3f;
+            Vector2 wallPush = Vector2.zero;
+            float distX = bounds.x - Mathf.Abs(pos.x);
+            if (distX < wallRange)
             {
-                centerPush.x = -Mathf.Sign(pos.x);
+                float strength = Mathf.Clamp01(1f - (distX / wallRange));
+                wallPush.x = -Mathf.Sign(pos.x) * strength;
             }
-            if (Mathf.Abs(pos.y) > bounds.y - margin)
+
+            float distY = bounds.y - Mathf.Abs(pos.y);
+            if (distY < wallRange)
             {
-                centerPush.y = -Mathf.Sign(pos.y);
+                float strength = Mathf.Clamp01(1f - (distY / wallRange));
+                wallPush.y = -Mathf.Sign(pos.y) * strength;
             }
-            if (centerPush != Vector2.zero)
+
+            if (wallPush != Vector2.zero)
             {
-                desired += centerPush * autoCenterPull;
+                float wallWeight = Mathf.Lerp(0.2f, 0.65f, Mathf.Clamp01(wallPush.magnitude));
+                if (hasXpTarget)
+                {
+                    wallWeight *= 0.6f;
+                }
+                desired = Vector2.Lerp(desired, wallPush.normalized, wallWeight);
+                desired += wallPush * (autoCenterPull * 0.6f);
             }
         }
 
@@ -576,6 +668,95 @@ public class PlayerController : NetworkBehaviour
         float lerp = 1f - Mathf.Exp(-autoSmooth * Time.deltaTime);
         _autoInputCurrent = Vector2.Lerp(_autoInputCurrent, desired, lerp);
         return _autoInputCurrent;
+    }
+
+    private static Vector2 GetAvoidDirection(Vector2 origin, float radius, System.Collections.Generic.IList<EnemyController> enemies, out int threatCount)
+    {
+        threatCount = 0;
+        if (enemies == null || radius <= 0f)
+        {
+            return Vector2.zero;
+        }
+
+        float radiusSqr = radius * radius;
+        Vector2 sum = Vector2.zero;
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            Vector2 toEnemy = (Vector2)enemy.transform.position - origin;
+            float distSqr = toEnemy.sqrMagnitude;
+            if (distSqr > radiusSqr || distSqr < 0.0001f)
+            {
+                continue;
+            }
+
+            float dist = Mathf.Sqrt(distSqr);
+            float weight = 1f - Mathf.Clamp01(dist / radius);
+            sum += (toEnemy / dist) * weight;
+            threatCount++;
+        }
+
+        if (sum.sqrMagnitude < 0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return -sum.normalized;
+    }
+
+    private static Vector2 GetSafestDirection(Vector2 origin, float radius, System.Collections.Generic.IList<EnemyController> enemies)
+    {
+        if (enemies == null || radius <= 0f)
+        {
+            return Vector2.zero;
+        }
+
+        bool hasThreat = false;
+        float radiusSqr = radius * radius;
+        float bestScore = float.MaxValue;
+        Vector2 bestDir = Vector2.zero;
+
+        for (int d = 0; d < AutoSampleDirections.Length; d++)
+        {
+            Vector2 dir = AutoSampleDirections[d];
+            float score = 0f;
+
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                var enemy = enemies[i];
+                if (enemy == null || enemy.IsDead)
+                {
+                    continue;
+                }
+
+                Vector2 toEnemy = (Vector2)enemy.transform.position - origin;
+                float distSqr = toEnemy.sqrMagnitude;
+                if (distSqr > radiusSqr || distSqr < 0.0001f)
+                {
+                    continue;
+                }
+
+                float dist = Mathf.Sqrt(distSqr);
+                float proximity = 1f - Mathf.Clamp01(dist / radius);
+                Vector2 toEnemyDir = toEnemy / dist;
+                float toward = Mathf.Max(0f, Vector2.Dot(dir, toEnemyDir));
+                score += toward * proximity;
+                hasThreat = true;
+            }
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestDir = dir;
+            }
+        }
+
+        return hasThreat ? bestDir : Vector2.zero;
     }
 
     private void EnsureVisual()

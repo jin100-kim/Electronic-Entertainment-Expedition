@@ -26,6 +26,7 @@ public class ActorAnimatorDriver : MonoBehaviour
 
     private Animator _animator;
     private Health _health;
+    private EnemyController _enemy;
     private Vector3 _lastPosition;
     private bool _isMoving;
     private float _smoothedSpeed;
@@ -36,12 +37,21 @@ public class ActorAnimatorDriver : MonoBehaviour
     {
         ResolveAnimator();
         _health = GetComponent<Health>();
+        _enemy = GetComponent<EnemyController>();
         _lastPosition = transform.position;
 
         if (_health != null)
         {
             _health.OnDamaged += OnDamaged;
             _health.OnDied += OnDied;
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (_health != null && _health.IsDead)
+        {
+            OnDied();
         }
     }
 
@@ -91,6 +101,8 @@ public class ActorAnimatorDriver : MonoBehaviour
 
             _animator.SetBool(moveParam, _isMoving);
         }
+
+        TryExitHurtState();
     }
 
     private void OnDamaged(float amount)
@@ -113,17 +125,6 @@ public class ActorAnimatorDriver : MonoBehaviour
         _isDead = true;
         ResolveAnimator();
 
-        if (_animator == null || _animator.runtimeAnimatorController == null || string.IsNullOrEmpty(deadParam))
-        {
-            return;
-        }
-
-        _animator.SetBool(deadParam, true);
-        if (!string.IsNullOrEmpty(moveParam))
-        {
-            _animator.SetBool(moveParam, false);
-        }
-
         if (_deathRoutine != null)
         {
             StopCoroutine(_deathRoutine);
@@ -133,7 +134,16 @@ public class ActorAnimatorDriver : MonoBehaviour
 
     private IEnumerator PlayDeathAndHold()
     {
-        if (_animator == null || _animator.runtimeAnimatorController == null)
+        float waitElapsed = 0f;
+        float waitTimeout = 0.5f;
+        while (waitElapsed < waitTimeout && (_animator == null || _animator.runtimeAnimatorController == null))
+        {
+            ResolveAnimator();
+            waitElapsed += useUnscaledTimeOnDeath ? Time.unscaledDeltaTime : Time.deltaTime;
+            yield return null;
+        }
+
+        if (_animator == null || _animator.runtimeAnimatorController == null || string.IsNullOrEmpty(deadParam))
         {
             yield break;
         }
@@ -143,43 +153,35 @@ public class ActorAnimatorDriver : MonoBehaviour
             _animator.updateMode = AnimatorUpdateMode.UnscaledTime;
         }
 
+        _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
         _animator.speed = 1f;
-        int deathHash = Animator.StringToHash("Death");
-        if (!_animator.HasState(0, deathHash))
+        _animator.SetBool(deadParam, true);
+        if (!string.IsNullOrEmpty(moveParam))
         {
-            yield break;
+            _animator.SetBool(moveParam, false);
         }
 
-        _animator.Play(deathHash, 0, 0f);
-        yield return null;
-
-        float timeout = 5f;
-        float elapsed = 0f;
-        while (elapsed < timeout)
+        int deathHash = Animator.StringToHash("Death");
+        if (_animator.HasState(0, deathHash))
         {
-            if (_animator == null)
-            {
-                yield break;
-            }
+            _animator.CrossFade(deathHash, 0.02f, 0, 0f);
+        }
 
-            var state = _animator.GetCurrentAnimatorStateInfo(0);
-            if (state.IsName("Death") && state.normalizedTime >= 1f)
-            {
-                break;
-            }
-
-            elapsed += useUnscaledTimeOnDeath ? Time.unscaledDeltaTime : Time.deltaTime;
-            yield return null;
+        float clipDuration = GetDeathClipDuration();
+        float waitDuration = Mathf.Max(0.15f, clipDuration);
+        if (useUnscaledTimeOnDeath)
+        {
+            yield return new WaitForSecondsRealtime(waitDuration);
+        }
+        else
+        {
+            yield return new WaitForSeconds(waitDuration);
         }
 
         if (_animator != null)
         {
-            var state = _animator.GetCurrentAnimatorStateInfo(0);
-            if (state.IsName("Death"))
-            {
-                _animator.speed = 0f;
-                _animator.Update(0f);
-            }
+            _animator.speed = 0f;
+            _animator.Update(0f);
         }
     }
 
@@ -216,5 +218,62 @@ public class ActorAnimatorDriver : MonoBehaviour
         {
             rootAnimator.enabled = false;
         }
+
+        if (_animator != null)
+        {
+            _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            if (!_isDead)
+            {
+                _animator.speed = 1f;
+                _animator.updateMode = AnimatorUpdateMode.Normal;
+            }
+        }
+    }
+
+    private float GetDeathClipDuration()
+    {
+        if (_animator == null || _animator.runtimeAnimatorController == null)
+        {
+            return 0f;
+        }
+
+        var clips = _animator.runtimeAnimatorController.animationClips;
+        if (clips == null)
+        {
+            return 0f;
+        }
+
+        for (int i = 0; i < clips.Length; i++)
+        {
+            var clip = clips[i];
+            if (clip != null && string.Equals(clip.name, "Death", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return Mathf.Max(0f, clip.length);
+            }
+        }
+
+        return 0f;
+    }
+
+    private void TryExitHurtState()
+    {
+        if (_animator == null || _animator.runtimeAnimatorController == null || _enemy == null)
+        {
+            return;
+        }
+
+        if (_enemy.IsStunned)
+        {
+            return;
+        }
+
+        var state = _animator.GetCurrentAnimatorStateInfo(0);
+        if (!state.IsName("Hurt"))
+        {
+            return;
+        }
+
+        string target = _isMoving ? "Move" : "Idle";
+        _animator.CrossFade(target, 0.05f, 0, 0f);
     }
 }

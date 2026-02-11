@@ -25,11 +25,13 @@ public class EnemyVisuals : MonoBehaviour
     private float visualScale = 4f;
 
     private Animator _animator;
+    private VisualsAligner _aligner;
 
     private void Awake()
     {
         var root = GetOrCreateVisualRoot();
         root.localScale = Vector3.one * visualScale;
+        _aligner = root.GetComponent<VisualsAligner>();
 
         var renderer = root.GetComponent<SpriteRenderer>();
         if (renderer == null)
@@ -82,6 +84,11 @@ public class EnemyVisuals : MonoBehaviour
         if (controller != null)
         {
             _animator.runtimeAnimatorController = controller;
+        }
+
+        if (_aligner != null)
+        {
+            _aligner.SetLockCenterOnStart(visualType == EnemyVisualType.Mushroom);
         }
     }
 

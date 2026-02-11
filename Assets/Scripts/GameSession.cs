@@ -392,6 +392,7 @@ public class GameSession : MonoBehaviour
     private RectTransform _startDemonPreviewRect;
     private RectTransform _autoButtonRect;
     private Text _autoButtonText;
+    private Coroutine _colliderGizmoRoutine;
     private bool _uiReady;
     private bool _selectionLocked;
     private Coroutine _selectionFeedbackRoutine;
@@ -578,7 +579,9 @@ public class GameSession : MonoBehaviour
             damageMult = source.damageMult,
             fireRateMult = source.fireRateMult,
             rangeMult = source.rangeMult,
-            bonusProjectiles = source.bonusProjectiles
+            bonusProjectiles = source.bonusProjectiles,
+            hitStunDuration = source.hitStunDuration,
+            knockbackDistance = source.knockbackDistance
         };
     }
 
@@ -1230,7 +1233,7 @@ public class GameSession : MonoBehaviour
     private void SetupPlayer(PlayerController player)
     {
         _player = player;
-        _player.SetAutoPlay(_autoPlayEnabled);
+        SetAutoPlayEnabled(_autoPlayEnabled);
         var state = GetOrCreateState(player);
         ApplyPlayerVisuals(player, state != null ? state.startWeapon : startWeapon);
 
@@ -4027,6 +4030,10 @@ public class GameSession : MonoBehaviour
         if (_autoSecretBuffer == autoButtonSecret.ToLowerInvariant())
         {
             _showAutoButton = !_showAutoButton;
+            if (_showAutoButton)
+            {
+                SetAutoPlayEnabled(true);
+            }
             _autoSecretBuffer = string.Empty;
             _autoSecretLastTime = -1f;
         }
@@ -4277,8 +4284,7 @@ public class GameSession : MonoBehaviour
         StretchToFill(_autoButtonText.rectTransform, new Vector2(4f, 4f));
         _autoButtonRect.GetComponent<Button>().onClick.AddListener(() =>
         {
-            _autoPlayEnabled = !_autoPlayEnabled;
-            _player?.SetAutoPlay(_autoPlayEnabled);
+            SetAutoPlayEnabled(!_autoPlayEnabled);
         });
     }
 
@@ -4684,8 +4690,38 @@ public class GameSession : MonoBehaviour
         string label = _autoPlayEnabled ? "자동\n켜짐" : "자동\n꺼짐";
         if (GUI.Button(new Rect(x, y, width, height), label))
         {
-            _autoPlayEnabled = !_autoPlayEnabled;
-            _player.SetAutoPlay(_autoPlayEnabled);
+            SetAutoPlayEnabled(!_autoPlayEnabled);
+        }
+    }
+
+    private void SetAutoPlayEnabled(bool enabled)
+    {
+        _autoPlayEnabled = enabled;
+        _player?.SetAutoPlay(_autoPlayEnabled);
+        ColliderGizmos.SetGlobalEnabled(_autoPlayEnabled);
+        if (_autoPlayEnabled)
+        {
+            if (_colliderGizmoRoutine == null)
+            {
+                _colliderGizmoRoutine = StartCoroutine(EnsureColliderGizmosWhileAuto());
+            }
+        }
+        else
+        {
+            if (_colliderGizmoRoutine != null)
+            {
+                StopCoroutine(_colliderGizmoRoutine);
+                _colliderGizmoRoutine = null;
+            }
+        }
+    }
+
+    private IEnumerator EnsureColliderGizmosWhileAuto()
+    {
+        while (_autoPlayEnabled)
+        {
+            ColliderGizmos.EnsureAllCollidersTracked();
+            yield return new WaitForSeconds(1f);
         }
     }
 

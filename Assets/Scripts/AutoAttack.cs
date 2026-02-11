@@ -207,6 +207,8 @@ public class AutoAttack : MonoBehaviour
         public float FireRateMult;
         public float RangeMult;
         public int BonusCount;
+        public float HitStunDuration;
+        public float KnockbackDistance;
     }
 
     private WeaponConfig _straight;
@@ -484,6 +486,104 @@ public class AutoAttack : MonoBehaviour
         }
     }
 
+    private WeaponConfig GetWeaponConfig(WeaponType type)
+    {
+        switch (type)
+        {
+            case WeaponType.Boomerang:
+                return _boomerang;
+            case WeaponType.Nova:
+                return _nova;
+            case WeaponType.Shotgun:
+                return _shotgun;
+            case WeaponType.Laser:
+                return _laser;
+            case WeaponType.ChainLightning:
+                return _chain;
+            case WeaponType.Lightning:
+                return _lightning;
+            case WeaponType.Drone:
+                return _drone;
+            case WeaponType.Shuriken:
+                return _shuriken;
+            case WeaponType.FrostOrb:
+                return _frost;
+            default:
+                return _straight;
+        }
+    }
+
+    private void ApplyHitReactionToProjectile(Projectile projectile, WeaponType type)
+    {
+        if (projectile == null)
+        {
+            return;
+        }
+
+        var cfg = GetWeaponConfig(type);
+        if (cfg.HitStunDuration <= 0f && cfg.KnockbackDistance <= 0f)
+        {
+            return;
+        }
+
+        projectile.SetHitReaction(cfg.KnockbackDistance, cfg.HitStunDuration);
+    }
+
+    private void ApplyHitReactionToBoomerang(BoomerangProjectile boomerang, WeaponType type)
+    {
+        if (boomerang == null)
+        {
+            return;
+        }
+
+        var cfg = GetWeaponConfig(type);
+        if (cfg.HitStunDuration <= 0f && cfg.KnockbackDistance <= 0f)
+        {
+            return;
+        }
+
+        boomerang.SetHitReaction(cfg.KnockbackDistance, cfg.HitStunDuration);
+    }
+
+    private void ApplyHitReactionToDrone(DroneProjectile drone, WeaponType type)
+    {
+        if (drone == null)
+        {
+            return;
+        }
+
+        var cfg = GetWeaponConfig(type);
+        if (cfg.HitStunDuration <= 0f && cfg.KnockbackDistance <= 0f)
+        {
+            return;
+        }
+
+        drone.SetHitReaction(cfg.KnockbackDistance, cfg.HitStunDuration);
+    }
+
+    private void ApplyHitReactionToTarget(Transform target, WeaponType type)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        var cfg = GetWeaponConfig(type);
+        if (cfg.HitStunDuration <= 0f && cfg.KnockbackDistance <= 0f)
+        {
+            return;
+        }
+
+        var enemy = target.GetComponent<EnemyController>();
+        if (enemy == null)
+        {
+            return;
+        }
+
+        Vector2 dir = (Vector2)(target.position - transform.position);
+        enemy.ApplyHitReaction(dir, cfg.KnockbackDistance, cfg.HitStunDuration);
+    }
+
 
     private Transform FindClosestEnemy()
     {
@@ -663,6 +763,7 @@ public class AutoAttack : MonoBehaviour
             {
                 health.Damage(_projectileDamage * _chain.DamageMult);
                 ApplyElementsToTarget(current, e0, e1, e2, elementCount);
+                ApplyHitReactionToTarget(current, WeaponType.ChainLightning);
                 hit.Add(health);
             }
 
@@ -712,6 +813,7 @@ public class AutoAttack : MonoBehaviour
             {
                 health.Damage(_projectileDamage * _lightning.DamageMult);
                 ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
+                ApplyHitReactionToTarget(enemy.transform, WeaponType.Lightning);
             }
 
             SpawnLightningEffect(enemy.transform.position);
@@ -744,6 +846,7 @@ public class AutoAttack : MonoBehaviour
         {
             var proj = SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, weaponId);
             ApplyElementsToProjectile(proj, WeaponType.Shuriken);
+            ApplyHitReactionToProjectile(proj, WeaponType.Shuriken);
             _range = savedRange;
             return;
         }
@@ -756,6 +859,7 @@ public class AutoAttack : MonoBehaviour
             Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
             var proj = SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, weaponId, spawnOffset);
             ApplyElementsToProjectile(proj, WeaponType.Shuriken);
+            ApplyHitReactionToProjectile(proj, WeaponType.Shuriken);
         }
 
         _range = savedRange;
@@ -775,6 +879,7 @@ public class AutoAttack : MonoBehaviour
             if (proj != null)
             {
                 ApplyElementsToProjectile(proj, WeaponType.FrostOrb);
+                ApplyHitReactionToProjectile(proj, WeaponType.FrostOrb);
                 proj.SetSlowEffect(frostSlowMultiplier, frostSlowDuration);
             }
         }
@@ -856,6 +961,7 @@ public class AutoAttack : MonoBehaviour
         proj.Initialize(direction, speedOverride, damageOverride, life, _projectilePierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
+        ApplyHitReactionToProjectile(proj, weaponType);
 
         ApplyNetworkVisual(renderer, netColor, baseColor, spritePath, weaponId);
         if (networked)
@@ -928,6 +1034,7 @@ public class AutoAttack : MonoBehaviour
         proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
+        ApplyHitReactionToProjectile(proj, weaponType);
         ApplyNetworkVisual(renderer, netColor, novaColor, novaSpritePath, weaponId);
         if (networked)
         {
@@ -996,6 +1103,7 @@ public class AutoAttack : MonoBehaviour
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, 0f);
         proj.SetRelease(p => ReleaseProjectile(p, _laserProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
+        ApplyHitReactionToProjectile(proj, weaponType);
         ApplyNetworkVisual(renderer, netColor, laserColor, null, weaponId);
         if (networked)
         {
@@ -1139,6 +1247,7 @@ public class AutoAttack : MonoBehaviour
         drone.Initialize(transform, radius, angularSpeed, damageOverride, lifetime, startAngle);
         drone.SetRelease(d => ReleaseDrone(d));
         ApplyElementsToDrone(drone, WeaponType.Drone);
+        ApplyHitReactionToDrone(drone, WeaponType.Drone);
         ApplyNetworkVisual(renderer, netColor, droneColor, droneSpritePath, weaponId);
         if (networked)
         {
@@ -1209,6 +1318,7 @@ public class AutoAttack : MonoBehaviour
         boom.Initialize(transform, direction, _projectileSpeed, damageOverride, lifetime, 9999);
         boom.SetRelease(b => ReleaseBoomerang(b));
         ApplyElementsToBoomerang(boom, WeaponType.Boomerang);
+        ApplyHitReactionToBoomerang(boom, WeaponType.Boomerang);
         ApplyNetworkVisual(renderer, netColor, boomColor, boomerangSpritePath, weaponId);
         if (networked)
         {
@@ -1311,7 +1421,9 @@ public class AutoAttack : MonoBehaviour
             DamageMult = 1f,
             FireRateMult = 1f,
             RangeMult = 1f,
-            BonusCount = 0
+            BonusCount = 0,
+            HitStunDuration = 0f,
+            KnockbackDistance = 0f
         };
     }
 
@@ -1328,7 +1440,9 @@ public class AutoAttack : MonoBehaviour
             DamageMult = Mathf.Max(0.1f, stats.damageMult),
             FireRateMult = Mathf.Max(0.1f, stats.fireRateMult),
             RangeMult = Mathf.Max(0.1f, stats.rangeMult),
-            BonusCount = Mathf.Max(0, stats.bonusProjectiles)
+            BonusCount = Mathf.Max(0, stats.bonusProjectiles),
+            HitStunDuration = Mathf.Max(0f, stats.hitStunDuration),
+            KnockbackDistance = Mathf.Max(0f, stats.knockbackDistance)
         };
     }
 

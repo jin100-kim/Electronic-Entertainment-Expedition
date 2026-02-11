@@ -10,4 +10,6 @@ public class WeaponStatsData
     public float fireRateMult = 1f;
     public float rangeMult = 1f;
     public int bonusProjectiles = 0;
+    public float hitStunDuration = 0f;
+    public float knockbackDistance = 0f;
 }

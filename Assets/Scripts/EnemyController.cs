@@ -34,11 +34,15 @@ public class EnemyController : MonoBehaviour
     private Health _health;
     private float _slowMultiplier = 1f;
     private float _slowTimer;
+    private float _stunTimer;
+    private float _knockbackTimer;
+    private Vector2 _knockbackVelocity;
     private bool _dead;
     private SpriteRenderer[] _visualRenderers;
     private float _nextTargetScanTime;
 
     public bool IsDead => _dead;
+    public bool IsStunned => _stunTimer > 0f || _knockbackTimer > 0f;
 
     public Transform Target { get; set; }
 
@@ -92,10 +96,6 @@ public class EnemyController : MonoBehaviour
             gameObject.AddComponent<ElementStatus>();
         }
 
-        if (GetComponent<EnemyHitFlash>() == null)
-        {
-            gameObject.AddComponent<EnemyHitFlash>();
-        }
 
         if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)
         {
@@ -109,6 +109,7 @@ public class EnemyController : MonoBehaviour
             gameObject.AddComponent<EnemyHealthBar>();
         }
 
+        EnsureColliderGizmos();
         ResolveVisualRenderers();
         _health.OnDied += OnDied;
     }
@@ -163,6 +164,41 @@ public class EnemyController : MonoBehaviour
             _nextTargetScanTime = Time.time + Mathf.Max(0.1f, targetScanInterval);
         }
 
+        if (_slowTimer > 0f)
+        {
+            _slowTimer -= Time.deltaTime;
+            if (_slowTimer <= 0f)
+            {
+                _slowMultiplier = 1f;
+            }
+        }
+
+        float dt = Time.deltaTime;
+        if (_knockbackTimer > 0f)
+        {
+            _knockbackTimer = Mathf.Max(0f, _knockbackTimer - dt);
+            transform.position += (Vector3)(_knockbackVelocity * dt);
+            if (GameSession.Instance != null)
+            {
+                transform.position = GameSession.Instance.ClampToBounds(transform.position);
+            }
+
+            if (_knockbackVelocity.sqrMagnitude > 0.0001f)
+            {
+                UpdateFacing(_knockbackVelocity);
+            }
+        }
+
+        if (_stunTimer > 0f)
+        {
+            _stunTimer = Mathf.Max(0f, _stunTimer - dt);
+        }
+
+        if (_knockbackTimer > 0f || _stunTimer > 0f)
+        {
+            return;
+        }
+
         if (Target == null)
         {
             return;
@@ -173,15 +209,6 @@ public class EnemyController : MonoBehaviour
         if (toTarget.sqrMagnitude < 0.0001f)
         {
             return;
-        }
-
-        if (_slowTimer > 0f)
-        {
-            _slowTimer -= Time.deltaTime;
-            if (_slowTimer <= 0f)
-            {
-                _slowMultiplier = 1f;
-            }
         }
 
         Vector3 dir = toTarget.normalized;
@@ -241,7 +268,9 @@ public class EnemyController : MonoBehaviour
         }
 
         _dead = true;
-        deathFadeDelay = 0f;
+        float clipDuration = GetDeathClipDuration();
+        float minDelay = 0.35f;
+        deathFadeDelay = Mathf.Max(deathFadeDelay, clipDuration, minDelay);
         if (GameSession.Instance != null)
         {
             GameSession.Instance.RegisterKill(transform.position);
@@ -263,6 +292,32 @@ public class EnemyController : MonoBehaviour
         StartCoroutine(DeathFade());
     }
 
+    private float GetDeathClipDuration()
+    {
+        var animator = GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return 0f;
+        }
+
+        var clips = animator.runtimeAnimatorController.animationClips;
+        if (clips == null)
+        {
+            return 0f;
+        }
+
+        for (int i = 0; i < clips.Length; i++)
+        {
+            var clip = clips[i];
+            if (clip != null && string.Equals(clip.name, "Death", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return Mathf.Max(0f, clip.length);
+            }
+        }
+
+        return 0f;
+    }
+
     public void ApplySlow(float multiplier, float duration)
     {
         if (duration <= 0f)
@@ -280,6 +335,36 @@ public class EnemyController : MonoBehaviour
         {
             _slowTimer = duration;
         }
+    }
+
+    public void ApplyHitReaction(Vector2 direction, float knockbackDistance, float stunDuration)
+    {
+        if (_dead)
+        {
+            return;
+        }
+
+        float stun = Mathf.Max(0f, stunDuration);
+        if (stun > _stunTimer)
+        {
+            _stunTimer = stun;
+        }
+
+        float distance = Mathf.Max(0f, knockbackDistance);
+        if (distance <= 0f)
+        {
+            return;
+        }
+
+        Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.zero;
+        if (dir.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        float duration = stun > 0f ? stun : 0.08f;
+        _knockbackVelocity = dir * (distance / Mathf.Max(0.01f, duration));
+        _knockbackTimer = Mathf.Max(_knockbackTimer, duration);
     }
 
     private Transform FindClosestPlayer()
@@ -403,6 +488,20 @@ public class EnemyController : MonoBehaviour
         }
 
         ExperiencePickup.Spawn(transform.position, xpReward);
+    }
+
+    private void EnsureColliderGizmos()
+    {
+        var config = GameConfig.LoadOrCreate();
+        if (config == null || !config.game.showColliderGizmos)
+        {
+            return;
+        }
+
+        if (GetComponent<ColliderGizmos>() == null)
+        {
+            gameObject.AddComponent<ColliderGizmos>();
+        }
     }
 
 }

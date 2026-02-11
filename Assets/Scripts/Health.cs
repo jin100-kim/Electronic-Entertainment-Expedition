@@ -72,6 +72,11 @@ public class Health : MonoBehaviour
         {
             OnDamaged?.Invoke(prev - next);
         }
+
+        if (prev > 0f && next <= 0f)
+        {
+            OnDied?.Invoke();
+        }
     }
 
     public void AddMaxHealth(float amount, bool healToFull = false)

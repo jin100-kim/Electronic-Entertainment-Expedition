@@ -63,6 +63,8 @@ MonoBehaviour:
       fireRateMult: 1.15
       rangeMult: 1
       bonusProjectiles: 0
+      hitStunDuration: 0.06
+      knockbackDistance: 0.2
     boomerangStats:
       displayName: "\uBD80\uBA54\uB791"
       level: 0
@@ -71,6 +73,8 @@ MonoBehaviour:
       fireRateMult: 0.75
       rangeMult: 0.8
       bonusProjectiles: 0
+      hitStunDuration: 0.08
+      knockbackDistance: 0.35
     novaStats:
       displayName: "\uB178\uBC14"
       level: 0
@@ -79,6 +83,8 @@ MonoBehaviour:
       fireRateMult: 0.5
       rangeMult: 0.55
       bonusProjectiles: 0
+      hitStunDuration: 0.05
+      knockbackDistance: 0.18
     shotgunStats:
       displayName: "\uC0F7\uAC74"
       level: 0
@@ -87,6 +93,8 @@ MonoBehaviour:
       fireRateMult: 0.6
       rangeMult: 0.7
       bonusProjectiles: 0
+      hitStunDuration: 0.1
+      knockbackDistance: 0.45
     laserStats:
       displayName: "\uB808\uC774\uC800"
       level: 0
@@ -95,6 +103,8 @@ MonoBehaviour:
       fireRateMult: 0.7
       rangeMult: 1.35
       bonusProjectiles: 0
+      hitStunDuration: 0.04
+      knockbackDistance: 0.12
     chainStats:
       displayName: "\uCCB4\uC778 \uB77C\uC774\uD2B8\uB2DD"
       level: 0
@@ -103,6 +113,8 @@ MonoBehaviour:
       fireRateMult: 0.7
       rangeMult: 1
       bonusProjectiles: 0
+      hitStunDuration: 0.06
+      knockbackDistance: 0.2
     droneStats:
       displayName: "\uB4DC\uB860"
       level: 0
@@ -111,6 +123,8 @@ MonoBehaviour:
       fireRateMult: 0.45
       rangeMult: 1
       bonusProjectiles: 0
+      hitStunDuration: 0.03
+      knockbackDistance: 0.1
     shurikenStats:
       displayName: "\uC218\uB9AC\uAC80"
       level: 0
@@ -119,6 +133,8 @@ MonoBehaviour:
       fireRateMult: 0.85
       rangeMult: 1
       bonusProjectiles: 0
+      hitStunDuration: 0.07
+      knockbackDistance: 0.25
     frostStats:
       displayName: "\uBE59\uACB0 \uAD6C\uCCB4"
       level: 0
@@ -127,6 +143,8 @@ MonoBehaviour:
       fireRateMult: 0.75
       rangeMult: 1
       bonusProjectiles: 0
+      hitStunDuration: 0.08
+      knockbackDistance: 0.2
     lightningStats:
       displayName: "\uBC88\uAC1C"
       level: 0
@@ -135,6 +153,8 @@ MonoBehaviour:
       fireRateMult: 0.65
       rangeMult: 1
       bonusProjectiles: 0
+      hitStunDuration: 0.06
+      knockbackDistance: 0.22
     moveSpeedMult: 1
     xpGainMult: 1
     magnetRangeMult: 1
@@ -168,6 +188,7 @@ MonoBehaviour:
     allowAutoButtonSecret: 1
     autoButtonSecret: auto
     autoButtonSecretTimeout: 1.5
+    showColliderGizmos: 1
   defaultStage: {fileID: 11400000, guid: e0209f76278d91c4c9e8fa30be8818b8, type: 2}
   defaultDifficulty: {fileID: 11400000, guid: 301b1b4504d8787408b656854d46e998, type: 2}
   hud:
@@ -228,7 +249,7 @@ MonoBehaviour:
     phase1EndTime: 180
     phase2EndTime: 360
     phase3EndTime: 600
-    phase1Weights: {x: 1, y: 0, z: 0}
+    phase1Weights: {x: 0.7, y: 0.3, z: 0}
     phase2Weights: {x: 0.7, y: 0.3, z: 0}
     phase3Weights: {x: 0.4, y: 0.4, z: 0.2}
     phase4Weights: {x: 0.25, y: 0.35, z: 0.4}
@@ -299,10 +320,10 @@ MonoBehaviour:
     autoSeekXp: 1
     autoXpPriority: 0
     autoXpSeekRange: 5
-    autoMinDistance: 2.5
-    autoMaxDistance: 4
-    autoOrbitStrength: 0.8
-    autoKeepDistanceStrength: 0.6
+    autoMinDistance: 3
+    autoMaxDistance: 3.8
+    autoOrbitStrength: 1
+    autoKeepDistanceStrength: 0.85
     autoCenterPull: 0.9
     autoSmooth: 10
     autoMidCenterPull: 0.1

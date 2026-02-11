@@ -31,6 +31,8 @@ public class Projectile : MonoBehaviour
     private bool _applySlow;
     private float _slowMultiplier = 1f;
     private float _slowDuration;
+    private float _hitStunDuration;
+    private float _knockbackDistance;
     private ElementType _elementFirst = ElementType.None;
     private ElementType _elementSecond = ElementType.None;
     private ElementType _elementThird = ElementType.None;
@@ -73,6 +75,12 @@ public class Projectile : MonoBehaviour
         _applySlow = duration > 0f;
         _slowMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
         _slowDuration = Mathf.Max(0f, duration);
+    }
+
+    public void SetHitReaction(float knockbackDistance, float hitStunDuration)
+    {
+        _knockbackDistance = Mathf.Max(0f, knockbackDistance);
+        _hitStunDuration = Mathf.Max(0f, hitStunDuration);
     }
 
     public void SetElements(ElementType first, ElementType second, ElementType third, int count)
@@ -182,6 +190,20 @@ public class Projectile : MonoBehaviour
             }
         }
 
+        if (_hitStunDuration > 0f || _knockbackDistance > 0f)
+        {
+            var enemy = other.GetComponent<EnemyController>();
+            if (enemy != null)
+            {
+                Vector2 dir = (Vector2)(other.transform.position - transform.position);
+                if (dir.sqrMagnitude < 0.0001f)
+                {
+                    dir = _direction;
+                }
+                enemy.ApplyHitReaction(dir, _knockbackDistance, _hitStunDuration);
+            }
+        }
+
         _remainingHits -= 1;
         if (_remainingHits <= 0)
         {
@@ -224,6 +246,8 @@ public class Projectile : MonoBehaviour
         _hitTargets.Clear();
         _slowMultiplier = 1f;
         _slowDuration = 0f;
+        _hitStunDuration = 0f;
+        _knockbackDistance = 0f;
         if (_collider != null)
         {
             _collider.enabled = true;

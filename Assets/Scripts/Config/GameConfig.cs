@@ -103,112 +103,132 @@ public class GameSessionSettings
     [Header("Weapon Stats")]
     public WeaponStatsData gunStats = new WeaponStatsData
     {
-        displayName = "총",
+        displayName = "Gun",
         level = 1,
         unlocked = true,
         damageMult = 1f,
         fireRateMult = 1.2f,
         rangeMult = 1f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.06f,
+        knockbackDistance = 0.2f
     };
 
     public WeaponStatsData boomerangStats = new WeaponStatsData
     {
-        displayName = "부메랑",
+        displayName = "Boomerang",
         level = 0,
         unlocked = false,
         damageMult = 1f,
         fireRateMult = 0.8f,
         rangeMult = 0.7f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.08f,
+        knockbackDistance = 0.35f
     };
 
     public WeaponStatsData novaStats = new WeaponStatsData
     {
-        displayName = "노바",
+        displayName = "Nova",
         level = 0,
         unlocked = false,
         damageMult = 1f,
         fireRateMult = 0.6f,
         rangeMult = 0.5f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.05f,
+        knockbackDistance = 0.18f
     };
 
     public WeaponStatsData shotgunStats = new WeaponStatsData
     {
-        displayName = "샷건",
+        displayName = "Shotgun",
         level = 0,
         unlocked = false,
         damageMult = 0.9f,
         fireRateMult = 0.7f,
         rangeMult = 0.75f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.1f,
+        knockbackDistance = 0.45f
     };
 
     public WeaponStatsData laserStats = new WeaponStatsData
     {
-        displayName = "레이저",
+        displayName = "Laser",
         level = 0,
         unlocked = false,
         damageMult = 1.1f,
         fireRateMult = 0.8f,
         rangeMult = 1.4f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.04f,
+        knockbackDistance = 0.12f
     };
 
     public WeaponStatsData chainStats = new WeaponStatsData
     {
-        displayName = "체인 라이트닝",
+        displayName = "Chain Lightning",
         level = 0,
         unlocked = false,
         damageMult = 0.9f,
         fireRateMult = 0.75f,
         rangeMult = 1.1f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.06f,
+        knockbackDistance = 0.2f
     };
 
     public WeaponStatsData droneStats = new WeaponStatsData
     {
-        displayName = "드론",
+        displayName = "Drone",
         level = 0,
         unlocked = false,
         damageMult = 0.8f,
         fireRateMult = 0.5f,
         rangeMult = 1.0f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.03f,
+        knockbackDistance = 0.1f
     };
 
     public WeaponStatsData shurikenStats = new WeaponStatsData
     {
-        displayName = "수리검",
+        displayName = "Shuriken",
         level = 0,
         unlocked = false,
         damageMult = 0.9f,
         fireRateMult = 0.9f,
         rangeMult = 1.0f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.07f,
+        knockbackDistance = 0.25f
     };
 
     public WeaponStatsData frostStats = new WeaponStatsData
     {
-        displayName = "빙결 구체",
+        displayName = "Frost Orb",
         level = 0,
         unlocked = false,
         damageMult = 0.85f,
         fireRateMult = 0.8f,
         rangeMult = 1.0f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.08f,
+        knockbackDistance = 0.2f
     };
 
     public WeaponStatsData lightningStats = new WeaponStatsData
     {
-        displayName = "번개",
+        displayName = "Lightning",
         level = 0,
         unlocked = false,
         damageMult = 1.0f,
         fireRateMult = 0.7f,
         rangeMult = 1.0f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.06f,
+        knockbackDistance = 0.22f
     };
 
     [Header("Stat Multipliers")]
@@ -255,6 +275,7 @@ public class GameSessionSettings
     public bool allowAutoButtonSecret = true;
     public string autoButtonSecret = "auto";
     public float autoButtonSecretTimeout = 1.5f;
+    public bool showColliderGizmos = true;
 }
 
 [System.Serializable]
@@ -291,7 +312,7 @@ public class MinimapConfig
     public Color borderColor = new Color(1f, 1f, 1f, 0.5f);
     public Color backgroundColor = new Color(0f, 0f, 0f, 0.35f);
     public int labelFontSize = 12;
-    public string labelText = "미니맵";
+    public string labelText = "Minimap";
 }
 
 [System.Serializable]
@@ -330,7 +351,7 @@ public class EnemySpawnerConfig
     public float phase1EndTime = 180f;
     public float phase2EndTime = 360f;
     public float phase3EndTime = 600f;
-    public Vector3 phase1Weights = new Vector3(1f, 0f, 0f);
+    public Vector3 phase1Weights = new Vector3(0.7f, 0.3f, 0f);
     public Vector3 phase2Weights = new Vector3(0.7f, 0.3f, 0f);
     public Vector3 phase3Weights = new Vector3(0.4f, 0.4f, 0.2f);
     public Vector3 phase4Weights = new Vector3(0.25f, 0.35f, 0.4f);
@@ -421,10 +442,10 @@ public class PlayerConfig
     public bool autoSeekXp = true;
     public bool autoXpPriority = false;
     public float autoXpSeekRange = 5f;
-    public float autoMinDistance = 2.5f;
-    public float autoMaxDistance = 4.0f;
-    public float autoOrbitStrength = 0.8f;
-    public float autoKeepDistanceStrength = 0.6f;
+    public float autoMinDistance = 3f;
+    public float autoMaxDistance = 3.8f;
+    public float autoOrbitStrength = 1f;
+    public float autoKeepDistanceStrength = 0.85f;
     public float autoCenterPull = 0.9f;
     public float autoSmooth = 10f;
     public float autoMidCenterPull = 0.1f;
@@ -505,3 +526,4 @@ public class WindowConfig
     public int height = 720;
     public FullScreenMode fullscreenMode = FullScreenMode.Windowed;
 }
+
