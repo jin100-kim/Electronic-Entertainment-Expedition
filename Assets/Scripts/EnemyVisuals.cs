@@ -92,6 +92,11 @@ public class EnemyVisuals : MonoBehaviour
 
     private void EnsureVisualSetup(bool allowRuntimeComponents)
     {
+        if (!Application.isPlaying && IsEditingPrefabAsset(gameObject))
+        {
+            return;
+        }
+
         var root = GetOrCreateVisualRoot();
         root.localScale = Vector3.one * visualScale;
         _aligner = root.GetComponent<VisualsAligner>();
@@ -155,5 +160,24 @@ public class EnemyVisuals : MonoBehaviour
         {
             root.AddComponent<VisualsAligner>();
         }
+    }
+
+    private static bool IsEditingPrefabAsset(GameObject target)
+    {
+#if UNITY_EDITOR
+        if (target == null)
+        {
+            return false;
+        }
+
+        if (!UnityEditor.PrefabUtility.IsPartOfPrefabAsset(target))
+        {
+            return false;
+        }
+
+        return UnityEditor.SceneManagement.PrefabStageUtility.GetPrefabStage(target) == null;
+#else
+        return false;
+#endif
     }
 }

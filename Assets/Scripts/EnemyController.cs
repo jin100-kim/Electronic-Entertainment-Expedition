@@ -21,7 +21,7 @@ public class EnemyController : MonoBehaviour
 
     [Header("Death")]
     [SerializeField]
-    private float deathFadeDelay = 1f;
+    private float deathFadeDelay = 0.2f;
 
     [SerializeField]
     private float deathFadeDuration = 0.6f;
@@ -268,9 +268,6 @@ public class EnemyController : MonoBehaviour
         }
 
         _dead = true;
-        float clipDuration = GetDeathClipDuration();
-        float minDelay = 0.35f;
-        deathFadeDelay = Mathf.Max(deathFadeDelay, clipDuration, minDelay);
         if (GameSession.Instance != null)
         {
             GameSession.Instance.RegisterKill(transform.position);
@@ -290,32 +287,6 @@ public class EnemyController : MonoBehaviour
         }
 
         StartCoroutine(DeathFade());
-    }
-
-    private float GetDeathClipDuration()
-    {
-        var animator = GetComponentInChildren<Animator>(true);
-        if (animator == null || animator.runtimeAnimatorController == null)
-        {
-            return 0f;
-        }
-
-        var clips = animator.runtimeAnimatorController.animationClips;
-        if (clips == null)
-        {
-            return 0f;
-        }
-
-        for (int i = 0; i < clips.Length; i++)
-        {
-            var clip = clips[i];
-            if (clip != null && string.Equals(clip.name, "Death", System.StringComparison.OrdinalIgnoreCase))
-            {
-                return Mathf.Max(0f, clip.length);
-            }
-        }
-
-        return 0f;
     }
 
     public void ApplySlow(float multiplier, float duration)

@@ -32,23 +32,19 @@ public class ActorAnimatorDriver : MonoBehaviour
     private float _smoothedSpeed;
     private bool _isDead;
     private Coroutine _deathRoutine;
+    private bool _healthBound;
 
     private void Awake()
     {
         ResolveAnimator();
-        _health = GetComponent<Health>();
         _enemy = GetComponent<EnemyController>();
         _lastPosition = transform.position;
-
-        if (_health != null)
-        {
-            _health.OnDamaged += OnDamaged;
-            _health.OnDied += OnDied;
-        }
+        TryResolveHealth();
     }
 
     private void OnEnable()
     {
+        TryResolveHealth();
         if (_health != null && _health.IsDead)
         {
             OnDied();
@@ -57,7 +53,7 @@ public class ActorAnimatorDriver : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (_health != null)
+        if (_health != null && _healthBound)
         {
             _health.OnDamaged -= OnDamaged;
             _health.OnDied -= OnDied;
@@ -69,6 +65,11 @@ public class ActorAnimatorDriver : MonoBehaviour
         if (_isDead)
         {
             return;
+        }
+
+        if (_health == null)
+        {
+            TryResolveHealth();
         }
 
         if (_animator == null || _animator.runtimeAnimatorController == null)
@@ -303,5 +304,29 @@ public class ActorAnimatorDriver : MonoBehaviour
 
         string target = _isMoving ? "Move" : "Idle";
         _animator.CrossFade(target, 0.05f, 0, 0f);
+    }
+
+    private void TryResolveHealth()
+    {
+        if (_health != null)
+        {
+            if (!_healthBound)
+            {
+                _health.OnDamaged += OnDamaged;
+                _health.OnDied += OnDied;
+                _healthBound = true;
+            }
+            return;
+        }
+
+        _health = GetComponent<Health>();
+        if (_health == null)
+        {
+            return;
+        }
+
+        _health.OnDamaged += OnDamaged;
+        _health.OnDied += OnDied;
+        _healthBound = true;
     }
 }

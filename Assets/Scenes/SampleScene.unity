@@ -490,135 +490,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b9f95eb82f3490c9e5b155bbd3f438c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameSession
-  autoStartLocal: 0
-  showNetworkUI: 1
-  spawnInterval: 2
-  maxEnemies: 20
-  spawnRadius: 8
-  minSpawnInterval: 0.4
-  spawnIntervalDecayPerSec: 0.01
-  maxEnemiesPerMinute: 10
-  monsterLevelInterval: 60
-  enemyHealthPerLevel: 0.15
-  enemyDamagePerLevel: 0.1
-  enemySpeedPerLevel: 0.05
-  enemyXpPerLevel: 0
-  localSpawnPosition: {x: 0, y: 0, z: 0}
-  mapHalfSize: {x: 12, y: 12}
-  maxUpgradeLevel: 10
-  maxWeaponSlots: 5
-  maxStatSlots: 5
-  damageMult: 1
-  fireRateMult: 1
-  rangeMult: 1
-  sizeMult: 1
-  lifetimeMult: 1
-  projectileCount: 1
-  projectilePierceBonus: 0
-  weaponDamageMult: 1
-  gunStats:
-    displayName: "\uCD1D"
-    level: 1
-    unlocked: 1
-    damageMult: 1
-    fireRateMult: 1.2
-    rangeMult: 1
-    bonusProjectiles: 0
-  boomerangStats:
-    displayName: "\uBD80\uBA54\uB791"
-    level: 0
-    unlocked: 0
-    damageMult: 1
-    fireRateMult: 0.8
-    rangeMult: 0.7
-    bonusProjectiles: 0
-  novaStats:
-    displayName: "\uB178\uBC14"
-    level: 0
-    unlocked: 0
-    damageMult: 1
-    fireRateMult: 0.6
-    rangeMult: 0.5
-    bonusProjectiles: 0
-  shotgunStats:
-    displayName: "\uC0F7\uAC74"
-    level: 0
-    unlocked: 0
-    damageMult: 0.9
-    fireRateMult: 0.7
-    rangeMult: 0.75
-    bonusProjectiles: 0
-  laserStats:
-    displayName: "\uB808\uC774\uC800"
-    level: 0
-    unlocked: 0
-    damageMult: 1.1
-    fireRateMult: 0.8
-    rangeMult: 1.4
-    bonusProjectiles: 0
-  chainStats:
-    displayName: "\uCCB4\uC778 \uB77C\uC774\uD2B8\uB2DD"
-    level: 0
-    unlocked: 0
-    damageMult: 0.9
-    fireRateMult: 0.75
-    rangeMult: 1.1
-    bonusProjectiles: 0
-  droneStats:
-    displayName: "\uB4DC\uB860"
-    level: 0
-    unlocked: 0
-    damageMult: 0.8
-    fireRateMult: 0.5
-    rangeMult: 1
-    bonusProjectiles: 0
-  shurikenStats:
-    displayName: "\uC218\uB9AC\uAC80"
-    level: 0
-    unlocked: 0
-    damageMult: 0.9
-    fireRateMult: 0.9
-    rangeMult: 1
-    bonusProjectiles: 0
-  frostStats:
-    displayName: "\uBE59\uACB0 \uAD6C\uCCB4"
-    level: 0
-    unlocked: 0
-    damageMult: 0.85
-    fireRateMult: 0.8
-    rangeMult: 1
-    bonusProjectiles: 0
-  lightningStats:
-    displayName: "\uBC88\uAC1C"
-    level: 0
-    unlocked: 0
-    damageMult: 1
-    fireRateMult: 0.7
-    rangeMult: 1
-    bonusProjectiles: 0
-  moveSpeedMult: 1
-  xpGainMult: 1
-  magnetRangeMult: 1
-  magnetSpeedMult: 1
-  magnetRangeStep: 0.2
-  magnetSpeedStep: 0.2
-  regenPerSecond: 0
-  coinDropChance: 0.06
-  coinAmount: 1
-  damageLevel: 0
-  fireRateLevel: 0
-  moveSpeedLevel: 0
-  healthReinforceLevel: 0
-  rangeLevel: 0
-  xpGainLevel: 0
-  sizeLevel: 0
-  magnetLevel: 0
-  pierceLevel: 0
-  projectileCountLevel: 0
-  requireStartWeaponChoice: 1
-  startWeapon: 0
-  startPreviewScale: 0.8
-  startPreviewSortingOrder: 5000
+  gameConfig: {fileID: 0}
+  stageConfig: {fileID: 0}
+  difficultyConfig: {fileID: 0}
 --- !u!114 &2300000003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -631,10 +505,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecc17b14d087415d917a6be9e62e2a89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  margin: 12
-  xpBarHeight: 18
-  iconSize: 56
-  iconGap: 6
+  gameConfig: {fileID: 0}
 --- !u!1 &2400000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -729,6 +600,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24b345c7a735469d8bebffedd62781e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameConfig: {fileID: 0}
   width: 1280
   height: 720
   fullscreenMode: 3
