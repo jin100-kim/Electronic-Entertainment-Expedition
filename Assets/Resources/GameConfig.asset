@@ -36,16 +36,16 @@ MonoBehaviour:
     multiplayerBossHealthPerPlayer: 1.2
     enableEnrage: 1
     enrageStartTime: 600
-    enrageHealthPerSecond: 0.006
-    enrageDamagePerSecond: 0.005
-    enrageSpeedPerSecond: 0.002
-    enrageSpawnIntervalReductionPerSecond: 0.008
-    enrageMinSpawnInterval: 0.2
-    enrageExtraEnemiesPerSecond: 0.08
+    enrageHealthPerSecond: 0.004
+    enrageDamagePerSecond: 0.003
+    enrageSpeedPerSecond: 0.0015
+    enrageSpawnIntervalReductionPerSecond: 0.005
+    enrageMinSpawnInterval: 0.25
+    enrageExtraEnemiesPerSecond: 0.05
     localSpawnPosition: {x: 0, y: 0, z: 0}
     mapHalfSize: {x: 24, y: 24}
     maxUpgradeLevel: 10
-    maxWeaponSlots: 3
+    maxWeaponSlots: 5
     maxStatSlots: 5
     damageMult: 1
     fireRateMult: 1
@@ -56,101 +56,101 @@ MonoBehaviour:
     projectilePierceBonus: 0
     weaponDamageMult: 1
     gunStats:
-      displayName: "\uCD1D"
+      displayName: Gun
       level: 1
       unlocked: 1
       damageMult: 1
-      fireRateMult: 1.15
+      fireRateMult: 1.2
       rangeMult: 1
       bonusProjectiles: 0
       hitStunDuration: 0.06
       knockbackDistance: 0.2
     boomerangStats:
-      displayName: "\uBD80\uBA54\uB791"
+      displayName: Boomerang
       level: 0
       unlocked: 0
-      damageMult: 0.85
-      fireRateMult: 0.75
-      rangeMult: 0.8
+      damageMult: 1
+      fireRateMult: 0.8
+      rangeMult: 0.7
       bonusProjectiles: 0
       hitStunDuration: 0.08
       knockbackDistance: 0.35
     novaStats:
-      displayName: "\uB178\uBC14"
+      displayName: Nova
       level: 0
       unlocked: 0
-      damageMult: 0.7
-      fireRateMult: 0.5
-      rangeMult: 0.55
+      damageMult: 1
+      fireRateMult: 0.6
+      rangeMult: 0.5
       bonusProjectiles: 0
       hitStunDuration: 0.05
       knockbackDistance: 0.18
     shotgunStats:
-      displayName: "\uC0F7\uAC74"
+      displayName: Shotgun
       level: 0
       unlocked: 0
-      damageMult: 0.75
-      fireRateMult: 0.6
-      rangeMult: 0.7
+      damageMult: 0.9
+      fireRateMult: 0.7
+      rangeMult: 0.75
       bonusProjectiles: 0
       hitStunDuration: 0.1
       knockbackDistance: 0.45
     laserStats:
-      displayName: "\uB808\uC774\uC800"
+      displayName: Laser
       level: 0
       unlocked: 0
-      damageMult: 0.95
-      fireRateMult: 0.7
-      rangeMult: 1.35
+      damageMult: 1.1
+      fireRateMult: 0.8
+      rangeMult: 1.4
       bonusProjectiles: 0
       hitStunDuration: 0.04
       knockbackDistance: 0.12
     chainStats:
-      displayName: "\uCCB4\uC778 \uB77C\uC774\uD2B8\uB2DD"
+      displayName: Chain Lightning
       level: 0
       unlocked: 0
-      damageMult: 0.85
-      fireRateMult: 0.7
-      rangeMult: 1
+      damageMult: 0.9
+      fireRateMult: 0.75
+      rangeMult: 1.1
       bonusProjectiles: 0
       hitStunDuration: 0.06
       knockbackDistance: 0.2
     droneStats:
-      displayName: "\uB4DC\uB860"
+      displayName: Drone
       level: 0
       unlocked: 0
-      damageMult: 0.7
-      fireRateMult: 0.45
+      damageMult: 0.8
+      fireRateMult: 0.5
       rangeMult: 1
       bonusProjectiles: 0
       hitStunDuration: 0.03
       knockbackDistance: 0.1
     shurikenStats:
-      displayName: "\uC218\uB9AC\uAC80"
+      displayName: Shuriken
       level: 0
       unlocked: 0
-      damageMult: 0.95
-      fireRateMult: 0.85
+      damageMult: 0.9
+      fireRateMult: 0.9
       rangeMult: 1
       bonusProjectiles: 0
       hitStunDuration: 0.07
       knockbackDistance: 0.25
     frostStats:
-      displayName: "\uBE59\uACB0 \uAD6C\uCCB4"
+      displayName: Frost Orb
       level: 0
       unlocked: 0
-      damageMult: 0.8
-      fireRateMult: 0.75
+      damageMult: 0.85
+      fireRateMult: 0.8
       rangeMult: 1
       bonusProjectiles: 0
       hitStunDuration: 0.08
       knockbackDistance: 0.2
     lightningStats:
-      displayName: "\uBC88\uAC1C"
+      displayName: Lightning
       level: 0
       unlocked: 0
-      damageMult: 0.95
-      fireRateMult: 0.65
+      damageMult: 1
+      fireRateMult: 0.7
       rangeMult: 1
       bonusProjectiles: 0
       hitStunDuration: 0.06
@@ -219,7 +219,7 @@ MonoBehaviour:
     borderColor: {r: 1, g: 1, b: 1, a: 0.5}
     backgroundColor: {r: 0, g: 0, b: 0, a: 0.35}
     labelFontSize: 12
-    labelText: "\uBBF8\uB2C8\uB9F5"
+    labelText: Minimap
   enemySpawner:
     spawnInterval: 2
     maxEnemies: 20
@@ -265,7 +265,7 @@ MonoBehaviour:
     novaOrbitAngularSpeed: 8
     shotgunBasePellets: 5
     shotgunSpreadAngle: 32
-    shotgunPelletDamageMult: 0.65
+    shotgunPelletDamageMult: 0.75
     shotgunSpeedMult: 0.95
     laserSpeedMult: 1.8
     laserThickness: 0.12
@@ -295,14 +295,55 @@ MonoBehaviour:
     lightningLineWidth: 0.14
     lightningLineLength: 1.6
     lightningColor: {r: 1, g: 0.95, b: 0.5, a: 1}
-    straightSpritePath: Art/Projectiles/straight
-    boomerangSpritePath: Art/Projectiles/boomerang
-    novaSpritePath: Art/Projectiles/nova
-    shotgunSpritePath: Art/Projectiles/shotgun
-    droneSpritePath: Art/Projectiles/drone
-    shurikenSpritePath: Art/Projectiles/shuriken
-    frostSpritePath: Art/Projectiles/frost
+    straightSpritePath: 
+    boomerangSpritePath: 
+    novaSpritePath: 
+    shotgunSpritePath: 
+    droneSpritePath: 
+    shurikenSpritePath: 
+    frostSpritePath: 
     projectileSpriteScale: 2.5
+  elementSystem:
+    enabled: 1
+    maxElementsPerWeapon: 3
+    defaultElementDuration: 2
+    defaultStatusDuration: 2
+    elements:
+    - element: 1
+      displayName: Fire
+      uiColor: {r: 1, g: 0.4, b: 0.2, a: 1}
+      defaultDuration: 2
+      defaultStatusEffect: 1
+    - element: 2
+      displayName: Water
+      uiColor: {r: 0.2, g: 0.6, b: 1, a: 1}
+      defaultDuration: 2
+      defaultStatusEffect: 2
+    - element: 3
+      displayName: Wind
+      uiColor: {r: 0.7, g: 1, b: 0.7, a: 1}
+      defaultDuration: 2
+      defaultStatusEffect: 3
+    - element: 4
+      displayName: Earth
+      uiColor: {r: 0.6, g: 0.45, b: 0.25, a: 1}
+      defaultDuration: 2
+      defaultStatusEffect: 4
+    statusEffects:
+    - effect: 1
+      baseDuration: 2
+      basePower: 1
+    - effect: 2
+      baseDuration: 2
+      basePower: 1
+    - effect: 3
+      baseDuration: 2
+      basePower: 1
+    - effect: 4
+      baseDuration: 2
+      basePower: 1
+    interactions: []
+    combos: []
   player:
     moveSpeed: 5
     playerColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
@@ -334,14 +375,14 @@ MonoBehaviour:
     baseMagnetRange: 1.5
     baseMagnetSpeed: 1.5
   pickups:
-    xpPickupScale: 1.6
-    coinPickupScale: 1.6
+    xpPickupScale: 0.4
+    coinPickupScale: 0.4
     xpMagnetScanInterval: 0.2
     coinMagnetScanInterval: 0.2
-    xpSpriteSize: 70
-    coinSpriteSize: 60
-    xpSpritePath: Art/Pickups/xp
-    coinSpritePath: Art/Pickups/coin
+    xpSpriteSize: 50
+    coinSpriteSize: 40
+    xpSpritePath: 
+    coinSpritePath: 
     xpColor: {r: 0.2, g: 0.8, b: 1, a: 1}
     coinColor: {r: 1, g: 0.85, b: 0.2, a: 1}
     xpColliderRadius: 0.15
@@ -352,15 +393,15 @@ MonoBehaviour:
     tileScale: 1
     tint: {r: 1, g: 1, b: 1, a: 1}
     sortingOrder: -10
-    useGrid: 0
+    useGrid: 1
     gridCellSize: 32
     gridLineThickness: 1
-    gridLineColor: {r: 1, g: 1, b: 1, a: 0.4}
-    gridBackgroundColor: {r: 0.6, g: 0.85, b: 0.55, a: 1}
-    useChecker: 1
-    checkerCellSize: 16
-    checkerColorA: {r: 0.55, g: 0.74, b: 0.34, a: 1}
-    checkerColorB: {r: 0.46, g: 0.66, b: 0.3, a: 1}
+    gridLineColor: {r: 0.3, g: 0.35, b: 0.45, a: 0.35}
+    gridBackgroundColor: {r: 0.16, g: 0.18, b: 0.22, a: 1}
+    useChecker: 0
+    checkerCellSize: 32
+    checkerColorA: {r: 0.6, g: 0.85, b: 0.55, a: 1}
+    checkerColorB: {r: 1, g: 1, b: 1, a: 1}
   mapBorder:
     color: {r: 1, g: 1, b: 1, a: 0.6}
     width: 0.05

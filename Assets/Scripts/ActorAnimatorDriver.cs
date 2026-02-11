@@ -167,8 +167,22 @@ public class ActorAnimatorDriver : MonoBehaviour
             _animator.CrossFade(deathHash, 0.02f, 0, 0f);
         }
 
-        float clipDuration = GetDeathClipDuration();
-        float waitDuration = Mathf.Max(0.15f, clipDuration);
+        yield return null;
+
+        float waitDuration = 0.15f;
+        if (_animator != null)
+        {
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            if (state.IsName("Death") && state.length > 0.01f)
+            {
+                waitDuration = Mathf.Max(waitDuration, state.length);
+            }
+            else
+            {
+                float clipDuration = GetDeathClipDuration();
+                waitDuration = Mathf.Max(waitDuration, clipDuration);
+            }
+        }
         if (useUnscaledTimeOnDeath)
         {
             yield return new WaitForSecondsRealtime(waitDuration);

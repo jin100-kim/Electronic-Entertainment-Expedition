@@ -86,7 +86,7 @@ public static class PixelArtAnimationSetup
                 Idle = new AnimDef { Name = "Idle", File = "Idle.png", Frames = 6, Fps = 10f, Loop = true },
                 Move = new AnimDef { Name = "Jump", File = "Jump.png", Frames = 7, Fps = 10f, Loop = true },
                 Hurt = null,
-                Death = new AnimDef { Name = "Death", File = "Death.png", Frames = 4, Fps = 10f, Loop = false }
+                Death = new AnimDef { Name = "Death", File = "Death.png", Frames = 5, Fps = 10f, Loop = false }
             },
             new CharacterDef
             {
@@ -205,7 +205,7 @@ public static class PixelArtAnimationSetup
         }
 
         string filePath = Path.Combine(folder, anim.File).Replace("\\", "/");
-        var sprites = SliceAndLoadSprites(filePath, anim.Frames);
+        var sprites = TryLoadFrameSprites(folder, anim) ?? SliceAndLoadSprites(filePath, anim.Frames);
         if (sprites == null || sprites.Length == 0)
         {
             return null;
@@ -295,6 +295,63 @@ public static class PixelArtAnimationSetup
         var sprites = AssetDatabase.LoadAllAssetRepresentationsAtPath(path).OfType<Sprite>().ToList();
         sprites.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.Ordinal));
         return sprites.ToArray();
+    }
+
+    private static Sprite[] TryLoadFrameSprites(string folder, AnimDef anim)
+    {
+        if (anim == null || string.IsNullOrEmpty(folder))
+        {
+            return null;
+        }
+
+        var paths = new List<string>();
+        for (int i = 0; i < anim.Frames; i++)
+        {
+            string framePath = Path.Combine(folder, $"{anim.Name}_{i}.png").Replace("\\", "/");
+            if (!File.Exists(framePath))
+            {
+                if (i == 0)
+                {
+                    return null;
+                }
+                break;
+            }
+            paths.Add(framePath);
+        }
+
+        if (paths.Count == 0)
+        {
+            return null;
+        }
+
+        var sprites = new List<Sprite>();
+        for (int i = 0; i < paths.Count; i++)
+        {
+            string path = paths[i];
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite == null)
+            {
+                var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer != null)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    importer.filterMode = FilterMode.Point;
+                    importer.mipmapEnabled = false;
+                    importer.textureCompression = TextureImporterCompression.Uncompressed;
+                    importer.SaveAndReimport();
+                }
+
+                sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+
+            if (sprite != null)
+            {
+                sprites.Add(sprite);
+            }
+        }
+
+        return sprites.Count > 0 ? sprites.ToArray() : null;
     }
 
     private static void EnsureFolder(string path)
