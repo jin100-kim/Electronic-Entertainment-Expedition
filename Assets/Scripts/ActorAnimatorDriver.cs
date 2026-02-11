@@ -81,6 +81,24 @@ public class ActorAnimatorDriver : MonoBehaviour
             return;
         }
 
+        if (!_isDead)
+        {
+            if (!_animator.enabled)
+            {
+                _animator.enabled = true;
+            }
+
+            if (_animator.speed <= 0f)
+            {
+                _animator.speed = 1f;
+            }
+
+            if (_animator.updateMode != AnimatorUpdateMode.Normal)
+            {
+                _animator.updateMode = AnimatorUpdateMode.Normal;
+            }
+        }
+
         Vector3 delta = transform.position - _lastPosition;
         _lastPosition = transform.position;
 
@@ -192,11 +210,7 @@ public class ActorAnimatorDriver : MonoBehaviour
             yield return new WaitForSeconds(waitDuration);
         }
 
-        if (_animator != null)
-        {
-            _animator.speed = 0f;
-            _animator.Update(0f);
-        }
+        // Let the death clip finish naturally; EnemyController handles cleanup/fade.
     }
 
     private void ResolveAnimator()

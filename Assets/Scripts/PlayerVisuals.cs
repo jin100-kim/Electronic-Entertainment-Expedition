@@ -58,6 +58,25 @@ public class PlayerVisuals : MonoBehaviour
         if (controller != null)
         {
             _animator.runtimeAnimatorController = controller;
+            ApplyAnimatorDefaults();
+            _animator.Rebind();
+            _animator.Update(0f);
+        }
+    }
+
+    private void ApplyAnimatorDefaults()
+    {
+        if (_animator == null)
+        {
+            return;
+        }
+
+        _animator.enabled = true;
+        _animator.speed = 1f;
+        _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        if (Application.isPlaying && _animator.updateMode != AnimatorUpdateMode.Normal)
+        {
+            _animator.updateMode = AnimatorUpdateMode.Normal;
         }
     }
 
