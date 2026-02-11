@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[ExecuteAlways]
 public class EnemyVisuals : MonoBehaviour
 {
     public enum EnemyVisualType
@@ -29,29 +30,23 @@ public class EnemyVisuals : MonoBehaviour
 
     private void Awake()
     {
-        var root = GetOrCreateVisualRoot();
-        root.localScale = Vector3.one * visualScale;
-        _aligner = root.GetComponent<VisualsAligner>();
+        EnsureVisualSetup(Application.isPlaying);
+    }
 
-        var renderer = root.GetComponent<SpriteRenderer>();
-        if (renderer == null)
+    private void OnEnable()
+    {
+        if (!Application.isPlaying)
         {
-            renderer = root.gameObject.AddComponent<SpriteRenderer>();
+            EnsureVisualSetup(false);
         }
-        renderer.color = Color.white;
+    }
 
-        _animator = root.GetComponent<Animator>();
-        if (_animator == null)
+    private void OnValidate()
+    {
+        if (!Application.isPlaying)
         {
-            _animator = root.gameObject.AddComponent<Animator>();
+            EnsureVisualSetup(false);
         }
-
-        if (GetComponent<ActorAnimatorDriver>() == null)
-        {
-            gameObject.AddComponent<ActorAnimatorDriver>();
-        }
-
-        ApplyVisual();
     }
 
     public void SetType(EnemyVisualType type)
@@ -90,6 +85,33 @@ public class EnemyVisuals : MonoBehaviour
         {
             _aligner.SetLockCenterOnStart(visualType == EnemyVisualType.Mushroom);
         }
+    }
+
+    private void EnsureVisualSetup(bool allowRuntimeComponents)
+    {
+        var root = GetOrCreateVisualRoot();
+        root.localScale = Vector3.one * visualScale;
+        _aligner = root.GetComponent<VisualsAligner>();
+
+        var renderer = root.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = root.gameObject.AddComponent<SpriteRenderer>();
+        }
+        renderer.color = Color.white;
+
+        _animator = root.GetComponent<Animator>();
+        if (_animator == null)
+        {
+            _animator = root.gameObject.AddComponent<Animator>();
+        }
+
+        if (allowRuntimeComponents && GetComponent<ActorAnimatorDriver>() == null)
+        {
+            gameObject.AddComponent<ActorAnimatorDriver>();
+        }
+
+        ApplyVisual();
     }
 
     private Transform GetOrCreateVisualRoot()
