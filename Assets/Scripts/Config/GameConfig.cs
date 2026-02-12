@@ -303,6 +303,7 @@ public class MapChoiceEntry
     public MapTheme theme = MapTheme.Forest;
     public string displayName = "숲";
     public string sceneName = "ForestOpenWorld";
+    public DifficultyConfig difficulty;
 }
 
 [System.Serializable]

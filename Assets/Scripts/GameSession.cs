@@ -357,6 +357,19 @@ public class GameSession : MonoBehaviour
     private PlayerController _player;
     private bool _gameStarted;
     private bool _stageCompleted;
+    private DifficultyConfig _baseDifficultyConfig;
+    private bool _difficultyBaseCached;
+    private float _baseSpawnInterval;
+    private float _baseMinSpawnInterval;
+    private float _baseSpawnIntervalDecayPerSec;
+    private int _baseMaxEnemies;
+    private int _baseMaxEnemiesPerMinute;
+    private float _baseEnemyHealthPerLevel;
+    private float _baseEnemyDamagePerLevel;
+    private float _baseEnemySpeedPerLevel;
+    private float _baseEnemyXpPerLevel;
+    private float _baseCoinDropChance;
+    private float _baseXpGainMult;
 
     private bool _choosingUpgrade;
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
@@ -563,6 +576,8 @@ public class GameSession : MonoBehaviour
         testSpawnOffsets = ResolveTestSpawnOffsets(settings.testSpawnOffsets);
 
         ApplyStageOverrides(stage);
+        CacheDifficultyBaseValues();
+        _baseDifficultyConfig = difficulty;
         ApplyDifficultyOverrides(difficulty);
 
         _settingsApplied = true;
@@ -762,8 +777,43 @@ public class GameSession : MonoBehaviour
         maxEnemiesPerMinute = stage.maxEnemiesPerMinute;
     }
 
+    private void CacheDifficultyBaseValues()
+    {
+        if (_difficultyBaseCached)
+        {
+            return;
+        }
+
+        _baseSpawnInterval = spawnInterval;
+        _baseMinSpawnInterval = minSpawnInterval;
+        _baseSpawnIntervalDecayPerSec = spawnIntervalDecayPerSec;
+        _baseMaxEnemies = maxEnemies;
+        _baseMaxEnemiesPerMinute = maxEnemiesPerMinute;
+        _baseEnemyHealthPerLevel = enemyHealthPerLevel;
+        _baseEnemyDamagePerLevel = enemyDamagePerLevel;
+        _baseEnemySpeedPerLevel = enemySpeedPerLevel;
+        _baseEnemyXpPerLevel = enemyXpPerLevel;
+        _baseCoinDropChance = coinDropChance;
+        _baseXpGainMult = xpGainMult;
+        _difficultyBaseCached = true;
+    }
+
     private void ApplyDifficultyOverrides(DifficultyConfig difficulty)
     {
+        CacheDifficultyBaseValues();
+
+        spawnInterval = _baseSpawnInterval;
+        minSpawnInterval = _baseMinSpawnInterval;
+        spawnIntervalDecayPerSec = _baseSpawnIntervalDecayPerSec;
+        maxEnemies = _baseMaxEnemies;
+        maxEnemiesPerMinute = _baseMaxEnemiesPerMinute;
+        enemyHealthPerLevel = _baseEnemyHealthPerLevel;
+        enemyDamagePerLevel = _baseEnemyDamagePerLevel;
+        enemySpeedPerLevel = _baseEnemySpeedPerLevel;
+        enemyXpPerLevel = _baseEnemyXpPerLevel;
+        coinDropChance = _baseCoinDropChance;
+        xpGainMult = _baseXpGainMult;
+
         enemyHealthMultiplier = 1f;
         enemyDamageMultiplier = 1f;
         enemySpeedMultiplier = 1f;
@@ -3935,6 +3985,7 @@ public class GameSession : MonoBehaviour
         _selectedMapChoice = choice;
         _mapChoiceApplied = true;
         DisableLegacyMapRoots();
+        ApplyMapDifficulty(choice.difficulty);
 
         if (!string.IsNullOrWhiteSpace(choice.sceneName))
         {
@@ -4014,6 +4065,31 @@ public class GameSession : MonoBehaviour
         };
     }
 
+    private string GetMapChoiceLabel(MapChoiceEntry choice)
+    {
+        if (choice == null)
+        {
+            return string.Empty;
+        }
+
+        string name = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var fallback = _baseDifficultyConfig != null ? _baseDifficultyConfig : ResolveDifficultyConfig(config);
+        var difficulty = choice.difficulty != null ? choice.difficulty : fallback;
+        string difficultyName = ResolveDifficultyName(difficulty);
+        return string.IsNullOrWhiteSpace(difficultyName) ? name : $"{name}\n{difficultyName}";
+    }
+
+    private static string ResolveDifficultyName(DifficultyConfig difficulty)
+    {
+        if (difficulty == null || string.IsNullOrWhiteSpace(difficulty.difficultyName))
+        {
+            return "Normal";
+        }
+
+        return difficulty.difficultyName.Trim();
+    }
+
     private void LoadMapScene(string sceneName)
     {
         if (string.IsNullOrWhiteSpace(sceneName))
@@ -4032,6 +4108,46 @@ public class GameSession : MonoBehaviour
         }
 
         _mapLoadRoutine = StartCoroutine(LoadMapSceneRoutine(sceneName));
+    }
+
+    private void ApplyMapDifficulty(DifficultyConfig mapDifficulty)
+    {
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        var fallback = _baseDifficultyConfig != null ? _baseDifficultyConfig : ResolveDifficultyConfig(config);
+        var selected = mapDifficulty != null ? mapDifficulty : fallback;
+        difficultyConfig = selected;
+        ReapplyDifficulty(selected);
+    }
+
+    private void ReapplyDifficulty(DifficultyConfig difficulty)
+    {
+        ApplyDifficultyOverrides(difficulty);
+
+        if (_spawner == null)
+        {
+            return;
+        }
+
+        ResetSpawnerBaseStats();
+        _spawnerDifficultyApplied = false;
+        ApplyDifficultyToSpawner();
+        ApplyDifficultyScaling();
+    }
+
+    private void ResetSpawnerBaseStats()
+    {
+        if (_spawner == null)
+        {
+            return;
+        }
+
+        CacheSpawnerBaseStats();
+        _spawner.EnemyMoveSpeed = _baseEnemyMoveSpeed;
+        _spawner.EnemyDamage = _baseEnemyDamage;
+        _spawner.EnemyMaxHealth = _baseEnemyMaxHealth;
+        _spawner.EnemyXpReward = _baseEnemyXp;
+        _spawner.EliteHealthMult = _baseEliteHealthMult;
+        _spawner.BossHealthMult = _baseBossHealthMult;
     }
 
     private IEnumerator LoadMapSceneRoutine(string sceneName)
@@ -4751,7 +4867,7 @@ public class GameSession : MonoBehaviour
             StretchToFill(label.rectTransform, new Vector2(6f, 6f));
             int index = i;
             var choice = choices[i];
-            label.text = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+            label.text = GetMapChoiceLabel(choice);
             button.onClick.AddListener(() => SelectMapWithFeedback(choice, button));
             ApplyButtonColors(button, startButtonNormalColor, startButtonHoverColor);
             _mapButtons[i] = button;
@@ -5440,7 +5556,7 @@ public class GameSession : MonoBehaviour
         {
             var rect = new Rect(bx + i * (buttonWidth + gap), by, buttonWidth, buttonHeight);
             var choice = choices[i];
-            string label = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+            string label = GetMapChoiceLabel(choice);
             if (GUI.Button(rect, label))
             {
                 SelectMapChoice(choice);
