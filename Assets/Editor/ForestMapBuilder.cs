@@ -9,39 +9,95 @@ using UnityEngine.Tilemaps;
 
 public static class ForestMapBuilder
 {
-    private const string TilesetTexturePath = "Assets/Art/Tilesets/ForestPlains/tileset_plains_070419_zp.png";
-    private const string TilesFolder = "Assets/Art/Tilesets/ForestPlains/Tiles";
-    private const string ScenePath = "Assets/Scenes/ForestOpenWorld.unity";
+    private const int DefaultTileSize = 16;
 
-    private const int TileSize = 16;
-    private const int Spacing = 2;
-    private const int Margin = 1;
+    private static readonly MapConfig ForestConfig = new MapConfig
+    {
+        Theme = MapTheme.Forest,
+        TilesetTexturePath = "Assets/Art/Tilesets/ForestPlains/tileset_plains_070419_zp.png",
+        TilesFolder = "Assets/Art/Tilesets/ForestPlains/Tiles",
+        ScenePath = "Assets/Scenes/ForestOpenWorld.unity",
+        SpritePrefix = "ForestPlains",
+        TileSize = 16,
+        Spacing = 2,
+        Margin = 1
+    };
+
+    private static readonly MapConfig DesertConfig = new MapConfig
+    {
+        Theme = MapTheme.Desert,
+        TilesetTexturePath = "Assets/Art/Tilesets/Desert/desert_tileset.png",
+        TilesFolder = "Assets/Art/Tilesets/Desert/Tiles",
+        ScenePath = "Assets/Scenes/DesertOpenWorld.unity",
+        SpritePrefix = "Desert",
+        TileSize = 16,
+        Spacing = 0,
+        Margin = 0
+    };
+
+    private static readonly MapConfig SnowConfig = new MapConfig
+    {
+        Theme = MapTheme.Snow,
+        TilesetTexturePath = "Assets/Art/Tilesets/Snow/snow_tileset.png",
+        TilesFolder = "Assets/Art/Tilesets/Snow/Tiles",
+        ScenePath = "Assets/Scenes/SnowOpenWorld.unity",
+        SpritePrefix = "Snow",
+        TileSize = 16,
+        Spacing = 0,
+        Margin = 0
+    };
 
     [MenuItem("Tools/Map/Build Forest Open World")]
     private static void BuildForestOpenWorld()
     {
-        EnsureTilesetImported();
+        BuildOpenWorld(ForestConfig);
+    }
 
-        var sprites = LoadSprites();
+    [MenuItem("Tools/Map/Build Desert Open World")]
+    private static void BuildDesertOpenWorld()
+    {
+        BuildOpenWorld(DesertConfig);
+    }
+
+    [MenuItem("Tools/Map/Build Snow Open World")]
+    private static void BuildSnowOpenWorld()
+    {
+        BuildOpenWorld(SnowConfig);
+    }
+
+    [MenuItem("Tools/Map/Build All Open Worlds")]
+    private static void BuildAllOpenWorlds()
+    {
+        BuildOpenWorld(ForestConfig);
+        BuildOpenWorld(DesertConfig);
+        BuildOpenWorld(SnowConfig);
+    }
+
+    private static void BuildOpenWorld(MapConfig config)
+    {
+        EnsureTilesetImported(config);
+
+        var sprites = LoadSprites(config.TilesetTexturePath);
         if (sprites.Length == 0)
         {
-            Debug.LogError($"No sprites found at {TilesetTexturePath}. Is the tileset imported?");
+            Debug.LogError($"No sprites found at {config.TilesetTexturePath}. Is the tileset imported?");
             return;
         }
 
-        var selection = SelectTiles(TilesetTexturePath, sprites);
+        var selection = SelectTiles(config.Theme, config.TilesetTexturePath, sprites);
         if (selection.Ground == null || selection.Obstacle == null)
         {
             Debug.LogError("Failed to select ground/obstacle tiles from the tileset.");
             return;
         }
 
-        var groundTile = EnsureTileAsset("Forest_Ground", selection.Ground, Tile.ColliderType.None);
-        var detailTile = EnsureTileAsset("Forest_Detail", selection.Detail ?? selection.Ground, Tile.ColliderType.None);
-        var obstacleTile = EnsureTileAsset("Forest_Obstacle", selection.Obstacle, Tile.ColliderType.Sprite);
+        string prefix = config.Theme.ToString();
+        var groundTile = EnsureTileAsset($"{prefix}_Ground", selection.Ground, Tile.ColliderType.None, config.TilesFolder);
+        var detailTile = EnsureTileAsset($"{prefix}_Detail", selection.Detail ?? selection.Ground, Tile.ColliderType.None, config.TilesFolder);
+        var obstacleTile = EnsureTileAsset($"{prefix}_Obstacle", selection.Obstacle, Tile.ColliderType.Sprite, config.TilesFolder);
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-        scene.name = "ForestOpenWorld";
+        scene.name = Path.GetFileNameWithoutExtension(config.ScenePath);
 
         var gridGo = new GameObject("Grid", typeof(Grid));
         gridGo.transform.position = Vector3.zero;
@@ -59,36 +115,40 @@ public static class ForestMapBuilder
         PlaceObstacles(obstacleMap, collisionMap, obstacleTile, size.Width, size.Height, count: 14, seed: 4321);
 
         EditorSceneManager.MarkSceneDirty(scene);
-        EditorSceneManager.SaveScene(scene, ScenePath);
-        Debug.Log($"ForestOpenWorld scene saved: {ScenePath}");
+        EditorSceneManager.SaveScene(scene, config.ScenePath);
+        Debug.Log($"{scene.name} scene saved: {config.ScenePath}");
     }
 
-    private static void EnsureTilesetImported()
+    private static void EnsureTilesetImported(MapConfig config)
     {
-        var importer = AssetImporter.GetAtPath(TilesetTexturePath) as TextureImporter;
+        var importer = AssetImporter.GetAtPath(config.TilesetTexturePath) as TextureImporter;
         if (importer == null)
         {
-            Debug.LogError($"Tileset texture not found: {TilesetTexturePath}");
+            Debug.LogError($"Tileset texture not found: {config.TilesetTexturePath}");
             return;
         }
 
+        int tileSize = Mathf.Max(1, config.TileSize);
+        int spacing = Mathf.Max(0, config.Spacing);
+        int margin = Mathf.Max(0, config.Margin);
+
         importer.textureType = TextureImporterType.Sprite;
         importer.spriteImportMode = SpriteImportMode.Multiple;
-        importer.spritePixelsPerUnit = TileSize;
+        importer.spritePixelsPerUnit = tileSize;
         importer.filterMode = FilterMode.Point;
         importer.mipmapEnabled = false;
         importer.isReadable = true;
         importer.alphaIsTransparency = true;
 
-        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(TilesetTexturePath);
+        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(config.TilesetTexturePath);
         if (texture == null)
         {
-            Debug.LogError($"Unable to load texture: {TilesetTexturePath}");
+            Debug.LogError($"Unable to load texture: {config.TilesetTexturePath}");
             return;
         }
 
-        int cols = (texture.width - 2 * Margin + Spacing) / (TileSize + Spacing);
-        int rows = (texture.height - 2 * Margin + Spacing) / (TileSize + Spacing);
+        int cols = (texture.width - 2 * margin + spacing) / (tileSize + spacing);
+        int rows = (texture.height - 2 * margin + spacing) / (tileSize + spacing);
 
         var metas = new List<SpriteMetaData>(cols * rows);
         int index = 0;
@@ -97,14 +157,14 @@ public static class ForestMapBuilder
             for (int x = 0; x < cols; x++)
             {
                 var rect = new Rect(
-                    Margin + x * (TileSize + Spacing),
-                    Margin + (rows - 1 - y) * (TileSize + Spacing),
-                    TileSize,
-                    TileSize);
+                    margin + x * (tileSize + spacing),
+                    margin + (rows - 1 - y) * (tileSize + spacing),
+                    tileSize,
+                    tileSize);
 
                 metas.Add(new SpriteMetaData
                 {
-                    name = $"ForestPlains_{index:D3}",
+                    name = $"{config.SpritePrefix}_{index:D3}",
                     rect = rect,
                     alignment = (int)SpriteAlignment.Center
                 });
@@ -116,16 +176,16 @@ public static class ForestMapBuilder
         importer.SaveAndReimport();
     }
 
-    private static Sprite[] LoadSprites()
+    private static Sprite[] LoadSprites(string texturePath)
     {
         return AssetDatabase
-            .LoadAllAssetRepresentationsAtPath(TilesetTexturePath)
+            .LoadAllAssetRepresentationsAtPath(texturePath)
             .OfType<Sprite>()
             .OrderBy(s => s.name)
             .ToArray();
     }
 
-    private static TileSelection SelectTiles(string texturePath, Sprite[] sprites)
+    private static TileSelection SelectTiles(MapTheme theme, string texturePath, Sprite[] sprites)
     {
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
         if (texture == null)
@@ -145,27 +205,41 @@ public static class ForestMapBuilder
 
         var opaqueCandidates = stats
             .Where(s => s.OpaqueRatio >= 0.9f)
-            .OrderByDescending(s => s.GreenBias)
             .ToList();
 
         if (opaqueCandidates.Count == 0)
         {
-            opaqueCandidates = stats.OrderByDescending(s => s.GreenBias).ToList();
+            opaqueCandidates = stats.ToList();
         }
 
-        var ground = opaqueCandidates.FirstOrDefault();
-        var detail = opaqueCandidates.Skip(1).FirstOrDefault();
+        TileStat ground;
+        TileStat detail;
+        TileStat obstacle;
+
+        switch (theme)
+        {
+            case MapTheme.Desert:
+                ground = opaqueCandidates.OrderByDescending(s => s.Warmth).FirstOrDefault();
+                detail = opaqueCandidates.OrderByDescending(s => s.Warmth).Skip(1).FirstOrDefault();
+                obstacle = opaqueCandidates.Where(s => s.Sprite != ground.Sprite).OrderBy(s => s.Brightness).FirstOrDefault();
+                break;
+            case MapTheme.Snow:
+                ground = opaqueCandidates.OrderByDescending(s => s.Brightness).FirstOrDefault();
+                detail = opaqueCandidates.OrderByDescending(s => s.Brightness).Skip(1).FirstOrDefault();
+                obstacle = opaqueCandidates.Where(s => s.Sprite != ground.Sprite).OrderBy(s => s.Brightness).FirstOrDefault();
+                break;
+            default:
+                ground = opaqueCandidates.OrderByDescending(s => s.GreenBias).FirstOrDefault();
+                detail = opaqueCandidates.OrderByDescending(s => s.GreenBias).Skip(1).FirstOrDefault();
+                obstacle = opaqueCandidates.Where(s => s.Sprite != ground.Sprite).OrderBy(s => s.GreenBias).FirstOrDefault();
+                break;
+        }
+
         if (detail.Sprite == null)
         {
             detail = ground;
         }
 
-        var obstacleCandidates = stats
-            .Where(s => s.OpaqueRatio >= 0.9f && s.Sprite != ground.Sprite)
-            .OrderBy(s => s.GreenBias)
-            .ToList();
-
-        var obstacle = obstacleCandidates.FirstOrDefault();
         if (obstacle.Sprite == null)
         {
             obstacle = stats.FirstOrDefault(s => s.Sprite != ground.Sprite);
@@ -212,24 +286,28 @@ public static class ForestMapBuilder
         float avgG = sumG / (float)count;
         float avgB = sumB / (float)count;
         float greenBias = avgG - (avgR + avgB) * 0.5f;
+        float brightness = avgR + avgG + avgB;
+        float warmth = (avgR + avgG) - avgB * 0.5f;
 
         return new TileStat
         {
             Sprite = sprite,
             GreenBias = greenBias,
+            Brightness = brightness,
+            Warmth = warmth,
             OpaqueRatio = opaque / (float)count
         };
     }
 
-    private static Tile EnsureTileAsset(string name, Sprite sprite, Tile.ColliderType colliderType)
+    private static Tile EnsureTileAsset(string name, Sprite sprite, Tile.ColliderType colliderType, string tilesFolder)
     {
-        if (!AssetDatabase.IsValidFolder(TilesFolder))
+        if (!AssetDatabase.IsValidFolder(tilesFolder))
         {
-            Directory.CreateDirectory(Path.Combine(Application.dataPath, "Art", "Tilesets", "ForestPlains", "Tiles"));
+            Directory.CreateDirectory(Path.Combine(Application.dataPath, tilesFolder.Replace("Assets/", string.Empty)));
             AssetDatabase.Refresh();
         }
 
-        string path = $"{TilesFolder}/{name}.asset";
+        string path = $"{tilesFolder}/{name}.asset";
         var tile = AssetDatabase.LoadAssetAtPath<Tile>(path);
         if (tile == null)
         {
@@ -351,10 +429,24 @@ public static class ForestMapBuilder
         public Sprite Obstacle;
     }
 
+    private struct MapConfig
+    {
+        public MapTheme Theme;
+        public string TilesetTexturePath;
+        public string TilesFolder;
+        public string ScenePath;
+        public string SpritePrefix;
+        public int TileSize;
+        public int Spacing;
+        public int Margin;
+    }
+
     private struct TileStat
     {
         public Sprite Sprite;
         public float GreenBias;
+        public float Brightness;
+        public float Warmth;
         public float OpaqueRatio;
     }
 }

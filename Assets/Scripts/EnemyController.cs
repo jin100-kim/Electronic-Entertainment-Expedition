@@ -109,6 +109,11 @@ public class EnemyController : MonoBehaviour
             gameObject.AddComponent<EnemyHealthBar>();
         }
 
+        if (GetComponent<DamageTextOnHit>() == null)
+        {
+            gameObject.AddComponent<DamageTextOnHit>();
+        }
+
         EnsureColliderGizmos();
         ResolveVisualRenderers();
         _health.OnDied += OnDied;

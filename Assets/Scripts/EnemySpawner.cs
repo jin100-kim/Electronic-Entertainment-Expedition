@@ -323,13 +323,36 @@ public class EnemySpawner : MonoBehaviour
 
     private void SpawnEnemy(EnemyTier.Tier tier, Transform spawnTarget)
     {
+        SpawnEnemyInternal(tier, spawnTarget, null, false, null);
+    }
+
+    public bool SpawnManual(EnemyVisuals.EnemyVisualType visualType, Transform spawnTarget, Vector3? positionOverride = null)
+    {
+        return SpawnEnemyInternal(EnemyTier.Tier.Normal, spawnTarget, visualType, true, positionOverride);
+    }
+
+    private bool SpawnEnemyInternal(EnemyTier.Tier tier, Transform spawnTarget, EnemyVisuals.EnemyVisualType? visualOverride, bool forceSpawn, Vector3? positionOverride)
+    {
         if (spawnTarget == null)
         {
-            return;
+            return false;
         }
 
-        Vector2 offset = Random.insideUnitCircle.normalized * spawnRadius;
-        Vector3 position = spawnTarget.position + new Vector3(offset.x, offset.y, 0f);
+        if (!forceSpawn && _enemies.Count >= maxEnemies)
+        {
+            return false;
+        }
+
+        Vector3 position;
+        if (positionOverride.HasValue)
+        {
+            position = positionOverride.Value;
+        }
+        else
+        {
+            Vector2 offset = Random.insideUnitCircle.normalized * spawnRadius;
+            position = spawnTarget.position + new Vector3(offset.x, offset.y, 0f);
+        }
         if (GameSession.Instance != null)
         {
             position = GameSession.Instance.ClampToBounds(position);
@@ -337,13 +360,13 @@ public class EnemySpawner : MonoBehaviour
 
         if (NetworkSession.IsActive && !NetworkSession.IsServer)
         {
-            return;
+            return false;
         }
 
         GameObject enemy = NetworkSession.IsActive ? RuntimeNetworkPrefabs.InstantiateEnemy() : new GameObject("Enemy");
         if (enemy == null)
         {
-            return;
+            return false;
         }
 
         enemy.name = "Enemy";
@@ -391,7 +414,8 @@ public class EnemySpawner : MonoBehaviour
         {
             visuals = enemy.AddComponent<EnemyVisuals>();
         }
-        visuals.SetType(GetVisualType(tier));
+        var visualType = visualOverride.HasValue ? visualOverride.Value : GetVisualType(tier);
+        visuals.SetType(visualType);
         visuals.SetVisualScale(enemyVisualScale);
 
         var tierInfo = enemy.GetComponent<EnemyTier>();
@@ -418,6 +442,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
         _enemies.Add(enemy);
+        return true;
     }
 
     private void CleanupDeadEnemies()

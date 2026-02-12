@@ -265,8 +265,13 @@ public class GameSession : MonoBehaviour
 
     [Header("Start Weapon")]
     private bool requireStartWeaponChoice = true;
-
+    
     private StartWeaponType startWeapon = StartWeaponType.Gun;
+
+    [Header("Start Map")]
+    private bool requireMapChoice = true;
+    private bool allowMapChoiceInNetwork = false;
+    private MapChoiceEntry[] mapChoices;
 
     [Header("Start Character Preview")]
     private float startPreviewScale = 2f;
@@ -315,10 +320,18 @@ public class GameSession : MonoBehaviour
 
     private float autoButtonSecretTimeout = 1.5f;
 
+    private bool allowTestSpawnSecret = true;
+
+    private string testSpawnSecret = "test";
+
+    private float testSpawnSecretTimeout = 1.5f;
+
+    private Vector2[] testSpawnOffsets;
+
     public Vector2 MapHalfSize => mapHalfSize;
     public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
     public bool IsWaitingStartWeaponChoice => _waitingStartWeaponChoice;
-    public bool IsGameplayActive => _gameStarted && !_waitingStartWeaponChoice;
+    public bool IsGameplayActive => _gameStarted && !_waitingStartWeaponChoice && !_waitingMapChoice;
     public bool IsChoosingUpgrade => _choosingUpgrade;
 
     private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
@@ -350,6 +363,12 @@ public class GameSession : MonoBehaviour
     private readonly Dictionary<string, int> _upgradeCounts = new Dictionary<string, int>();
     private readonly List<string> _upgradeOrder = new List<string>();
     private bool _waitingStartWeaponChoice;
+    private bool _waitingMapChoice;
+    private bool _mapChoiceApplied;
+    private MapChoiceEntry _selectedMapChoice;
+    private string _loadedMapScene;
+    private Coroutine _mapLoadRoutine;
+    private bool _mapSceneVisible;
     private bool _autoPlayEnabled;
     private float _autoUpgradeStartTime = -1f;
     private readonly System.Collections.Generic.List<string> _networkUpgradeTitles = new System.Collections.Generic.List<string>();
@@ -381,6 +400,11 @@ public class GameSession : MonoBehaviour
     private Text _gameOverTitleText;
     private Text _gameOverTimeText;
     private Button _gameOverButton;
+    private RectTransform _mapPanel;
+    private Text _mapTitleText;
+    private Text _mapSubtitleText;
+    private Button[] _mapButtons;
+    private Text[] _mapButtonTexts;
     private RectTransform _startPanel;
     private Text _startTitleText;
     private Text _startSubtitleText;
@@ -399,6 +423,8 @@ public class GameSession : MonoBehaviour
     private bool _showAutoButton;
     private string _autoSecretBuffer = string.Empty;
     private float _autoSecretLastTime = -1f;
+    private string _testSecretBuffer = string.Empty;
+    private float _testSecretLastTime = -1f;
     private bool _settingsApplied;
 
     private const string CoinPrefKey = "CoinCount";
@@ -503,6 +529,9 @@ public class GameSession : MonoBehaviour
 
         requireStartWeaponChoice = settings.requireStartWeaponChoice;
         startWeapon = settings.startWeapon;
+        requireMapChoice = settings.requireMapChoice;
+        allowMapChoiceInNetwork = settings.allowMapChoiceInNetwork;
+        mapChoices = ResolveMapChoices(settings.mapChoices);
 
         startPreviewScale = settings.startPreviewScale;
         startPreviewDimAlpha = settings.startPreviewDimAlpha;
@@ -528,6 +557,10 @@ public class GameSession : MonoBehaviour
         allowAutoButtonSecret = settings.allowAutoButtonSecret;
         autoButtonSecret = settings.autoButtonSecret;
         autoButtonSecretTimeout = settings.autoButtonSecretTimeout;
+        allowTestSpawnSecret = settings.allowTestSpawnSecret;
+        testSpawnSecret = settings.testSpawnSecret;
+        testSpawnSecretTimeout = settings.testSpawnSecretTimeout;
+        testSpawnOffsets = ResolveTestSpawnOffsets(settings.testSpawnOffsets);
 
         ApplyStageOverrides(stage);
         ApplyDifficultyOverrides(difficulty);
@@ -551,6 +584,10 @@ public class GameSession : MonoBehaviour
         _spawnerDifficultyApplied = false;
         _stageCompleted = false;
         _startWeaponApplied = false;
+        _waitingMapChoice = false;
+        _mapChoiceApplied = false;
+        _selectedMapChoice = default;
+        _loadedMapScene = string.Empty;
         _hasPendingStartWeapon = false;
         _upgradeSelections.Clear();
         _upgradePendingClients.Clear();
@@ -900,6 +937,22 @@ public class GameSession : MonoBehaviour
         return $"대기중 ({ready}/{total})";
     }
 
+    private string GetStartChoiceSubtitle()
+    {
+        if (!IsNetworkSession())
+        {
+            return "캐릭터를 선택하면 시작됩니다.";
+        }
+
+        string waiting = GetStartWaitingText();
+        if (string.IsNullOrWhiteSpace(waiting))
+        {
+            return "캐릭터를 선택하면 시작됩니다.";
+        }
+
+        return $"{waiting}\n캐릭터를 선택하면 시작됩니다.";
+    }
+
     private void SubmitStartWeaponSelection(StartWeaponType weapon)
     {
         var owner = FindOwnerPlayer();
@@ -1073,13 +1126,22 @@ public class GameSession : MonoBehaviour
 
         if (autoStartLocal)
         {
-            if (requireStartWeaponChoice)
+            if (ShouldShowMapChoice())
             {
-                _waitingStartWeaponChoice = true;
+                _waitingMapChoice = true;
+                _waitingStartWeaponChoice = false;
             }
             else
             {
-                StartLocalGame();
+                EnsureMapSelected();
+                if (requireStartWeaponChoice)
+                {
+                    _waitingStartWeaponChoice = true;
+                }
+                else
+                {
+                    StartLocalGame();
+                }
             }
         }
 
@@ -1090,7 +1152,13 @@ public class GameSession : MonoBehaviour
 
     private void Update()
     {
+        UpdateMapSceneVisibility();
         if (IsGameOver)
+        {
+            return;
+        }
+
+        if (_waitingMapChoice)
         {
             return;
         }
@@ -1140,6 +1208,7 @@ public class GameSession : MonoBehaviour
         }
 
         HandleAutoButtonSecret();
+        HandleTestSpawnSecret();
     }
 
     private void LateUpdate()
@@ -1167,9 +1236,58 @@ public class GameSession : MonoBehaviour
         Instance.StartNetworkSession();
     }
 
+    public void BeginLocalSession()
+    {
+        if (_gameStarted)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            return;
+        }
+
+        if (ShouldShowMapChoice() && !_mapChoiceApplied)
+        {
+            _waitingMapChoice = true;
+            _waitingStartWeaponChoice = false;
+            _gameStarted = false;
+            EnsureSelectionUI();
+            return;
+        }
+
+        if (!_mapChoiceApplied)
+        {
+            EnsureMapSelected();
+        }
+
+        if (requireStartWeaponChoice)
+        {
+            _waitingStartWeaponChoice = true;
+            _gameStarted = false;
+            EnsureSelectionUI();
+            return;
+        }
+
+        StartLocalGame();
+    }
+
     private void StartNetworkSession()
     {
         bool isNetworked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+
+        if (ShouldShowMapChoice() && !_mapChoiceApplied)
+        {
+            _waitingMapChoice = true;
+            _gameStarted = false;
+            return;
+        }
+
+        if (!_mapChoiceApplied)
+        {
+            EnsureMapSelected();
+        }
 
         if (requireStartWeaponChoice && !_waitingStartWeaponChoice)
         {
@@ -1234,6 +1352,7 @@ public class GameSession : MonoBehaviour
     {
         _player = player;
         SetAutoPlayEnabled(_autoPlayEnabled);
+        EnsureCameraFollow();
         var state = GetOrCreateState(player);
         ApplyPlayerVisuals(player, state != null ? state.startWeapon : startWeapon);
 
@@ -2789,9 +2908,15 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        if (cam.GetComponent<CameraFollow>() == null)
+        var follow = cam.GetComponent<CameraFollow>();
+        if (follow == null)
         {
-            cam.gameObject.AddComponent<CameraFollow>();
+            follow = cam.gameObject.AddComponent<CameraFollow>();
+        }
+
+        if (_player != null)
+        {
+            follow.SetTarget(_player.transform, snap: true);
         }
     }
 
@@ -2824,6 +2949,20 @@ public class GameSession : MonoBehaviour
         }
 
         background.SetBounds(mapHalfSize);
+        background.enabled = !IsMapSceneVisible();
+    }
+
+    private void EnsureSelectionUI()
+    {
+        if (!useUGUI)
+        {
+            return;
+        }
+
+        if (!_uiReady)
+        {
+            BuildUGUI();
+        }
     }
 
     public Vector3 ClampToBounds(Vector3 position)
@@ -3569,6 +3708,7 @@ public class GameSession : MonoBehaviour
         _uiRoot = canvasGo.GetComponent<RectTransform>();
 
         BuildGameOverUI(fontToUse);
+        BuildMapChoiceUI(fontToUse);
         BuildStartChoiceUI(fontToUse);
         BuildUpgradeUI(fontToUse);
         BuildAutoButtonUI(fontToUse);
@@ -3583,11 +3723,24 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        bool showStart = _waitingStartWeaponChoice && !IsGameOver;
+        bool showMap = _waitingMapChoice && !IsGameOver;
+        bool showStart = _waitingStartWeaponChoice && !showMap && !IsGameOver;
         bool showGameOver = IsGameOver;
         bool showUpgrade = _choosingUpgrade && !showStart && !IsGameOver;
-        bool showAuto = _showAutoButton && _player != null && _gameStarted && !_waitingStartWeaponChoice && !IsGameOver;
+        bool showAuto = _showAutoButton && _player != null && _gameStarted && !_waitingStartWeaponChoice && !_waitingMapChoice && !IsGameOver;
 
+        if (_mapPanel != null)
+        {
+            _mapPanel.gameObject.SetActive(showMap);
+        }
+        if (_mapTitleText != null)
+        {
+            _mapTitleText.gameObject.SetActive(showMap);
+        }
+        if (_mapSubtitleText != null)
+        {
+            _mapSubtitleText.gameObject.SetActive(showMap);
+        }
         if (_startPanel != null)
         {
             _startPanel.gameObject.SetActive(showStart);
@@ -3624,9 +3777,14 @@ public class GameSession : MonoBehaviour
             _gameOverTimeText.text = $"{label} {ElapsedTime:0.0}s";
         }
 
+        if (showMap && _mapSubtitleText != null)
+        {
+            _mapSubtitleText.text = requireStartWeaponChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.";
+        }
+
         if (showStart && _startSubtitleText != null)
         {
-            _startSubtitleText.text = GetStartWaitingText();
+            _startSubtitleText.text = GetStartChoiceSubtitle();
         }
 
         if (showUpgrade && _upgradeTitleText != null)
@@ -3716,6 +3874,16 @@ public class GameSession : MonoBehaviour
         BeginSelectionFeedback(button, startButtonClickColor, () => SelectStartWeapon(weapon));
     }
 
+    private void SelectMapWithFeedback(MapChoiceEntry choice, Button button)
+    {
+        if (_selectionLocked)
+        {
+            return;
+        }
+
+        BeginSelectionFeedback(button, startButtonClickColor, () => SelectMapChoice(choice));
+    }
+
     private void SelectUpgradeWithFeedback(int index)
     {
         if (_localUpgradeSubmitted && NetworkSession.IsActive)
@@ -3741,6 +3909,286 @@ public class GameSession : MonoBehaviour
         }
 
         BeginSelectionFeedback(button, upgradeButtonClickColor, () => SubmitUpgradeSelection(index));
+    }
+
+    private void SelectMapChoice(MapChoiceEntry choice)
+    {
+        if (_mapChoiceApplied)
+        {
+            return;
+        }
+
+        ApplyMapChoice(choice);
+        _waitingMapChoice = false;
+        if (requireStartWeaponChoice)
+        {
+            _waitingStartWeaponChoice = true;
+        }
+        else
+        {
+            StartLocalGame();
+        }
+    }
+
+    private void ApplyMapChoice(MapChoiceEntry choice)
+    {
+        _selectedMapChoice = choice;
+        _mapChoiceApplied = true;
+        DisableLegacyMapRoots();
+
+        if (!string.IsNullOrWhiteSpace(choice.sceneName))
+        {
+            LoadMapScene(choice.sceneName);
+        }
+    }
+
+    private void EnsureMapSelected()
+    {
+        if (_mapChoiceApplied)
+        {
+            return;
+        }
+
+        var choices = ResolveMapChoices(mapChoices);
+        if (choices.Length == 0)
+        {
+            return;
+        }
+
+        ApplyMapChoice(choices[0]);
+        UpdateMapBackgroundVisibility();
+    }
+
+    private bool ShouldShowMapChoice()
+    {
+        if (!requireMapChoice)
+        {
+            return false;
+        }
+
+        if (NetworkSession.IsActive && !allowMapChoiceInNetwork)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static MapChoiceEntry[] ResolveMapChoices(MapChoiceEntry[] choices)
+    {
+        if (choices != null && choices.Length > 0)
+        {
+            return choices;
+        }
+
+        return GetDefaultMapChoices();
+    }
+
+    private static Vector2[] ResolveTestSpawnOffsets(Vector2[] offsets)
+    {
+        if (offsets != null && offsets.Length > 0)
+        {
+            return offsets;
+        }
+
+        return GetDefaultTestSpawnOffsets();
+    }
+
+    private static MapChoiceEntry[] GetDefaultMapChoices()
+    {
+        return new[]
+        {
+            new MapChoiceEntry { theme = MapTheme.Forest, displayName = "숲", sceneName = "ForestOpenWorld" },
+            new MapChoiceEntry { theme = MapTheme.Desert, displayName = "사막", sceneName = "DesertOpenWorld" },
+            new MapChoiceEntry { theme = MapTheme.Snow, displayName = "설원", sceneName = "SnowOpenWorld" }
+        };
+    }
+
+    private static Vector2[] GetDefaultTestSpawnOffsets()
+    {
+        return new[]
+        {
+            new Vector2(2f, 0f),
+            new Vector2(-2f, 0f),
+            new Vector2(0f, 2f)
+        };
+    }
+
+    private void LoadMapScene(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            return;
+        }
+
+        if (_loadedMapScene == sceneName)
+        {
+            return;
+        }
+
+        if (_mapLoadRoutine != null)
+        {
+            StopCoroutine(_mapLoadRoutine);
+        }
+
+        _mapLoadRoutine = StartCoroutine(LoadMapSceneRoutine(sceneName));
+    }
+
+    private IEnumerator LoadMapSceneRoutine(string sceneName)
+    {
+        if (!string.IsNullOrEmpty(_loadedMapScene))
+        {
+            var unload = SceneManager.UnloadSceneAsync(_loadedMapScene);
+            if (unload != null)
+            {
+                while (!unload.isDone)
+                {
+                    yield return null;
+                }
+            }
+        }
+
+        var existing = SceneManager.GetSceneByName(sceneName);
+        if (!existing.isLoaded)
+        {
+            var load = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (load != null)
+            {
+                while (!load.isDone)
+                {
+                    yield return null;
+                }
+            }
+        }
+
+        _loadedMapScene = sceneName;
+        DisableMapSceneCameras();
+        UpdateMapSceneVisibility();
+        UpdateMapBackgroundVisibility();
+    }
+
+    private bool IsMapSceneLoaded()
+    {
+        if (string.IsNullOrEmpty(_loadedMapScene))
+        {
+            return false;
+        }
+
+        var scene = SceneManager.GetSceneByName(_loadedMapScene);
+        return scene.IsValid() && scene.isLoaded;
+    }
+
+    private bool IsMapSceneVisible()
+    {
+        return _mapSceneVisible && IsMapSceneLoaded();
+    }
+
+    private void UpdateMapSceneVisibility()
+    {
+        if (!IsMapSceneLoaded())
+        {
+            _mapSceneVisible = false;
+            return;
+        }
+
+        bool shouldShow = _gameStarted && !_waitingMapChoice && !_waitingStartWeaponChoice && !IsGameOver;
+        SetMapSceneRootActive(shouldShow);
+        UpdateMapBackgroundVisibility();
+    }
+
+    private void SetMapSceneRootActive(bool active)
+    {
+        if (!IsMapSceneLoaded())
+        {
+            _mapSceneVisible = false;
+            return;
+        }
+
+        var scene = SceneManager.GetSceneByName(_loadedMapScene);
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            _mapSceneVisible = false;
+            return;
+        }
+
+        var roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            var root = roots[i];
+            if (root == null)
+            {
+                continue;
+            }
+
+            root.SetActive(active);
+        }
+
+        _mapSceneVisible = active;
+    }
+
+    private void DisableMapSceneCameras()
+    {
+        if (!IsMapSceneLoaded())
+        {
+            return;
+        }
+
+        var scene = SceneManager.GetSceneByName(_loadedMapScene);
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return;
+        }
+
+        var roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            var root = roots[i];
+            if (root == null)
+            {
+                continue;
+            }
+
+            var cameras = root.GetComponentsInChildren<Camera>(true);
+            for (int c = 0; c < cameras.Length; c++)
+            {
+                cameras[c].enabled = false;
+            }
+        }
+    }
+
+    private void UpdateMapBackgroundVisibility()
+    {
+        var background = GetComponent<MapBackground>();
+        if (background == null)
+        {
+            return;
+        }
+
+        background.enabled = !IsMapSceneVisible();
+    }
+
+    private void DisableLegacyMapRoots()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (!scene.IsValid())
+        {
+            return;
+        }
+
+        var roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            var root = roots[i];
+            if (root == null)
+            {
+                continue;
+            }
+
+            if (root.name == "Grid" || root.name == "Grid_Forest")
+            {
+                root.SetActive(false);
+            }
+        }
     }
 
     private void SubmitUpgradeSelection(int index)
@@ -4006,6 +4454,10 @@ public class GameSession : MonoBehaviour
         {
             case 'a':
                 return keyboard.aKey.wasPressedThisFrame;
+            case 'e':
+                return keyboard.eKey.wasPressedThisFrame;
+            case 's':
+                return keyboard.sKey.wasPressedThisFrame;
             case 'u':
                 return keyboard.uKey.wasPressedThisFrame;
             case 't':
@@ -4036,6 +4488,116 @@ public class GameSession : MonoBehaviour
             }
             _autoSecretBuffer = string.Empty;
             _autoSecretLastTime = -1f;
+        }
+    }
+
+    private void HandleTestSpawnSecret()
+    {
+        if (!allowTestSpawnSecret || string.IsNullOrEmpty(testSpawnSecret))
+        {
+            return;
+        }
+
+        if (_testSecretLastTime > 0f && Time.unscaledTime - _testSecretLastTime > testSpawnSecretTimeout)
+        {
+            _testSecretBuffer = string.Empty;
+            _testSecretLastTime = -1f;
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        bool appended = false;
+        foreach (char c in testSpawnSecret)
+        {
+            if (WasSecretCharPressed(keyboard, c))
+            {
+                AppendTestSecretChar(c);
+                appended = true;
+                break;
+            }
+        }
+
+        if (!appended)
+        {
+            return;
+        }
+#else
+        string input = Input.inputString;
+        if (string.IsNullOrEmpty(input))
+        {
+            return;
+        }
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            AppendTestSecretChar(char.ToLowerInvariant(input[i]));
+        }
+#endif
+    }
+
+    private void AppendTestSecretChar(char c)
+    {
+        _testSecretLastTime = Time.unscaledTime;
+        _testSecretBuffer += char.ToLowerInvariant(c);
+        if (_testSecretBuffer.Length > testSpawnSecret.Length)
+        {
+            _testSecretBuffer = _testSecretBuffer.Substring(_testSecretBuffer.Length - testSpawnSecret.Length);
+        }
+
+        if (_testSecretBuffer == testSpawnSecret.ToLowerInvariant())
+        {
+            SpawnTestEnemies();
+            _testSecretBuffer = string.Empty;
+            _testSecretLastTime = -1f;
+        }
+    }
+
+    private void SpawnTestEnemies()
+    {
+        if (!IsGameplayActive)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            return;
+        }
+
+        if (_spawner == null)
+        {
+            return;
+        }
+
+        var target = _spawner.Target != null ? _spawner.Target : (_player != null ? _player.transform : null);
+        if (target == null)
+        {
+            return;
+        }
+
+        Vector3 origin = target.position;
+        var offsets = ResolveTestSpawnOffsets(testSpawnOffsets);
+        if (offsets.Length == 0)
+        {
+            return;
+        }
+
+        var types = new[]
+        {
+            EnemyVisuals.EnemyVisualType.Slime,
+            EnemyVisuals.EnemyVisualType.Mushroom,
+            EnemyVisuals.EnemyVisualType.Skeleton
+        };
+
+        for (int i = 0; i < types.Length; i++)
+        {
+            Vector2 offset = offsets[i % offsets.Length];
+            _spawner.SpawnManual(types[i], target, origin + new Vector3(offset.x, offset.y, 0f));
         }
     }
 
@@ -4140,6 +4702,63 @@ public class GameSession : MonoBehaviour
         _gameOverButton.onClick.AddListener(ResetToStart);
     }
 
+    private void BuildMapChoiceUI(Font fontToUse)
+    {
+        var choices = ResolveMapChoices(mapChoices);
+        if (choices.Length == 0)
+        {
+            return;
+        }
+
+        float panelWidth = 520f;
+        float panelHeight = 200f;
+        _mapPanel = CreatePanel(_uiRoot, "MapChoicePanel", new Vector2(panelWidth, panelHeight), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
+
+        _mapTitleText = CreateText(_uiRoot, "MapChoiceTitle", fontToUse, 18, TextAnchor.MiddleCenter, Color.white);
+        var titleRect = _mapTitleText.rectTransform;
+        titleRect.anchorMin = new Vector2(0.5f, 0.5f);
+        titleRect.anchorMax = new Vector2(0.5f, 0.5f);
+        titleRect.pivot = new Vector2(0.5f, 0f);
+        titleRect.anchoredPosition = new Vector2(0f, panelHeight * 0.5f + 12f);
+        titleRect.sizeDelta = new Vector2(320f, 24f);
+        _mapTitleText.text = "1. 맵 선택";
+
+        _mapSubtitleText = CreateText(_mapPanel, "Subtitle", fontToUse, 12, TextAnchor.UpperCenter, new Color(1f, 1f, 1f, 0.9f));
+        var subtitleRect = _mapSubtitleText.rectTransform;
+        subtitleRect.anchorMin = new Vector2(0.5f, 1f);
+        subtitleRect.anchorMax = new Vector2(0.5f, 1f);
+        subtitleRect.pivot = new Vector2(0.5f, 1f);
+        subtitleRect.anchoredPosition = new Vector2(0f, -10f);
+        subtitleRect.sizeDelta = new Vector2(360f, 32f);
+        _mapSubtitleText.text = "맵을 선택하세요.";
+
+        int count = Mathf.Min(3, choices.Length);
+        _mapButtons = new Button[count];
+        _mapButtonTexts = new Text[count];
+
+        float buttonWidth = 140f;
+        float buttonHeight = 80f;
+        float gap = 20f;
+        float totalWidth = buttonWidth * count + gap * (count - 1);
+        float leftX = -totalWidth * 0.5f + buttonWidth * 0.5f;
+        float buttonY = -70f;
+
+        for (int i = 0; i < count; i++)
+        {
+            float x = leftX + i * (buttonWidth + gap);
+            var button = CreateButton(_mapPanel, $"MapButton_{i}", new Vector2(buttonWidth, buttonHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, buttonY), startButtonNormalColor);
+            var label = CreateText(button.transform, "Label", fontToUse, 13, TextAnchor.MiddleCenter, Color.white);
+            StretchToFill(label.rectTransform, new Vector2(6f, 6f));
+            int index = i;
+            var choice = choices[i];
+            label.text = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+            button.onClick.AddListener(() => SelectMapWithFeedback(choice, button));
+            ApplyButtonColors(button, startButtonNormalColor, startButtonHoverColor);
+            _mapButtons[i] = button;
+            _mapButtonTexts[i] = label;
+        }
+    }
+
     private void BuildStartChoiceUI(Font fontToUse)
     {
         float panelWidth = 560f;
@@ -4153,7 +4772,7 @@ public class GameSession : MonoBehaviour
         titleRect.pivot = new Vector2(0.5f, 0f);
         titleRect.anchoredPosition = new Vector2(0f, panelHeight * 0.5f + 12f);
         titleRect.sizeDelta = new Vector2(320f, 24f);
-        _startTitleText.text = "시작 캐릭터 선택";
+        _startTitleText.text = "2. 캐릭터 선택";
 
         var subtitle = CreateText(_startPanel, "Subtitle", fontToUse, 12, TextAnchor.UpperCenter, new Color(1f, 1f, 1f, 0.9f));
         _startSubtitleText = subtitle;
@@ -4162,8 +4781,8 @@ public class GameSession : MonoBehaviour
         subtitleRect.anchorMax = new Vector2(0.5f, 1f);
         subtitleRect.pivot = new Vector2(0.5f, 1f);
         subtitleRect.anchoredPosition = new Vector2(0f, -10f);
-        subtitleRect.sizeDelta = new Vector2(320f, 20f);
-        subtitle.text = GetStartWaitingText();
+        subtitleRect.sizeDelta = new Vector2(360f, 36f);
+        subtitle.text = GetStartChoiceSubtitle();
 
         float buttonWidth = 160f;
         float buttonHeight = 120f;
@@ -4541,7 +5160,8 @@ public class GameSession : MonoBehaviour
 
     private void OnGUI()
     {
-        if (useUGUI)
+        bool fallback = useUGUI && (!_uiReady || _uiRoot == null);
+        if (useUGUI && !fallback)
         {
             return;
         }
@@ -4549,6 +5169,12 @@ public class GameSession : MonoBehaviour
         if (IsGameOver)
         {
             DrawGameOverPanel();
+            return;
+        }
+
+        if (_waitingMapChoice)
+        {
+            DrawMapChoice();
             return;
         }
 
@@ -4786,6 +5412,42 @@ public class GameSession : MonoBehaviour
         }
     }
 
+    private void DrawMapChoice()
+    {
+        var choices = ResolveMapChoices(mapChoices);
+        if (choices.Length == 0)
+        {
+            return;
+        }
+
+        const float boxWidth = 520f;
+        const float boxHeight = 180f;
+        float x = (Screen.width - boxWidth) * 0.5f;
+        float y = (Screen.height - boxHeight) * 0.5f;
+
+        GUI.Box(new Rect(x, y, boxWidth, boxHeight), "1. 맵 선택");
+        GUI.Label(new Rect(x + 20f, y + 32f, boxWidth - 40f, 20f), requireStartWeaponChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.");
+
+        int count = Mathf.Min(3, choices.Length);
+        float buttonWidth = 140f;
+        float buttonHeight = 70f;
+        float gap = 20f;
+        float totalWidth = buttonWidth * count + gap * (count - 1);
+        float bx = x + (boxWidth - totalWidth) * 0.5f;
+        float by = y + 70f;
+
+        for (int i = 0; i < count; i++)
+        {
+            var rect = new Rect(bx + i * (buttonWidth + gap), by, buttonWidth, buttonHeight);
+            var choice = choices[i];
+            string label = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+            if (GUI.Button(rect, label))
+            {
+                SelectMapChoice(choice);
+            }
+        }
+    }
+
     private void DrawStartWeaponChoice()
     {
         const float boxWidth = 560f;
@@ -4793,8 +5455,8 @@ public class GameSession : MonoBehaviour
         float x = (Screen.width - boxWidth) * 0.5f;
         float y = (Screen.height - boxHeight) * 0.5f;
 
-        GUI.Box(new Rect(x, y, boxWidth, boxHeight), "시작 캐릭터 선택");
-        GUI.Label(new Rect(x + 20f, y + 36f, boxWidth - 40f, 20f), GetStartWaitingText());
+        GUI.Box(new Rect(x, y, boxWidth, boxHeight), "2. 캐릭터 선택");
+        GUI.Label(new Rect(x + 20f, y + 36f, boxWidth - 40f, 40f), GetStartChoiceSubtitle());
 
         float buttonWidth = 160f;
         float buttonHeight = 120f;
@@ -4836,6 +5498,7 @@ public class GameSession : MonoBehaviour
 
         _waitingStartWeaponChoice = false;
         ClearStartCharacterPreviews();
+        EnsureMapSelected();
         StartLocalGame();
     }
 

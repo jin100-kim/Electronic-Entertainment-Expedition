@@ -248,6 +248,16 @@ public class GameSessionSettings
     public bool requireStartWeaponChoice = true;
     public StartWeaponType startWeapon = StartWeaponType.Gun;
 
+    [Header("Start Map")]
+    public bool requireMapChoice = true;
+    public bool allowMapChoiceInNetwork = false;
+    public MapChoiceEntry[] mapChoices = new[]
+    {
+        new MapChoiceEntry { theme = MapTheme.Forest, displayName = "숲", sceneName = "ForestOpenWorld" },
+        new MapChoiceEntry { theme = MapTheme.Desert, displayName = "사막", sceneName = "DesertOpenWorld" },
+        new MapChoiceEntry { theme = MapTheme.Snow, displayName = "설원", sceneName = "SnowOpenWorld" }
+    };
+
     [Header("Start Character Preview")]
     public float startPreviewScale = 2f;
     public float startPreviewDimAlpha = 0.5f;
@@ -275,7 +285,24 @@ public class GameSessionSettings
     public bool allowAutoButtonSecret = true;
     public string autoButtonSecret = "auto";
     public float autoButtonSecretTimeout = 1.5f;
+    public bool allowTestSpawnSecret = true;
+    public string testSpawnSecret = "test";
+    public float testSpawnSecretTimeout = 1.5f;
+    public Vector2[] testSpawnOffsets = new[]
+    {
+        new Vector2(2f, 0f),
+        new Vector2(-2f, 0f),
+        new Vector2(0f, 2f)
+    };
     public bool showColliderGizmos = true;
+}
+
+[System.Serializable]
+public class MapChoiceEntry
+{
+    public MapTheme theme = MapTheme.Forest;
+    public string displayName = "숲";
+    public string sceneName = "ForestOpenWorld";
 }
 
 [System.Serializable]
@@ -297,6 +324,7 @@ public class HudConfig
 [System.Serializable]
 public class MinimapConfig
 {
+    public bool enabled = true;
     public bool useUGUI = true;
     public Vector2 size = new Vector2(180f, 180f);
     public Vector2 margin = new Vector2(12f, 12f);

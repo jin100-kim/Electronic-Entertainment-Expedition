@@ -259,7 +259,11 @@ public class RelayLobbyUI : MonoBehaviour
     private void StartLocalGame()
     {
         _gameStartTriggered = true;
-        GameSession.StartNetworkGame();
+        var session = FindObjectOfType<GameSession>();
+        if (session != null)
+        {
+            session.BeginLocalSession();
+        }
         DisableSelfUI();
     }
 

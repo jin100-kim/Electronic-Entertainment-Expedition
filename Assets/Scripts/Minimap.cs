@@ -6,6 +6,7 @@ public class Minimap : MonoBehaviour
     [SerializeField]
     private GameConfig gameConfig;
 
+    private bool minimapEnabled = true;
     private bool useUGUI = true;
     private Vector2 size = new Vector2(180f, 180f);
     private Vector2 margin = new Vector2(12f, 12f);
@@ -40,6 +41,11 @@ public class Minimap : MonoBehaviour
     private void Awake()
     {
         ApplySettings();
+        if (!minimapEnabled)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
         if (useUGUI)
         {
             BuildUGUI();
@@ -57,6 +63,11 @@ public class Minimap : MonoBehaviour
             ApplySettings();
         }
 
+        if (!minimapEnabled)
+        {
+            return;
+        }
+
         if (!useUGUI)
         {
             return;
@@ -68,6 +79,11 @@ public class Minimap : MonoBehaviour
     private void OnGUI()
     {
         if (useUGUI)
+        {
+            return;
+        }
+
+        if (!minimapEnabled)
         {
             return;
         }
@@ -174,6 +190,7 @@ public class Minimap : MonoBehaviour
         var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
         var settings = config.minimap;
 
+        minimapEnabled = settings.enabled;
         useUGUI = settings.useUGUI;
         size = settings.size;
         margin = settings.margin;

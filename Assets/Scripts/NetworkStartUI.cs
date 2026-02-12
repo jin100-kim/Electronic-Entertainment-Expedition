@@ -186,6 +186,13 @@ public class NetworkStartUI : MonoBehaviour
             return;
         }
 
+        var session = FindObjectOfType<GameSession>();
+        if (session != null)
+        {
+            session.BeginLocalSession();
+            return;
+        }
+
         if (GameObject.Find("LocalPlayer") != null)
         {
             return;

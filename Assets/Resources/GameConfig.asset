@@ -166,6 +166,18 @@ MonoBehaviour:
     coinAmount: 1
     requireStartWeaponChoice: 1
     startWeapon: 0
+    requireMapChoice: 1
+    allowMapChoiceInNetwork: 0
+    mapChoices:
+    - theme: 0
+      displayName: "\uC232"
+      sceneName: ForestOpenWorld
+    - theme: 1
+      displayName: "\uC0AC\uB9C9"
+      sceneName: DesertOpenWorld
+    - theme: 2
+      displayName: "\uC124\uC6D0"
+      sceneName: SnowOpenWorld
     startPreviewScale: 2
     startPreviewDimAlpha: 0.5
     startPreviewHoverAlpha: 1
@@ -188,6 +200,13 @@ MonoBehaviour:
     allowAutoButtonSecret: 1
     autoButtonSecret: auto
     autoButtonSecretTimeout: 1.5
+    allowTestSpawnSecret: 1
+    testSpawnSecret: test
+    testSpawnSecretTimeout: 1.5
+    testSpawnOffsets:
+    - {x: 2, y: 0}
+    - {x: -2, y: 0}
+    - {x: 0, y: 2}
     showColliderGizmos: 1
   defaultStage: {fileID: 11400000, guid: e0209f76278d91c4c9e8fa30be8818b8, type: 2}
   defaultDifficulty: {fileID: 11400000, guid: 301b1b4504d8787408b656854d46e998, type: 2}
@@ -204,6 +223,7 @@ MonoBehaviour:
     iconFontSize: 11
     iconLevelFontSize: 12
   minimap:
+    enabled: 1
     useUGUI: 1
     size: {x: 180, y: 180}
     margin: {x: 12, y: 12}

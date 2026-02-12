@@ -8,6 +8,15 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/ForestOpenWorld.unity
+    guid: a5bc4baab99593a488bf2da5be324bdf
+  - enabled: 1
+    path: Assets/Scenes/DesertOpenWorld.unity
+    guid: 6698820f72509cd409eca1de42b5a6ba
+  - enabled: 1
+    path: Assets/Scenes/SnowOpenWorld.unity
+    guid: 08e14581d7073db4bb49fd80e1ee27f4
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

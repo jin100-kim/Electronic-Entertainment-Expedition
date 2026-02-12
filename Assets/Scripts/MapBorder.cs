@@ -16,21 +16,7 @@ public class MapBorder : MonoBehaviour
 
     private void Awake()
     {
-        ApplySettings();
-        _line = GetComponent<LineRenderer>();
-        if (_line == null)
-        {
-            _line = gameObject.AddComponent<LineRenderer>();
-        }
-
-        _line.useWorldSpace = true;
-        _line.loop = true;
-        _line.startWidth = width;
-        _line.endWidth = width;
-        _line.material = new Material(Shader.Find("Sprites/Default"));
-        _line.startColor = color;
-        _line.endColor = color;
-        _line.sortingOrder = sortingOrder;
+        EnsureLine();
     }
 
     [SerializeField]
@@ -54,6 +40,12 @@ public class MapBorder : MonoBehaviour
 
     public void SetBounds(Vector2 halfSize)
     {
+        EnsureLine();
+        if (_line == null)
+        {
+            return;
+        }
+
         var points = new Vector3[4];
         points[0] = new Vector3(-halfSize.x, -halfSize.y, 0f);
         points[1] = new Vector3(halfSize.x, -halfSize.y, 0f);
@@ -62,5 +54,31 @@ public class MapBorder : MonoBehaviour
 
         _line.positionCount = points.Length;
         _line.SetPositions(points);
+    }
+
+    private void EnsureLine()
+    {
+        ApplySettings();
+        if (_line == null)
+        {
+            _line = GetComponent<LineRenderer>();
+        }
+
+        if (_line == null)
+        {
+            _line = gameObject.AddComponent<LineRenderer>();
+        }
+
+        _line.useWorldSpace = true;
+        _line.loop = true;
+        _line.startWidth = width;
+        _line.endWidth = width;
+        if (_line.material == null)
+        {
+            _line.material = new Material(Shader.Find("Sprites/Default"));
+        }
+        _line.startColor = color;
+        _line.endColor = color;
+        _line.sortingOrder = sortingOrder;
     }
 }
