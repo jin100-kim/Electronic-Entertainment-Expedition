@@ -1,11 +1,12 @@
-# Unity
+﻿# Unity
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
 [Ll]ogs/
 UserSettings/
 MemoryCaptures/
-기획/
+ProjectSettings/McpUnitySettings.json
+湲고쉷/
 AGENTS.md
 
 # VS/IDE
