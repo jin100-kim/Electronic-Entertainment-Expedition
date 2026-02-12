@@ -1,5 +1,5 @@
-using Unity.Netcode;
 using Unity.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 [RequireComponent(typeof(ElementLoadout))]
@@ -7,13 +7,9 @@ public class NetworkElementLoadout : NetworkBehaviour
 {
     private const int MaxWeapons = 20;
     private const int ElementsPerWeapon = 3;
+    private const int CharsPerWeapon = 1 + ElementsPerWeapon; // [count][e1][e2][e3]
 
-    private readonly NetworkVariable<FixedList64Bytes<byte>> _elements = new NetworkVariable<FixedList64Bytes<byte>>(
-        default,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Owner);
-
-    private readonly NetworkVariable<FixedList32Bytes<byte>> _counts = new NetworkVariable<FixedList32Bytes<byte>>(
+    private readonly NetworkVariable<FixedString128Bytes> _payload = new NetworkVariable<FixedString128Bytes>(
         default,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
@@ -32,8 +28,7 @@ public class NetworkElementLoadout : NetworkBehaviour
             _loadout = GetComponent<ElementLoadout>();
         }
 
-        _elements.OnValueChanged += OnElementsChanged;
-        _counts.OnValueChanged += OnCountsChanged;
+        _payload.OnValueChanged += OnPayloadChanged;
 
         if (IsOwner)
         {
@@ -51,8 +46,7 @@ public class NetworkElementLoadout : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        _elements.OnValueChanged -= OnElementsChanged;
-        _counts.OnValueChanged -= OnCountsChanged;
+        _payload.OnValueChanged -= OnPayloadChanged;
         if (_loadout != null)
         {
             _loadout.OnLoadoutChanged -= OnLocalChanged;
@@ -70,17 +64,7 @@ public class NetworkElementLoadout : NetworkBehaviour
         WriteFromLoadout();
     }
 
-    private void OnElementsChanged(FixedList64Bytes<byte> previous, FixedList64Bytes<byte> next)
-    {
-        if (IsOwner)
-        {
-            return;
-        }
-
-        ApplyToLoadout();
-    }
-
-    private void OnCountsChanged(FixedList32Bytes<byte> previous, FixedList32Bytes<byte> next)
+    private void OnPayloadChanged(FixedString128Bytes previous, FixedString128Bytes next)
     {
         if (IsOwner)
         {
@@ -98,22 +82,21 @@ public class NetworkElementLoadout : NetworkBehaviour
         }
 
         int weaponCount = Mathf.Min(GetWeaponCount(), MaxWeapons);
-        var elements = new FixedList64Bytes<byte>();
-        var counts = new FixedList32Bytes<byte>();
+        var chars = new char[weaponCount * CharsPerWeapon];
+        int writeIndex = 0;
 
         for (int i = 0; i < weaponCount; i++)
         {
             var weapon = (AutoAttack.WeaponType)i;
             int count = _loadout.GetElements(weapon, out var first, out var second, out var third);
-            counts.Add((byte)Mathf.Clamp(count, 0, ElementsPerWeapon));
 
-            elements.Add((byte)first);
-            elements.Add((byte)second);
-            elements.Add((byte)third);
+            chars[writeIndex++] = ToNibbleChar(Mathf.Clamp(count, 0, ElementsPerWeapon));
+            chars[writeIndex++] = ToNibbleChar((int)first);
+            chars[writeIndex++] = ToNibbleChar((int)second);
+            chars[writeIndex++] = ToNibbleChar((int)third);
         }
 
-        _elements.Value = elements;
-        _counts.Value = counts;
+        _payload.Value = new FixedString128Bytes(new string(chars, 0, writeIndex));
     }
 
     private void ApplyToLoadout()
@@ -123,19 +106,71 @@ public class NetworkElementLoadout : NetworkBehaviour
             return;
         }
 
-        var elements = _elements.Value;
-        var counts = _counts.Value;
+        string raw = _payload.Value.ToString();
+        if (string.IsNullOrEmpty(raw))
+        {
+            return;
+        }
 
-        int weaponCount = counts.Length > 0 ? counts.Length : Mathf.Min(GetWeaponCount(), MaxWeapons);
+        int weaponCount = Mathf.Min(GetWeaponCount(), MaxWeapons);
+        int expectedChars = weaponCount * CharsPerWeapon;
+        if (raw.Length < expectedChars)
+        {
+            return;
+        }
+
         for (int i = 0; i < weaponCount; i++)
         {
-            int count = i < counts.Length ? counts[i] : 0;
-            int baseIndex = i * ElementsPerWeapon;
-            var first = baseIndex < elements.Length ? (ElementType)elements[baseIndex] : ElementType.None;
-            var second = baseIndex + 1 < elements.Length ? (ElementType)elements[baseIndex + 1] : ElementType.None;
-            var third = baseIndex + 2 < elements.Length ? (ElementType)elements[baseIndex + 2] : ElementType.None;
-            _loadout.SetElements((AutoAttack.WeaponType)i, first, second, third, count, false);
+            int baseIndex = i * CharsPerWeapon;
+            int count = FromNibbleChar(raw[baseIndex + 0]);
+            int firstRaw = FromNibbleChar(raw[baseIndex + 1]);
+            int secondRaw = FromNibbleChar(raw[baseIndex + 2]);
+            int thirdRaw = FromNibbleChar(raw[baseIndex + 3]);
+
+            var first = ToElementType(firstRaw);
+            var second = ToElementType(secondRaw);
+            var third = ToElementType(thirdRaw);
+            _loadout.SetElements((AutoAttack.WeaponType)i, first, second, third, Mathf.Clamp(count, 0, ElementsPerWeapon), false);
         }
+    }
+
+    private static ElementType ToElementType(int value)
+    {
+        if (value < 0)
+        {
+            return ElementType.None;
+        }
+
+        if (!System.Enum.IsDefined(typeof(ElementType), value))
+        {
+            return ElementType.None;
+        }
+
+        return (ElementType)value;
+    }
+
+    private static char ToNibbleChar(int value)
+    {
+        int v = Mathf.Clamp(value, 0, 15);
+        return (char)(v < 10 ? ('0' + v) : ('A' + (v - 10)));
+    }
+
+    private static int FromNibbleChar(char c)
+    {
+        if (c >= '0' && c <= '9')
+        {
+            return c - '0';
+        }
+        if (c >= 'A' && c <= 'F')
+        {
+            return c - 'A' + 10;
+        }
+        if (c >= 'a' && c <= 'f')
+        {
+            return c - 'a' + 10;
+        }
+
+        return 0;
     }
 
     private static int GetWeaponCount()

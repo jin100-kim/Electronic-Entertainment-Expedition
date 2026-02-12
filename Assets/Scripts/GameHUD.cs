@@ -37,6 +37,7 @@ public class GameHUD : MonoBehaviour
     private Text _levelText;
     private Text _timeText;
     private Text _infoText;
+    private Button _pauseButton;
     private RectTransform _iconRoot;
     private bool _uiReady;
     private bool _settingsApplied;
@@ -209,6 +210,9 @@ public class GameHUD : MonoBehaviour
         infoRect.anchoredPosition = new Vector2(-margin, -(margin + xpBarHeight + 4f));
         infoRect.sizeDelta = new Vector2(260f, 22f);
 
+        _pauseButton = CreateButton(canvasGo.transform, "PauseButton", fontToUse, "일시정지", new Vector2(92f, 28f), new Color(0.2f, 0.2f, 0.2f, 0.95f));
+        _pauseButton.onClick.AddListener(OnPauseButtonClicked);
+
         var iconsGo = new GameObject("UpgradeIcons");
         iconsGo.transform.SetParent(canvasGo.transform, false);
         _iconRoot = iconsGo.AddComponent<RectTransform>();
@@ -268,6 +272,12 @@ public class GameHUD : MonoBehaviour
             float minWidth = 260f;
             float preferred = _infoText.preferredWidth + 12f;
             infoRect.sizeDelta = new Vector2(Mathf.Max(minWidth, preferred), smallFontSize + 6f);
+        }
+
+        if (_pauseButton != null)
+        {
+            var menu = session.GetComponent<InGameMenu>();
+            _pauseButton.interactable = menu != null;
         }
 
         UpdateUpgradeIcons(session);
@@ -395,6 +405,45 @@ public class GameHUD : MonoBehaviour
         return text;
     }
 
+    private static Button CreateButton(Transform parent, string name, Font font, string label, Vector2 size, Color bgColor)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rect = go.AddComponent<RectTransform>();
+        rect.sizeDelta = size;
+
+        var image = go.AddComponent<Image>();
+        image.color = bgColor;
+
+        var button = go.AddComponent<Button>();
+        button.targetGraphic = image;
+
+        var labelText = CreateText(go.transform, "Label", font, 14, TextAnchor.MiddleCenter, Color.white);
+        var labelRect = labelText.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        labelText.text = label;
+        return button;
+    }
+
+    private void OnPauseButtonClicked()
+    {
+        var session = GameSession.Instance;
+        if (session == null)
+        {
+            return;
+        }
+
+        var menu = session.GetComponent<InGameMenu>();
+        if (menu != null)
+        {
+            menu.ToggleFromHud();
+        }
+    }
+
     private void ApplyUGUILayout()
     {
         if (_xpBarBg == null)
@@ -437,6 +486,23 @@ public class GameHUD : MonoBehaviour
             infoRect.pivot = new Vector2(1f, 1f);
             infoRect.anchoredPosition = new Vector2(-margin, -(margin + xpBarHeight + 4f));
             infoRect.sizeDelta = new Vector2(260f, smallFontSize + 6f);
+        }
+
+        if (_pauseButton != null)
+        {
+            var pauseRect = _pauseButton.GetComponent<RectTransform>();
+            pauseRect.anchorMin = new Vector2(1f, 1f);
+            pauseRect.anchorMax = new Vector2(1f, 1f);
+            pauseRect.pivot = new Vector2(1f, 1f);
+            float baseY = -(margin + xpBarHeight + 4f);
+            float offsetY = smallFontSize + 10f;
+            if (_infoText != null)
+            {
+                offsetY = _infoText.rectTransform.sizeDelta.y + 8f;
+            }
+
+            pauseRect.anchoredPosition = new Vector2(-margin, baseY - offsetY);
+            pauseRect.sizeDelta = new Vector2(92f, 28f);
         }
 
         if (_iconRoot != null)

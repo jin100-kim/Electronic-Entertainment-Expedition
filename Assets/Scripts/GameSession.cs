@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
@@ -1198,6 +1199,7 @@ public class GameSession : MonoBehaviour
         EnsureCameraFollow();
         EnsureMinimap();
         EnsureMapBorder();
+        EnsureInGameMenu();
     }
 
     private void Update()
@@ -1284,6 +1286,30 @@ public class GameSession : MonoBehaviour
         }
 
         Instance.StartNetworkSession();
+    }
+
+    public bool TryPreselectMapBySceneName(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            return false;
+        }
+
+        var choices = ResolveMapChoices(mapChoices);
+        for (int i = 0; i < choices.Length; i++)
+        {
+            var choice = choices[i];
+            if (!string.Equals(choice.sceneName, sceneName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            ApplyMapChoice(choice);
+            _waitingMapChoice = false;
+            return true;
+        }
+
+        return false;
     }
 
     public void BeginLocalSession()
@@ -2025,6 +2051,7 @@ public class GameSession : MonoBehaviour
         }
 
         options.Clear();
+        int upgradeLevel = GetUpgradeOfferLevel(player);
 
         if (state.damageLevel < maxUpgradeLevel && CanOfferNewStat(state, state.damageLevel))
         {
@@ -2089,16 +2116,16 @@ public class GameSession : MonoBehaviour
             options.Add(new UpgradeOption("관통 +1", () => BuildValueStatText("관통", state.projectilePierceBonus, state.projectilePierceBonus + 1), () => { state.projectilePierceBonus += 1; state.pierceLevel += 1; }));
         }
 
-        AddWeaponChoice(options, state, state.gunStats, () => BuildStraightUpgradeText(state), () => UnlockStraight(state), () => LevelUpStraightWeapon(state));
-        AddWeaponChoice(options, state, state.boomerangStats, () => BuildBoomerangUpgradeText(state), () => UnlockBoomerang(state), () => LevelUpBoomerangWeapon(state));
-        AddWeaponChoice(options, state, state.novaStats, () => BuildNovaUpgradeText(state), () => UnlockNova(state), () => LevelUpNovaWeapon(state));
-        AddWeaponChoice(options, state, state.shotgunStats, () => BuildShotgunUpgradeText(state), () => UnlockShotgun(state), () => LevelUpShotgunWeapon(state));
-        AddWeaponChoice(options, state, state.laserStats, () => BuildLaserUpgradeText(state), () => UnlockLaser(state), () => LevelUpLaserWeapon(state));
-        AddWeaponChoice(options, state, state.chainStats, () => BuildChainUpgradeText(state), () => UnlockChain(state), () => LevelUpChainWeapon(state));
-        AddWeaponChoice(options, state, state.droneStats, () => BuildDroneUpgradeText(state), () => UnlockDrone(state), () => LevelUpDroneWeapon(state));
-        AddWeaponChoice(options, state, state.shurikenStats, () => BuildShurikenUpgradeText(state), () => UnlockShuriken(state), () => LevelUpShurikenWeapon(state));
-        AddWeaponChoice(options, state, state.frostStats, () => BuildFrostUpgradeText(state), () => UnlockFrost(state), () => LevelUpFrostWeapon(state));
-        AddWeaponChoice(options, state, state.lightningStats, () => BuildLightningUpgradeText(state), () => UnlockLightning(state), () => LevelUpLightningWeapon(state));
+        AddWeaponChoice(options, state, state.gunStats, upgradeLevel, () => BuildStraightUpgradeText(state), () => UnlockStraight(state), () => LevelUpStraightWeapon(state));
+        AddWeaponChoice(options, state, state.boomerangStats, upgradeLevel, () => BuildBoomerangUpgradeText(state), () => UnlockBoomerang(state), () => LevelUpBoomerangWeapon(state));
+        AddWeaponChoice(options, state, state.novaStats, upgradeLevel, () => BuildNovaUpgradeText(state), () => UnlockNova(state), () => LevelUpNovaWeapon(state));
+        AddWeaponChoice(options, state, state.shotgunStats, upgradeLevel, () => BuildShotgunUpgradeText(state), () => UnlockShotgun(state), () => LevelUpShotgunWeapon(state));
+        AddWeaponChoice(options, state, state.laserStats, upgradeLevel, () => BuildLaserUpgradeText(state), () => UnlockLaser(state), () => LevelUpLaserWeapon(state));
+        AddWeaponChoice(options, state, state.chainStats, upgradeLevel, () => BuildChainUpgradeText(state), () => UnlockChain(state), () => LevelUpChainWeapon(state));
+        AddWeaponChoice(options, state, state.droneStats, upgradeLevel, () => BuildDroneUpgradeText(state), () => UnlockDrone(state), () => LevelUpDroneWeapon(state));
+        AddWeaponChoice(options, state, state.shurikenStats, upgradeLevel, () => BuildShurikenUpgradeText(state), () => UnlockShuriken(state), () => LevelUpShurikenWeapon(state));
+        AddWeaponChoice(options, state, state.frostStats, upgradeLevel, () => BuildFrostUpgradeText(state), () => UnlockFrost(state), () => LevelUpFrostWeapon(state));
+        AddWeaponChoice(options, state, state.lightningStats, upgradeLevel, () => BuildLightningUpgradeText(state), () => UnlockLightning(state), () => LevelUpLightningWeapon(state));
 
         if (options.Count == 0)
         {
@@ -2115,7 +2142,7 @@ public class GameSession : MonoBehaviour
 
         for (int i = options.Count - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = UnityEngine.Random.Range(0, i + 1);
             var temp = options[i];
             options[i] = options[j];
             options[j] = temp;
@@ -2530,7 +2557,7 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        if (Random.value > coinDropChance)
+        if (UnityEngine.Random.value > coinDropChance)
         {
             return;
         }
@@ -2630,10 +2657,10 @@ public class GameSession : MonoBehaviour
 
         if (totalWeight <= 0.0001f)
         {
-            return Random.Range(0, optionCount);
+            return UnityEngine.Random.Range(0, optionCount);
         }
 
-        float pick = Random.Range(0f, totalWeight);
+        float pick = UnityEngine.Random.Range(0f, totalWeight);
         float cumulative = 0f;
         for (int i = 0; i < weights.Length; i++)
         {
@@ -2672,7 +2699,43 @@ public class GameSession : MonoBehaviour
         return 0;
     }
 
-    private void AddWeaponChoice(List<UpgradeOption> options, PlayerUpgradeState state, WeaponStatsData stats, System.Func<string> upgradeText, System.Action unlockAction, System.Action levelUpAction)
+    private int GetUpgradeOfferLevel(PlayerController player)
+    {
+        var xp = player != null ? player.GetComponent<Experience>() : null;
+        if (xp != null)
+        {
+            return Mathf.Max(1, xp.Level);
+        }
+
+        if (PlayerExperience != null)
+        {
+            return Mathf.Max(1, PlayerExperience.Level);
+        }
+
+        return 1;
+    }
+
+    private int GetWeaponSlotLimitForLevel(int level)
+    {
+        int slotLimit = 1;
+        if (level >= 20)
+        {
+            slotLimit = 3;
+        }
+        else if (level >= 10)
+        {
+            slotLimit = 2;
+        }
+
+        if (maxWeaponSlots > 0)
+        {
+            slotLimit = Mathf.Min(slotLimit, maxWeaponSlots);
+        }
+
+        return Mathf.Max(1, slotLimit);
+    }
+
+    private void AddWeaponChoice(List<UpgradeOption> options, PlayerUpgradeState state, WeaponStatsData stats, int upgradeLevel, System.Func<string> upgradeText, System.Action unlockAction, System.Action levelUpAction)
     {
         if (options == null || state == null || stats == null)
         {
@@ -2682,7 +2745,7 @@ public class GameSession : MonoBehaviour
         {
             return;
         }
-        if (!stats.unlocked && !CanOfferNewWeapon(state, stats))
+        if (!stats.unlocked && !CanOfferNewWeapon(state, stats, upgradeLevel))
         {
             return;
         }
@@ -2703,7 +2766,7 @@ public class GameSession : MonoBehaviour
             }));
     }
 
-    private bool CanOfferNewWeapon(PlayerUpgradeState state, WeaponStatsData stats)
+    private bool CanOfferNewWeapon(PlayerUpgradeState state, WeaponStatsData stats, int upgradeLevel)
     {
         if (state == null || stats == null)
         {
@@ -2713,12 +2776,8 @@ public class GameSession : MonoBehaviour
         {
             return true;
         }
-        if (maxWeaponSlots <= 0)
-        {
-            return true;
-        }
 
-        return GetUnlockedWeaponCount(state) < maxWeaponSlots;
+        return GetUnlockedWeaponCount(state) < GetWeaponSlotLimitForLevel(upgradeLevel);
     }
 
     private bool CanOfferNewStat(PlayerUpgradeState state, int currentLevel)
@@ -3000,6 +3059,14 @@ public class GameSession : MonoBehaviour
 
         background.SetBounds(mapHalfSize);
         background.enabled = !IsMapSceneVisible();
+    }
+
+    private void EnsureInGameMenu()
+    {
+        if (GetComponent<InGameMenu>() == null)
+        {
+            gameObject.AddComponent<InGameMenu>();
+        }
     }
 
     private void EnsureSelectionUI()
@@ -5758,4 +5825,5 @@ public class GameSession : MonoBehaviour
     }
 
 }
+
 
