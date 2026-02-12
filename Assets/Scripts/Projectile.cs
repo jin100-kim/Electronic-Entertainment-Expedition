@@ -4,12 +4,15 @@ using Unity.Netcode;
 public class Projectile : MonoBehaviour
 {
     public static readonly System.Collections.Generic.List<Projectile> Active = new System.Collections.Generic.List<Projectile>();
+    private const float PierceDamageMultiplierPerHit = 0.8f;
+    private const float MinPierceDamage = 1f;
 
     [SerializeField]
     private float speed = 10f;
 
     [SerializeField]
     private float damage = 10f;
+    private float _baseDamage = 10f;
 
     [SerializeField]
     private float lifetime = 2f;
@@ -19,6 +22,7 @@ public class Projectile : MonoBehaviour
 
     private Vector2 _direction;
     private int _remainingHits;
+    private int _pierceHitCount;
     private Collider2D _collider;
     private readonly System.Collections.Generic.HashSet<Health> _hitTargets = new System.Collections.Generic.HashSet<Health>();
     private float _spinSpeed;
@@ -45,6 +49,7 @@ public class Projectile : MonoBehaviour
         _direction = direction.normalized;
         speed = speedValue;
         damage = damageValue;
+        _baseDamage = damageValue;
         lifetime = lifetimeValue;
         pierce = Mathf.Max(0, pierceCount);
         _remainingHits = pierce + 1;
@@ -64,6 +69,7 @@ public class Projectile : MonoBehaviour
 
         speed = radialSpeed;
         damage = damageValue;
+        _baseDamage = damageValue;
         lifetime = lifetimeValue;
         pierce = Mathf.Max(0, pierceCount);
         _remainingHits = pierce + 1;
@@ -99,6 +105,7 @@ public class Projectile : MonoBehaviour
     private void Awake()
     {
         _collider = GetComponent<Collider2D>();
+        _baseDamage = damage;
         _remainingHits = pierce + 1;
     }
 
@@ -173,7 +180,9 @@ public class Projectile : MonoBehaviour
         }
 
         _hitTargets.Add(health);
-        health.Damage(damage);
+        float hitDamage = GetPierceScaledDamage();
+        health.Damage(hitDamage);
+        _pierceHitCount += 1;
 
         var status = other.GetComponent<ElementStatus>();
         if (status != null)
@@ -244,6 +253,7 @@ public class Projectile : MonoBehaviour
         _useOrbit = false;
         _applySlow = false;
         _hitTargets.Clear();
+        _pierceHitCount = 0;
         _slowMultiplier = 1f;
         _slowDuration = 0f;
         _hitStunDuration = 0f;
@@ -252,5 +262,11 @@ public class Projectile : MonoBehaviour
         {
             _collider.enabled = true;
         }
+    }
+
+    private float GetPierceScaledDamage()
+    {
+        float scaled = _baseDamage * Mathf.Pow(PierceDamageMultiplierPerHit, _pierceHitCount);
+        return Mathf.Max(MinPierceDamage, scaled);
     }
 }

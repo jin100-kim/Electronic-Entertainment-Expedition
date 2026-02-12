@@ -3,6 +3,7 @@
 public class EnemyController : MonoBehaviour
 {
     public static readonly System.Collections.Generic.List<EnemyController> Active = new System.Collections.Generic.List<EnemyController>();
+    private const float KnockbackTuningScale = 0.55f;
 
     [SerializeField]
     private float moveSpeed = 2.5f;
@@ -326,7 +327,7 @@ public class EnemyController : MonoBehaviour
             _stunTimer = stun;
         }
 
-        float distance = Mathf.Max(0f, knockbackDistance);
+        float distance = Mathf.Max(0f, knockbackDistance) * KnockbackTuningScale;
         if (distance <= 0f)
         {
             return;

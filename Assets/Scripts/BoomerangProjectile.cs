@@ -5,11 +5,15 @@ using Unity.Netcode;
 public class BoomerangProjectile : MonoBehaviour
 {
     public static readonly List<BoomerangProjectile> Active = new List<BoomerangProjectile>();
+    private const float PierceDamageMultiplierPerHit = 0.8f;
+    private const float MinPierceDamage = 1f;
+
     [SerializeField]
     private float speed = 8f;
 
     [SerializeField]
     private float damage = 8f;
+    private float _baseDamage = 8f;
 
     [SerializeField]
     private float lifetime = 2f;
@@ -33,6 +37,7 @@ public class BoomerangProjectile : MonoBehaviour
     private Transform _owner;
     private float _elapsed;
     private int _remainingHits;
+    private int _pierceHitCount;
     private bool _infinitePierce;
     private Collider2D _collider;
     private readonly HashSet<Health> _hitTargets = new HashSet<Health>();
@@ -52,6 +57,7 @@ public class BoomerangProjectile : MonoBehaviour
         _direction = direction.normalized;
         speed = speedValue;
         damage = damageValue;
+        _baseDamage = damageValue;
         lifetime = lifetimeValue;
         pierce = Mathf.Max(0, pierceCount);
         if (pierce >= 9999)
@@ -68,6 +74,7 @@ public class BoomerangProjectile : MonoBehaviour
     private void Awake()
     {
         _collider = GetComponent<Collider2D>();
+        _baseDamage = damage;
         if (pierce >= 9999)
         {
             _infinitePierce = true;
@@ -195,7 +202,9 @@ public class BoomerangProjectile : MonoBehaviour
         }
 
         _hitTargets.Add(health);
-        health.Damage(damage);
+        float hitDamage = GetPierceScaledDamage();
+        health.Damage(hitDamage);
+        _pierceHitCount += 1;
 
         var status = other.GetComponent<ElementStatus>();
         if (status != null)
@@ -260,6 +269,7 @@ public class BoomerangProjectile : MonoBehaviour
         _elapsed = 0f;
         _returning = false;
         _hitTargets.Clear();
+        _pierceHitCount = 0;
         _hitStunDuration = 0f;
         _knockbackDistance = 0f;
         if (_collider != null)
@@ -274,5 +284,11 @@ public class BoomerangProjectile : MonoBehaviour
         {
             transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
         }
+    }
+
+    private float GetPierceScaledDamage()
+    {
+        float scaled = _baseDamage * Mathf.Pow(PierceDamageMultiplierPerHit, _pierceHitCount);
+        return Mathf.Max(MinPierceDamage, scaled);
     }
 }
