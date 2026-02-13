@@ -350,6 +350,12 @@ public class GameSession : MonoBehaviour
 
     private float levelUpSecretTimeout = 1.5f;
 
+    private bool allowAdminWeaponUnlockSecret = true;
+
+    private string adminWeaponUnlockSecret = "admin";
+
+    private float adminWeaponUnlockSecretTimeout = 1.5f;
+
     private bool showColliderGizmos = true;
 
     private Vector2[] testSpawnOffsets;
@@ -482,6 +488,9 @@ public class GameSession : MonoBehaviour
     private float _testSecretLastTime = -1f;
     private string _levelUpSecretBuffer = string.Empty;
     private float _levelUpSecretLastTime = -1f;
+    private string _adminWeaponUnlockSecretBuffer = string.Empty;
+    private float _adminWeaponUnlockSecretLastTime = -1f;
+    private bool _ignoreWeaponUnlockLevelLimit;
     private bool _settingsApplied;
 
     private const string CoinPrefKey = "CoinCount";
@@ -618,6 +627,9 @@ public class GameSession : MonoBehaviour
         allowLevelUpSecret = settings.allowLevelUpSecret;
         levelUpSecret = settings.levelUpSecret;
         levelUpSecretTimeout = settings.levelUpSecretTimeout;
+        allowAdminWeaponUnlockSecret = settings.allowAdminWeaponUnlockSecret;
+        adminWeaponUnlockSecret = settings.adminWeaponUnlockSecret;
+        adminWeaponUnlockSecretTimeout = settings.adminWeaponUnlockSecretTimeout;
         showColliderGizmos = settings.showColliderGizmos;
         testSpawnOffsets = ResolveTestSpawnOffsets(settings.testSpawnOffsets);
 
@@ -708,6 +720,9 @@ public class GameSession : MonoBehaviour
         _testSecretLastTime = -1f;
         _levelUpSecretBuffer = string.Empty;
         _levelUpSecretLastTime = -1f;
+        _adminWeaponUnlockSecretBuffer = string.Empty;
+        _adminWeaponUnlockSecretLastTime = -1f;
+        _ignoreWeaponUnlockLevelLimit = false;
     }
 
     private static WeaponStatsData CloneWeaponStats(WeaponStatsData source)
@@ -1359,6 +1374,7 @@ public class GameSession : MonoBehaviour
         HandleAutoButtonSecret();
         HandleTestSpawnSecret();
         HandleLevelUpSecret();
+        HandleAdminWeaponUnlockSecret();
     }
 
     private void LateUpdate()
@@ -2790,6 +2806,11 @@ public class GameSession : MonoBehaviour
 
     private int GetWeaponSlotLimitForLevel(int level)
     {
+        if (_ignoreWeaponUnlockLevelLimit)
+        {
+            return maxWeaponSlots > 0 ? Mathf.Max(1, maxWeaponSlots) : 3;
+        }
+
         int slotLimit = 1;
         if (level >= 20)
         {
@@ -4628,10 +4649,18 @@ public class GameSession : MonoBehaviour
         {
             case 'a':
                 return keyboard.aKey.wasPressedThisFrame;
+            case 'd':
+                return keyboard.dKey.wasPressedThisFrame;
             case 'e':
                 return keyboard.eKey.wasPressedThisFrame;
+            case 'i':
+                return keyboard.iKey.wasPressedThisFrame;
             case 'l':
                 return keyboard.lKey.wasPressedThisFrame;
+            case 'm':
+                return keyboard.mKey.wasPressedThisFrame;
+            case 'n':
+                return keyboard.nKey.wasPressedThisFrame;
             case 's':
                 return keyboard.sKey.wasPressedThisFrame;
             case 'u':
@@ -4803,6 +4832,80 @@ public class GameSession : MonoBehaviour
             LevelUpByOne();
             _levelUpSecretBuffer = string.Empty;
             _levelUpSecretLastTime = -1f;
+        }
+    }
+
+    private void HandleAdminWeaponUnlockSecret()
+    {
+        if (!allowAdminWeaponUnlockSecret || string.IsNullOrEmpty(adminWeaponUnlockSecret) || !IsGameplayActive)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        if (_adminWeaponUnlockSecretLastTime > 0f && Time.unscaledTime - _adminWeaponUnlockSecretLastTime > adminWeaponUnlockSecretTimeout)
+        {
+            _adminWeaponUnlockSecretBuffer = string.Empty;
+            _adminWeaponUnlockSecretLastTime = -1f;
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        bool appended = false;
+        foreach (char c in adminWeaponUnlockSecret)
+        {
+            if (WasSecretCharPressed(keyboard, c))
+            {
+                AppendAdminWeaponUnlockSecretChar(c);
+                appended = true;
+                break;
+            }
+        }
+
+        if (!appended)
+        {
+            return;
+        }
+#else
+        string input = Input.inputString;
+        if (string.IsNullOrEmpty(input))
+        {
+            return;
+        }
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            AppendAdminWeaponUnlockSecretChar(char.ToLowerInvariant(input[i]));
+        }
+#endif
+    }
+
+    private void AppendAdminWeaponUnlockSecretChar(char c)
+    {
+        _adminWeaponUnlockSecretLastTime = Time.unscaledTime;
+        _adminWeaponUnlockSecretBuffer += char.ToLowerInvariant(c);
+        if (_adminWeaponUnlockSecretBuffer.Length > adminWeaponUnlockSecret.Length)
+        {
+            _adminWeaponUnlockSecretBuffer = _adminWeaponUnlockSecretBuffer.Substring(_adminWeaponUnlockSecretBuffer.Length - adminWeaponUnlockSecret.Length);
+        }
+
+        if (_adminWeaponUnlockSecretBuffer == adminWeaponUnlockSecret.ToLowerInvariant())
+        {
+            _ignoreWeaponUnlockLevelLimit = !_ignoreWeaponUnlockLevelLimit;
+            _adminWeaponUnlockSecretBuffer = string.Empty;
+            _adminWeaponUnlockSecretLastTime = -1f;
+            Debug.Log(_ignoreWeaponUnlockLevelLimit
+                ? "[Admin Cheat] Weapon level lock disabled."
+                : "[Admin Cheat] Weapon level lock enabled.");
         }
     }
 

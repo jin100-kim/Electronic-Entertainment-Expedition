@@ -36,6 +36,18 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField]
     private float enemyColliderRadius = 0.28f;
 
+    [SerializeField]
+    private float enemySeparationRadius = 0.65f;
+
+    [SerializeField]
+    private float enemySeparationStrength = 2.2f;
+
+    [SerializeField]
+    private int enemySeparationMaxNeighbors = 8;
+
+    [SerializeField]
+    private float enemyPlayerOverlapPushStrength = 6f;
+
     [Header("Elite/Boss Spawn")]
     [SerializeField]
     private float eliteStartTime = 120f;
@@ -202,6 +214,10 @@ public class EnemySpawner : MonoBehaviour
         enemyMaxHealth = settings.enemyMaxHealth;
         enemyVisualScale = settings.enemyVisualScale;
         enemyColliderRadius = settings.enemyColliderRadius > 0f ? settings.enemyColliderRadius : 0.28f;
+        enemySeparationRadius = Mathf.Max(0f, settings.enemySeparationRadius);
+        enemySeparationStrength = Mathf.Max(0f, settings.enemySeparationStrength);
+        enemySeparationMaxNeighbors = Mathf.Max(0, settings.enemySeparationMaxNeighbors);
+        enemyPlayerOverlapPushStrength = Mathf.Max(0f, settings.enemyPlayerOverlapPushStrength);
 
         eliteStartTime = settings.eliteStartTime;
         eliteInterval = settings.eliteInterval;
@@ -412,6 +428,10 @@ public class EnemySpawner : MonoBehaviour
         controller.DamageCooldown = enemyDamageCooldown;
         controller.XpReward = Mathf.Max(1, Mathf.RoundToInt(enemyXpReward * GetXpMult(tier)));
         controller.MaxHealth = enemyMaxHealth * GetHealthMult(tier);
+        controller.SeparationRadius = enemySeparationRadius;
+        controller.SeparationStrength = enemySeparationStrength;
+        controller.SeparationMaxNeighbors = enemySeparationMaxNeighbors;
+        controller.PlayerOverlapPushStrength = enemyPlayerOverlapPushStrength;
 
         var visuals = enemy.GetComponent<EnemyVisuals>();
         if (visuals == null)

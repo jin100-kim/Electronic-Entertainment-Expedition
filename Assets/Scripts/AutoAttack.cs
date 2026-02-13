@@ -86,7 +86,7 @@ public class AutoAttack : MonoBehaviour
     private Color grenadeProjectileColor = new Color(1f, 0.8f, 0.3f, 0.9f);
 
     [SerializeField]
-    private float meleeConeAngle = 75f;
+    private float meleeConeAngle = 120f;
 
     [SerializeField]
     private float piercingShotOrbitAngularSpeed = 8f;
@@ -149,9 +149,6 @@ public class AutoAttack : MonoBehaviour
     [SerializeField]
     private Color meleeColor = new Color(1f, 0.95f, 0.5f, 1f);
 
-    [SerializeField]
-    private int meleeSectorSegments = 18;
-
     [Header("Sprites (Resources)")]
     [SerializeField]
     private string singleShotSpritePath;
@@ -173,6 +170,9 @@ public class AutoAttack : MonoBehaviour
 
     [SerializeField]
     private float projectileSpriteScale = 2.5f;
+
+    [SerializeField]
+    private float piercingShotVisualScaleMult = 2f;
 
     [SerializeField]
     private float directionalProjectileBaseAngle = 45f;
@@ -203,7 +203,16 @@ public class AutoAttack : MonoBehaviour
     private Color meleeSlashColor = new Color(1f, 0.95f, 0.8f, 0.95f);
 
     [SerializeField]
-    private string meleeSlashSpritePath = "Art/Projectiles/projectile_homing_shot";
+    private string meleeSlashSpritePath = "Art/Items/icon_weapon_melee";
+
+    [SerializeField]
+    private float meleeSwordVisualScale = 3f;
+
+    [SerializeField]
+    private float meleeSwordSpriteAngleOffset = 135f;
+
+    [SerializeField]
+    private bool showMeleeHitboxGizmo = true;
 
     [SerializeField]
     private string auraPulseSpritePath = "Art/Projectiles/projectile_aura";
@@ -235,7 +244,6 @@ public class AutoAttack : MonoBehaviour
     private static readonly System.Collections.Generic.Stack<GameObject> _circleProjectilePool = new System.Collections.Generic.Stack<GameObject>();
     private static readonly System.Collections.Generic.Stack<GameObject> _homingShotProjectilePool = new System.Collections.Generic.Stack<GameObject>();
     private static readonly System.Collections.Generic.Stack<GameObject> _multiShotPool = new System.Collections.Generic.Stack<GameObject>();
-
     private const float TargetScanInterval = 0.1f;
     private const byte WeaponIdNone = 255;
 
@@ -271,7 +279,11 @@ public class AutoAttack : MonoBehaviour
     private bool _settingsApplied;
     private GameObject _auraIndicator;
     private SpriteRenderer _auraIndicatorRenderer;
-    private PolygonCollider2D _meleeSectorProbe;
+    private Vector2 _meleeGizmoCenter;
+    private Vector2 _meleeGizmoSize;
+    private float _meleeGizmoAngle;
+    private float _meleeGizmoExpireTime;
+    private float _meleeHorizontalFacingSign = 1f;
 
     private void Awake()
     {
@@ -297,11 +309,7 @@ public class AutoAttack : MonoBehaviour
             _auraIndicatorRenderer = null;
         }
 
-        if (_meleeSectorProbe != null)
-        {
-            Destroy(_meleeSectorProbe.gameObject);
-            _meleeSectorProbe = null;
-        }
+        _meleeGizmoExpireTime = 0f;
     }
 
     private void ApplySettings()
@@ -346,6 +354,9 @@ public class AutoAttack : MonoBehaviour
         meleeLineWidth = settings.meleeLineWidth;
         meleeLineLength = settings.meleeLineLength;
         meleeColor = settings.meleeColor;
+        meleeConeAngle = Mathf.Clamp(settings.meleeConeAngle, 10f, 180f);
+        meleeSwordVisualScale = settings.meleeSwordVisualScale;
+        meleeSwordSpriteAngleOffset = settings.meleeSwordSpriteAngleOffset;
 
         singleShotSpritePath = settings.singleShotSpritePath;
         multiShotSpritePath = settings.multiShotSpritePath;
@@ -354,6 +365,7 @@ public class AutoAttack : MonoBehaviour
         homingShotSpritePath = settings.homingShotSpritePath;
         grenadeSpritePath = settings.grenadeSpritePath;
         projectileSpriteScale = settings.projectileSpriteScale;
+        piercingShotVisualScaleMult = settings.piercingShotVisualScaleMult;
 
         _settingsApplied = true;
     }
@@ -1081,25 +1093,134 @@ public class AutoAttack : MonoBehaviour
 
     private void FireMelee()
     {
-        float range = Mathf.Max(0.1f, _range * Mathf.Max(0f, _melee.AreaMult) * _attackAreaMult);
+        // Melee range intentionally ignores range upgrades and only scales with melee area + attack-area upgrades.
+        float range = Mathf.Max(0.1f, baseRange * Mathf.Max(0f, _melee.AreaMult) * _attackAreaMult);
         if (range <= 0.1001f)
         {
             return;
         }
+
         Vector2 facing = ResolveMeleeFacingDirection();
         float halfAngle = Mathf.Clamp(meleeConeAngle, 10f, 180f) * 0.5f;
-        UpdateMeleeSectorProbeShape((Vector2)transform.position, facing, range, halfAngle);
-        SpawnMeleeRangeIndicator(facing, range, halfAngle);
         float damage = _projectileDamage * _melee.DamageMult;
         int elementCount = GetWeaponElements(WeaponType.Melee, out var e0, out var e1, out var e2);
-        Vector2 origin = transform.position;
+        StartCoroutine(PerformMeleeSwordSwing(facing, range, halfAngle, damage, elementCount, e0, e1, e2));
 
+    }
+
+    private System.Collections.IEnumerator PerformMeleeSwordSwing(
+        Vector2 facing,
+        float range,
+        float halfAngle,
+        float damage,
+        int elementCount,
+        ElementType e0,
+        ElementType e1,
+        ElementType e2)
+    {
+        float duration = Mathf.Max(0.08f, meleeEffectDuration * 1.35f);
+        Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
+        float facingAngle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
+        float startAngle = facingAngle - halfAngle;
+        float endAngle = facingAngle + halfAngle;
+
+        float reach = Mathf.Max(0.25f, range * 0.55f);
+        float bladeLength = Mathf.Max(0.55f, range * 1.1f);
+        float bladeWidth = Mathf.Max(0.2f, range * 0.34f);
+        float visualScale = Mathf.Max(0.1f, meleeSwordVisualScale);
+        Vector2 hitboxSize = new Vector2(bladeLength, bladeWidth);
+
+        var sprite = ResolveEffectSprite(meleeSlashSpritePath, "Art/Items/icon_weapon_melee", 96);
+        float targetVisualLength = hitboxSize.x * visualScale;
+        float uniformVisualScale = GetUniformSpriteScale(sprite, targetVisualLength);
+        var go = CreateFxSprite("MeleeSwordSwingFx", transform.position, sprite, Color.white, combatFxSortingOrder + 5, startAngle);
+        SpriteRenderer renderer = go != null ? go.GetComponent<SpriteRenderer>() : null;
+
+        var hitTargets = new System.Collections.Generic.HashSet<Health>();
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float angle = Mathf.Lerp(startAngle, endAngle, t);
+            float rad = angle * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
+            Vector2 origin = transform.position;
+            Vector2 center = origin + dir * reach;
+            UpdateMeleeHitboxGizmo(center, hitboxSize, angle);
+
+            ApplyMeleeHitboxDamage(center, hitboxSize, angle, damage, elementCount, e0, e1, e2, hitTargets);
+
+            if (go != null)
+            {
+                go.transform.position = center;
+                go.transform.rotation = Quaternion.Euler(0f, 0f, angle + meleeSwordSpriteAngleOffset);
+                go.transform.localScale = new Vector3(uniformVisualScale, uniformVisualScale, 1f);
+            }
+
+            if (renderer != null)
+            {
+                Color c = meleeSlashColor;
+                float pulse = Mathf.Sin(t * Mathf.PI);
+                c.a = Mathf.Clamp01((0.35f + (0.65f * pulse)) * Mathf.Clamp01(meleeSlashColor.a));
+                renderer.color = c;
+            }
+
+            yield return null;
+        }
+
+        if (go != null)
+        {
+            Destroy(go);
+        }
+    }
+
+    private void UpdateMeleeHitboxGizmo(Vector2 center, Vector2 size, float angleDeg)
+    {
+        _meleeGizmoCenter = center;
+        _meleeGizmoSize = size;
+        _meleeGizmoAngle = angleDeg;
+        _meleeGizmoExpireTime = Time.time + 0.08f;
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!showMeleeHitboxGizmo || !Application.isPlaying)
+        {
+            return;
+        }
+
+        if (Time.time > _meleeGizmoExpireTime || _meleeGizmoSize.sqrMagnitude <= 0.0001f)
+        {
+            return;
+        }
+
+        var prev = Gizmos.matrix;
+        Gizmos.color = new Color(1f, 0.45f, 0.1f, 0.95f);
+        Gizmos.matrix = Matrix4x4.TRS(_meleeGizmoCenter, Quaternion.Euler(0f, 0f, _meleeGizmoAngle), Vector3.one);
+        Gizmos.DrawWireCube(Vector3.zero, new Vector3(_meleeGizmoSize.x, _meleeGizmoSize.y, 0f));
+        Gizmos.matrix = prev;
+    }
+
+    private void ApplyMeleeHitboxDamage(
+        Vector2 center,
+        Vector2 size,
+        float angleDeg,
+        float damage,
+        int elementCount,
+        ElementType e0,
+        ElementType e1,
+        ElementType e2,
+        System.Collections.Generic.HashSet<Health> hitTargets)
+    {
         var enemies = EnemyController.Active;
         if (enemies == null || enemies.Count == 0)
         {
             return;
         }
 
+        float halfX = size.x * 0.5f;
+        float halfY = size.y * 0.5f;
         for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i];
@@ -1114,190 +1235,27 @@ public class AutoAttack : MonoBehaviour
                 continue;
             }
 
-            if (!TryGetEnemyContactPointInMeleeSector(enemy, origin, facing, range, halfAngle, out _))
+            if (hitTargets != null && hitTargets.Contains(health))
             {
                 continue;
             }
 
+            float enemyRadius = GetEnemyCollisionRadius(enemy);
+            Vector2 delta = (Vector2)enemy.transform.position - center;
+            Vector2 local = Rotate(delta, -angleDeg);
+            float closestX = Mathf.Clamp(local.x, -halfX, halfX);
+            float closestY = Mathf.Clamp(local.y, -halfY, halfY);
+            float dx = local.x - closestX;
+            float dy = local.y - closestY;
+            if ((dx * dx + dy * dy) > (enemyRadius * enemyRadius))
+            {
+                continue;
+            }
+
+            hitTargets?.Add(health);
             health.Damage(damage);
             ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
             ApplyHitReactionToTarget(enemy.transform, WeaponType.Melee);
-        }
-
-    }
-
-    private bool TryGetEnemyContactPointInMeleeSector(EnemyController enemy, Vector2 origin, Vector2 facing, float range, float halfAngle, out Vector2 contactPoint)
-    {
-        contactPoint = origin;
-        if (enemy == null || enemy.IsDead)
-        {
-            return false;
-        }
-
-        var col = enemy.GetComponent<Collider2D>();
-        if (_meleeSectorProbe != null && col != null && col.enabled)
-        {
-            var distance = col.Distance(_meleeSectorProbe);
-            if (!distance.isOverlapped)
-            {
-                return false;
-            }
-
-            contactPoint = distance.pointA;
-            return true;
-        }
-
-        Vector2 enemyCenter = enemy.transform.position;
-        if (!IsPointInsideSector(enemyCenter, origin, facing, range, halfAngle))
-        {
-            return false;
-        }
-
-        contactPoint = enemyCenter;
-        return true;
-    }
-
-    private void SpawnMeleeRangeIndicator(Vector2 facing, float range, float halfAngle)
-    {
-        if (range <= 0.001f)
-        {
-            return;
-        }
-
-        Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
-        float facingAngle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
-        float coneAngle = Mathf.Max(12f, halfAngle * 2f);
-        float duration = Mathf.Max(0.08f, meleeEffectDuration * 1.35f);
-
-        SpawnMeleeSwingArcEffect((Vector2)transform.position, forward, range, halfAngle, duration);
-
-        var sprite = ResolveEffectSprite(meleeSlashSpritePath, homingShotSpritePath, 96);
-        var color = meleeSlashColor;
-        color.a = Mathf.Clamp01(color.a);
-        var go = CreateFxSprite("MeleeSlashFx", transform.position, sprite, color, combatFxSortingOrder + 5, facingAngle - halfAngle * 0.9f);
-        if (go == null)
-        {
-            return;
-        }
-
-        float width = Mathf.Max(0.55f, range * 1.45f);
-        float height = Mathf.Max(0.28f, range * (coneAngle / 160f));
-        var fromScale = new Vector3(width * 0.7f, height * 0.55f, 1f);
-        var toScale = new Vector3(width * 1.08f, height * 1.02f, 1f);
-        float startAngle = facingAngle - halfAngle * 0.95f;
-        float endAngle = facingAngle + halfAngle * 0.95f;
-        StartCoroutine(AnimateMeleeSlashSpriteSweep(go, (Vector2)transform.position, forward, fromScale, toScale, duration, startAngle, endAngle));
-    }
-
-    private void SpawnMeleeSwingArcEffect(Vector2 origin, Vector2 forward, float range, float halfAngle, float duration)
-    {
-        var go = new GameObject("MeleeSwingArcFx");
-        var line = go.AddComponent<LineRenderer>();
-        line.useWorldSpace = true;
-        line.material = GetChainMaterial();
-        line.sortingOrder = combatFxSortingOrder + 4;
-        line.numCapVertices = 3;
-        line.numCornerVertices = 3;
-        line.positionCount = Mathf.Clamp(meleeSectorSegments, 10, 42) + 1;
-        StartCoroutine(AnimateMeleeSwingArc(line, origin, forward, range, halfAngle, duration));
-    }
-
-    private System.Collections.IEnumerator AnimateMeleeSwingArc(LineRenderer line, Vector2 origin, Vector2 forward, float range, float halfAngle, float duration)
-    {
-        if (line == null)
-        {
-            yield break;
-        }
-
-        float life = Mathf.Max(0.04f, duration);
-        float elapsed = 0f;
-        int segments = Mathf.Max(2, line.positionCount - 1);
-        float baseWidth = Mathf.Max(0.05f, meleeLineWidth * 1.4f);
-        Color baseColor = Color.Lerp(meleeColor, meleeSlashColor, 0.45f);
-        baseColor.a = Mathf.Max(0.78f, baseColor.a);
-
-        while (elapsed < life && line != null)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / life);
-
-            float center = Mathf.Lerp(-halfAngle * 0.95f, halfAngle * 0.95f, t);
-            float span = Mathf.Lerp(Mathf.Max(12f, halfAngle * 0.95f), Mathf.Max(6f, halfAngle * 0.32f), t);
-            float start = center - span;
-            float end = center + span;
-            float radius = Mathf.Lerp(range * 0.58f, range * 1.04f, t);
-
-            for (int i = 0; i <= segments; i++)
-            {
-                float ratio = i / (float)segments;
-                float angle = Mathf.Lerp(start, end, ratio);
-                Vector2 dir = Rotate(forward, angle).normalized;
-                float wobble = Mathf.Sin((ratio + t * 1.5f) * Mathf.PI * 2f) * range * 0.018f;
-                line.SetPosition(i, origin + dir * (radius + wobble));
-            }
-
-            float alpha = Mathf.Lerp(baseColor.a, 0f, t);
-            Color c = baseColor;
-            c.a = alpha;
-            line.startColor = c;
-            line.endColor = c;
-            float width = Mathf.Lerp(baseWidth, baseWidth * 0.28f, t);
-            line.startWidth = width;
-            line.endWidth = width * 0.62f;
-            yield return null;
-        }
-
-        if (line != null)
-        {
-            Destroy(line.gameObject);
-        }
-    }
-
-    private System.Collections.IEnumerator AnimateMeleeSlashSpriteSweep(
-        GameObject go,
-        Vector2 origin,
-        Vector2 forward,
-        Vector3 fromScale,
-        Vector3 toScale,
-        float duration,
-        float startAngle,
-        float endAngle)
-    {
-        if (go == null)
-        {
-            yield break;
-        }
-
-        var renderer = go.GetComponent<SpriteRenderer>();
-        if (renderer == null)
-        {
-            Destroy(go);
-            yield break;
-        }
-
-        float life = Mathf.Max(0.04f, duration);
-        float elapsed = 0f;
-        Color baseColor = renderer.color;
-
-        while (elapsed < life && go != null)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / life);
-            go.transform.localScale = Vector3.LerpUnclamped(fromScale, toScale, t);
-            float angle = Mathf.Lerp(startAngle, endAngle, t);
-            go.transform.rotation = Quaternion.Euler(0f, 0f, angle);
-            go.transform.position = origin + forward * Mathf.Lerp(0.1f, 0.45f, t);
-
-            float pulse = Mathf.Sin(t * Mathf.PI);
-            Color c = baseColor;
-            c.a = Mathf.Clamp01(baseColor.a * pulse);
-            renderer.color = c;
-            yield return null;
-        }
-
-        if (go != null)
-        {
-            Destroy(go);
         }
     }
 
@@ -1308,54 +1266,23 @@ public class AutoAttack : MonoBehaviour
             _ownerPlayer = GetComponent<PlayerController>();
         }
 
+        float horizontal = 0f;
         if (_ownerPlayer != null)
         {
-            return _ownerPlayer.FacingDirection;
+            horizontal = _ownerPlayer.FacingDirection.x;
         }
 
-        return ResolveFacingDirection();
-    }
-
-    private void EnsureMeleeSectorProbe()
-    {
-        if (_meleeSectorProbe != null)
+        if (Mathf.Abs(horizontal) < 0.001f && Mathf.Abs(_cachedDir.x) > 0.001f)
         {
-            return;
+            horizontal = _cachedDir.x;
         }
 
-        var go = new GameObject("MeleeSectorProbe");
-        go.hideFlags = HideFlags.HideInHierarchy;
-        go.transform.SetParent(transform, false);
-        _meleeSectorProbe = go.AddComponent<PolygonCollider2D>();
-        _meleeSectorProbe.isTrigger = true;
-    }
-
-    private void UpdateMeleeSectorProbeShape(Vector2 origin, Vector2 facing, float range, float halfAngle)
-    {
-        EnsureMeleeSectorProbe();
-        if (_meleeSectorProbe == null)
+        if (Mathf.Abs(horizontal) > 0.001f)
         {
-            return;
+            _meleeHorizontalFacingSign = horizontal < 0f ? -1f : 1f;
         }
 
-        Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
-        int segments = Mathf.Clamp(meleeSectorSegments, 6, 64);
-        var points = new Vector2[segments + 2];
-        points[0] = Vector2.zero;
-
-        for (int i = 0; i <= segments; i++)
-        {
-            float t = i / (float)segments;
-            float angle = Mathf.Lerp(-halfAngle, halfAngle, t) * Mathf.Deg2Rad;
-            points[i + 1] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * range;
-        }
-
-        Transform probeTransform = _meleeSectorProbe.transform;
-        probeTransform.position = origin;
-        float facingAngle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
-        probeTransform.rotation = Quaternion.Euler(0f, 0f, facingAngle);
-        _meleeSectorProbe.pathCount = 1;
-        _meleeSectorProbe.SetPath(0, points);
+        return _meleeHorizontalFacingSign < 0f ? Vector2.left : Vector2.right;
     }
 
                 private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath, byte weaponId, WeaponType weaponType, int pierceOverride = -1)
@@ -1407,7 +1334,12 @@ public class AutoAttack : MonoBehaviour
         const float fallbackScale = 0.4f;
         bool hasSprite = TryResolveProjectileSprite(spritePath, _projectileSize, out var projectileSprite);
         renderer.sprite = projectileSprite;
-        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
+        float spriteScale = Mathf.Max(0.01f, projectileSpriteScale);
+        if (weaponType == WeaponType.PiercingShot)
+        {
+            spriteScale *= Mathf.Max(0.1f, piercingShotVisualScaleMult);
+        }
+        go.transform.localScale = Vector3.one * (hasSprite ? spriteScale : fallbackScale);
         var baseColor = new Color(0.9f, 0.9f, 0.2f, 1f);
         var projectileTint = ResolveSpriteTint(baseColor, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
@@ -1426,7 +1358,9 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = GetScaledColliderRadius(0.5f, fallbackScale, hasSprite);
+        col.radius = hasSprite
+            ? 0.5f * fallbackScale / Mathf.Max(0.01f, spriteScale)
+            : 0.5f;
 
         var proj = go.GetComponent<Projectile>();
         if (proj == null)
@@ -1497,7 +1431,8 @@ public class AutoAttack : MonoBehaviour
         const float fallbackScale = 0.4f;
         bool hasSprite = TryResolveProjectileSprite(piercingShotSpritePath, _projectileSize, out var novaSprite);
         renderer.sprite = novaSprite;
-        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
+        float spriteScale = Mathf.Max(0.01f, projectileSpriteScale) * Mathf.Max(0.1f, piercingShotVisualScaleMult);
+        go.transform.localScale = Vector3.one * (hasSprite ? spriteScale : fallbackScale);
         var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
         var projectileTint = ResolveSpriteTint(novaColor, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
@@ -1516,7 +1451,9 @@ public class AutoAttack : MonoBehaviour
             col = go.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = GetScaledColliderRadius(0.5f, fallbackScale, hasSprite);
+        col.radius = hasSprite
+            ? 0.5f * fallbackScale / Mathf.Max(0.01f, spriteScale)
+            : 0.5f;
 
         var proj = go.GetComponent<Projectile>();
         if (proj == null)
@@ -2367,6 +2304,44 @@ public class AutoAttack : MonoBehaviour
     private static Color ResolveSpriteTint(Color fallbackColor, bool hasSprite)
     {
         return hasSprite ? Color.white : fallbackColor;
+    }
+
+    private static float GetUniformSpriteScale(Sprite sprite, float targetLength)
+    {
+        float safeTarget = Mathf.Max(0.05f, targetLength);
+        if (sprite == null)
+        {
+            return safeTarget;
+        }
+
+        Vector2 size = sprite.bounds.size;
+        float spriteLongestAxis = Mathf.Max(0.001f, Mathf.Max(Mathf.Abs(size.x), Mathf.Abs(size.y)));
+        return safeTarget / spriteLongestAxis;
+    }
+
+    private static float GetEnemyCollisionRadius(EnemyController enemy)
+    {
+        if (enemy == null)
+        {
+            return 0.28f;
+        }
+
+        var circle = enemy.GetComponent<CircleCollider2D>();
+        if (circle != null)
+        {
+            Vector3 lossy = enemy.transform.lossyScale;
+            float scale = Mathf.Max(0.01f, Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y)));
+            return Mathf.Max(0.05f, circle.radius * scale);
+        }
+
+        var col = enemy.GetComponent<Collider2D>();
+        if (col != null)
+        {
+            var ext = col.bounds.extents;
+            return Mathf.Max(0.05f, Mathf.Max(ext.x, ext.y));
+        }
+
+        return 0.28f;
     }
 }
 

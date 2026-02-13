@@ -269,6 +269,9 @@ public class GameSessionSettings
     public bool allowLevelUpSecret = true;
     public string levelUpSecret = "lvl";
     public float levelUpSecretTimeout = 1.5f;
+    public bool allowAdminWeaponUnlockSecret = true;
+    public string adminWeaponUnlockSecret = "admin";
+    public float adminWeaponUnlockSecretTimeout = 1.5f;
     public Vector2[] testSpawnOffsets = new[]
     {
         new Vector2(2f, 0f),
@@ -338,6 +341,10 @@ public class EnemySpawnerConfig
     public float enemyMaxHealth = 40f;
     public float enemyVisualScale = 4f;
     public float enemyColliderRadius = 0.28f;
+    public float enemySeparationRadius = 0.65f;
+    public float enemySeparationStrength = 2.2f;
+    public int enemySeparationMaxNeighbors = 8;
+    public float enemyPlayerOverlapPushStrength = 6f;
 
     public float eliteStartTime = 120f;
     public float eliteInterval = 20f;
@@ -423,6 +430,9 @@ public class AutoAttackConfig
     public float meleeLineLength = 1.6f;
     [FormerlySerializedAs("lightningColor")]
     public Color meleeColor = new Color(1f, 0.95f, 0.5f, 1f);
+    public float meleeConeAngle = 120f;
+    public float meleeSwordVisualScale = 0.9f;
+    public float meleeSwordSpriteAngleOffset = -45f;
 
     [Header("Sprites (Resources)")]
     [FormerlySerializedAs("straightSpritePath")]
@@ -438,6 +448,7 @@ public class AutoAttackConfig
     [FormerlySerializedAs("frostSpritePath")]
     public string grenadeSpritePath = "Art/Items/projectile_grenade";
     public float projectileSpriteScale = 2.5f;
+    public float piercingShotVisualScaleMult = 2f;
 }
 
 [System.Serializable]
@@ -548,7 +559,4 @@ public class WindowConfig
     public int height = 720;
     public FullScreenMode fullscreenMode = FullScreenMode.Windowed;
 }
-
-
-
 

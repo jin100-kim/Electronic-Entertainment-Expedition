@@ -31,6 +31,19 @@ public class EnemyController : MonoBehaviour
     [SerializeField]
     private float targetScanInterval = 1f;
 
+    [Header("Separation")]
+    [SerializeField]
+    private float separationRadius = 0.65f;
+
+    [SerializeField]
+    private float separationStrength = 2.2f;
+
+    [SerializeField]
+    private int separationMaxNeighbors = 8;
+
+    [SerializeField]
+    private float playerOverlapPushStrength = 6f;
+
     private float _nextDamageTime;
     private Health _health;
     private float _slowMultiplier = 1f;
@@ -133,6 +146,30 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    public float SeparationRadius
+    {
+        get => separationRadius;
+        set => separationRadius = Mathf.Max(0f, value);
+    }
+
+    public float SeparationStrength
+    {
+        get => separationStrength;
+        set => separationStrength = Mathf.Max(0f, value);
+    }
+
+    public int SeparationMaxNeighbors
+    {
+        get => separationMaxNeighbors;
+        set => separationMaxNeighbors = Mathf.Max(0, value);
+    }
+
+    public float PlayerOverlapPushStrength
+    {
+        get => playerOverlapPushStrength;
+        set => playerOverlapPushStrength = Mathf.Max(0f, value);
+    }
+
     private void OnDisable()
     {
         Active.Remove(this);
@@ -212,15 +249,29 @@ public class EnemyController : MonoBehaviour
 
         Vector3 toTarget = Target.position - transform.position;
         toTarget.z = 0f;
-        if (toTarget.sqrMagnitude < 0.0001f)
+        Vector2 moveDir = Vector2.zero;
+        if (toTarget.sqrMagnitude >= 0.0001f)
+        {
+            moveDir = toTarget.normalized;
+            UpdateFacing(moveDir);
+        }
+
+        float speed = moveSpeed * _slowMultiplier;
+        Vector2 separation = ComputeSeparationVector();
+        Vector2 overlapPush = ComputePlayerOverlapPush();
+        Vector2 velocity = (moveDir * speed) + (separation * separationStrength) + (overlapPush * playerOverlapPushStrength);
+        if (velocity.sqrMagnitude < 0.0001f)
         {
             return;
         }
 
-        Vector3 dir = toTarget.normalized;
-        UpdateFacing(dir);
-        float speed = moveSpeed * _slowMultiplier;
-        transform.position += dir * speed * Time.deltaTime;
+        float maxSpeed = Mathf.Max(0.1f, speed + separationStrength + playerOverlapPushStrength);
+        if (velocity.sqrMagnitude > maxSpeed * maxSpeed)
+        {
+            velocity = velocity.normalized * maxSpeed;
+        }
+
+        transform.position += (Vector3)(velocity * Time.deltaTime);
 
         if (GameSession.Instance != null)
         {
@@ -481,4 +532,128 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    private Vector2 ComputeSeparationVector()
+    {
+        if (separationRadius <= 0.001f || separationStrength <= 0f || separationMaxNeighbors <= 0)
+        {
+            return Vector2.zero;
+        }
+
+        var enemies = Active;
+        Vector2 self = transform.position;
+        float radiusSqr = separationRadius * separationRadius;
+        Vector2 push = Vector2.zero;
+        int count = 0;
+
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var other = enemies[i];
+            if (other == null || other == this || other.IsDead)
+            {
+                continue;
+            }
+
+            Vector2 delta = self - (Vector2)other.transform.position;
+            float distSqr = delta.sqrMagnitude;
+            if (distSqr < 0.0001f || distSqr > radiusSqr)
+            {
+                continue;
+            }
+
+            float dist = Mathf.Sqrt(distSqr);
+            float weight = 1f - Mathf.Clamp01(dist / separationRadius);
+            push += (delta / dist) * weight;
+            count++;
+            if (count >= separationMaxNeighbors)
+            {
+                break;
+            }
+        }
+
+        if (count <= 0 || push.sqrMagnitude < 0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return push / count;
+    }
+
+    private Vector2 ComputePlayerOverlapPush()
+    {
+        if (playerOverlapPushStrength <= 0f)
+        {
+            return Vector2.zero;
+        }
+
+        var enemyCol = GetComponent<CircleCollider2D>();
+        float enemyRadius = GetWorldRadius(enemyCol, transform, 0.28f);
+        Vector2 self = transform.position;
+        Vector2 push = Vector2.zero;
+        int count = 0;
+
+        var players = PlayerController.Active;
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            if (player == null)
+            {
+                continue;
+            }
+
+            var health = player.GetComponent<Health>();
+            if (health != null && health.IsDead)
+            {
+                continue;
+            }
+
+            var playerCol = player.GetComponent<CircleCollider2D>();
+            float playerRadius = GetWorldRadius(playerCol, player.transform, 0.28f);
+            float combined = enemyRadius + playerRadius;
+
+            Vector2 delta = self - (Vector2)player.transform.position;
+            float dist = delta.magnitude;
+            if (dist >= combined)
+            {
+                continue;
+            }
+
+            Vector2 dir;
+            if (dist > 0.0001f)
+            {
+                dir = delta / dist;
+            }
+            else
+            {
+                dir = Random.insideUnitCircle;
+                if (dir.sqrMagnitude < 0.0001f)
+                {
+                    dir = Vector2.right;
+                }
+                dir.Normalize();
+            }
+
+            float overlapRatio = Mathf.Clamp01((combined - dist) / Mathf.Max(0.01f, combined));
+            push += dir * overlapRatio;
+            count++;
+        }
+
+        if (count <= 0 || push.sqrMagnitude < 0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return push / count;
+    }
+
+    private static float GetWorldRadius(CircleCollider2D col, Transform owner, float fallback)
+    {
+        if (col == null)
+        {
+            return Mathf.Max(0.01f, fallback);
+        }
+
+        Vector3 lossy = owner != null ? owner.lossyScale : Vector3.one;
+        float scale = Mathf.Max(0.01f, Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y)));
+        return Mathf.Max(0.01f, col.radius * scale);
+    }
 }

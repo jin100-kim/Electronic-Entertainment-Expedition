@@ -82,7 +82,7 @@ MonoBehaviour:
       level: 0
       unlocked: 0
       damageMult: 2.5
-      fireRateMult: 0.48000002
+      fireRateMult: 0.48
       rangeMult: 3.3333
       areaMult: 0
       bonusProjectiles: 0
@@ -93,7 +93,7 @@ MonoBehaviour:
       level: 0
       unlocked: 0
       damageMult: 0.5
-      fireRateMult: 1.8000001
+      fireRateMult: 1.8
       rangeMult: 0
       areaMult: 0.25
       bonusProjectiles: 0
@@ -147,17 +147,17 @@ MonoBehaviour:
     allowMapChoiceInNetwork: 0
     mapChoices:
     - theme: 0
-      displayName: "\uC232"
+      displayName: Forest
       sceneName: ForestOpenWorld
-      difficulty: {fileID: 11400000, guid: 0e0f7960861d4ce98e3285b9ad72875e, type: 2}
+      difficulty: {fileID: 0}
     - theme: 1
-      displayName: "\uC0AC\uB9C9"
+      displayName: Desert
       sceneName: DesertOpenWorld
-      difficulty: {fileID: 11400000, guid: 301b1b4504d8787408b656854d46e998, type: 2}
+      difficulty: {fileID: 0}
     - theme: 2
-      displayName: "\uC124\uC6D0"
+      displayName: Snow
       sceneName: SnowOpenWorld
-      difficulty: {fileID: 11400000, guid: a2f441bcdbbb4d30a21456060e7fd75e, type: 2}
+      difficulty: {fileID: 0}
     startPreviewScale: 2
     startPreviewDimAlpha: 0.5
     startPreviewHoverAlpha: 1
@@ -186,6 +186,9 @@ MonoBehaviour:
     allowLevelUpSecret: 1
     levelUpSecret: lvl
     levelUpSecretTimeout: 1.5
+    allowAdminWeaponUnlockSecret: 1
+    adminWeaponUnlockSecret: admin
+    adminWeaponUnlockSecretTimeout: 1.5
     testSpawnOffsets:
     - {x: 2, y: 0}
     - {x: -2, y: 0}
@@ -234,6 +237,10 @@ MonoBehaviour:
     enemyMaxHealth: 40
     enemyVisualScale: 4
     enemyColliderRadius: 0.28
+    enemySeparationRadius: 0.65
+    enemySeparationStrength: 2.2
+    enemySeparationMaxNeighbors: 8
+    enemyPlayerOverlapPushStrength: 6
     eliteStartTime: 120
     eliteInterval: 20
     eliteChance: 0.6
@@ -285,6 +292,9 @@ MonoBehaviour:
     meleeLineWidth: 0.14
     meleeLineLength: 1.6
     meleeColor: {r: 1, g: 0.95, b: 0.5, a: 1}
+    meleeConeAngle: 120
+    meleeSwordVisualScale: 0.9
+    meleeSwordSpriteAngleOffset: -45
     singleShotSpritePath: Art/Items/projectile_single_shot
     multiShotSpritePath: Art/Items/projectile_multi_shot
     piercingShotSpritePath: Art/Items/projectile_piercing_shot
@@ -292,6 +302,7 @@ MonoBehaviour:
     homingShotSpritePath: Art/Items/projectile_homing_shot
     grenadeSpritePath: Art/Items/projectile_grenade
     projectileSpriteScale: 2.5
+    piercingShotVisualScaleMult: 2
   elementSystem:
     enabled: 1
     maxElementsPerWeapon: 3
