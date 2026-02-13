@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SnowOpenWorld.unity
     guid: 08e14581d7073db4bb49fd80e1ee27f4
+  - enabled: 1
+    path: Assets/Scenes/BasicOpenWorld.unity
+    guid: 144319d2c31f6af41a477db8ed9c5e93
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

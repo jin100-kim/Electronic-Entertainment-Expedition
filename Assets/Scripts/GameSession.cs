@@ -429,6 +429,7 @@ public class GameSession : MonoBehaviour
     private string _loadedMapScene;
     private Coroutine _mapLoadRoutine;
     private bool _mapSceneVisible;
+    private string _loadingMapScene = string.Empty;
     private bool _autoPlayEnabled;
     private float _autoUpgradeStartTime = -1f;
     private readonly System.Collections.Generic.List<string> _networkUpgradeTitles = new System.Collections.Generic.List<string>();
@@ -1312,6 +1313,7 @@ public class GameSession : MonoBehaviour
     private void Update()
     {
         UpdateMapSceneVisibility();
+        EnsureMapSceneReadyForGameplay();
         if (_gameStarted && _player != null)
         {
             EnsureCameraFollow(snap: false);
@@ -4170,16 +4172,23 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        if (_loadedMapScene == sceneName)
+        if (_loadedMapScene == sceneName && IsMapSceneLoaded())
         {
             return;
         }
 
         if (_mapLoadRoutine != null)
         {
+            if (string.Equals(_loadingMapScene, sceneName, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             StopCoroutine(_mapLoadRoutine);
+            _mapLoadRoutine = null;
         }
 
+        _loadingMapScene = sceneName;
         _mapLoadRoutine = StartCoroutine(LoadMapSceneRoutine(sceneName));
     }
 
@@ -4250,10 +4259,54 @@ public class GameSession : MonoBehaviour
             }
         }
 
+        var loadedScene = SceneManager.GetSceneByName(sceneName);
+        if (!loadedScene.IsValid() || !loadedScene.isLoaded)
+        {
+            Debug.LogError($"Failed to load map scene: {sceneName}");
+            _loadedMapScene = string.Empty;
+            _loadingMapScene = string.Empty;
+            _mapLoadRoutine = null;
+            UpdateMapBackgroundVisibility();
+            yield break;
+        }
+
         _loadedMapScene = sceneName;
+        _loadingMapScene = string.Empty;
+        _mapLoadRoutine = null;
         DisableMapSceneCameras();
         UpdateMapSceneVisibility();
         UpdateMapBackgroundVisibility();
+    }
+
+    private void EnsureMapSceneReadyForGameplay()
+    {
+        if (!_gameStarted || _waitingMapChoice || _waitingStartCharacterChoice || IsGameOver)
+        {
+            return;
+        }
+
+        if (IsMapSceneLoaded())
+        {
+            return;
+        }
+
+        if (!_mapChoiceApplied)
+        {
+            EnsureMapSelected();
+        }
+
+        if (!_mapChoiceApplied)
+        {
+            var choices = ResolveMapChoices(mapChoices);
+            if (choices.Length > 0)
+            {
+                ApplyMapChoice(choices[0]);
+            }
+        }
+        else if (_selectedMapChoice != null && !string.IsNullOrWhiteSpace(_selectedMapChoice.sceneName))
+        {
+            LoadMapScene(_selectedMapChoice.sceneName);
+        }
     }
 
     private bool IsMapSceneLoaded()

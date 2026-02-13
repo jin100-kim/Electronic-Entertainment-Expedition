@@ -233,7 +233,8 @@ public class GameSessionSettings
     {
         new MapChoiceEntry { theme = MapTheme.Forest, displayName = "Forest", sceneName = "ForestOpenWorld" },
         new MapChoiceEntry { theme = MapTheme.Desert, displayName = "Desert", sceneName = "DesertOpenWorld" },
-        new MapChoiceEntry { theme = MapTheme.Snow, displayName = "Snow", sceneName = "SnowOpenWorld" }
+        new MapChoiceEntry { theme = MapTheme.Snow, displayName = "Snow", sceneName = "SnowOpenWorld" },
+        new MapChoiceEntry { theme = MapTheme.Forest, displayName = "Basic", sceneName = "BasicOpenWorld" }
     };
 
     [Header("Start Character Preview")]
@@ -559,4 +560,3 @@ public class WindowConfig
     public int height = 720;
     public FullScreenMode fullscreenMode = FullScreenMode.Windowed;
 }
-

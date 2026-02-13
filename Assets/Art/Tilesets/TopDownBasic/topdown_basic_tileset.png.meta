@@ -1,0 +1,2574 @@
+fileFormatVersion: 2
+guid: d5ebfd77f8764d04eb70dadf0a03e675
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -3650775886224283644
+    second: topdown_basic_tileset_0
+  - first:
+      213: -5708292497264032289
+    second: topdown_basic_tileset_1
+  - first:
+      213: 2841873068580943361
+    second: topdown_basic_tileset_2
+  - first:
+      213: 7615170813676608565
+    second: topdown_basic_tileset_3
+  - first:
+      213: 1588231954430376121
+    second: topdown_basic_tileset_4
+  - first:
+      213: 4048481054407541929
+    second: topdown_basic_tileset_5
+  - first:
+      213: 2145206149737253359
+    second: topdown_basic_tileset_6
+  - first:
+      213: 8685230048437170029
+    second: topdown_basic_tileset_7
+  - first:
+      213: -7866257390037584196
+    second: topdown_basic_tileset_8
+  - first:
+      213: 3597000105018364968
+    second: topdown_basic_tileset_9
+  - first:
+      213: 1415504391281373129
+    second: topdown_basic_tileset_10
+  - first:
+      213: 525145409595253320
+    second: topdown_basic_tileset_11
+  - first:
+      213: -5647311429088729184
+    second: topdown_basic_tileset_12
+  - first:
+      213: 1607128544080190944
+    second: topdown_basic_tileset_13
+  - first:
+      213: 4599768633457771112
+    second: topdown_basic_tileset_14
+  - first:
+      213: 7479882091301982213
+    second: topdown_basic_tileset_15
+  - first:
+      213: -4184859426713856344
+    second: topdown_basic_tileset_16
+  - first:
+      213: -238894897653345008
+    second: topdown_basic_tileset_17
+  - first:
+      213: -478424598447897829
+    second: topdown_basic_tileset_18
+  - first:
+      213: -8297927675733193122
+    second: topdown_basic_tileset_19
+  - first:
+      213: -3510447739464452535
+    second: topdown_basic_tileset_20
+  - first:
+      213: 8757098681535632335
+    second: topdown_basic_tileset_21
+  - first:
+      213: -7215659449759401831
+    second: topdown_basic_tileset_22
+  - first:
+      213: -8586056507162443745
+    second: topdown_basic_tileset_23
+  - first:
+      213: 8233494907740853914
+    second: topdown_basic_tileset_24
+  - first:
+      213: -5442071432696725435
+    second: topdown_basic_tileset_25
+  - first:
+      213: 2356205448219902402
+    second: TopDownBasic_000
+  - first:
+      213: -4906011749074647389
+    second: TopDownBasic_001
+  - first:
+      213: -5243197850111004702
+    second: TopDownBasic_002
+  - first:
+      213: 3110895838640961788
+    second: TopDownBasic_003
+  - first:
+      213: -7220747893446989705
+    second: TopDownBasic_004
+  - first:
+      213: -3332252985090469197
+    second: TopDownBasic_005
+  - first:
+      213: -3462914309583037318
+    second: TopDownBasic_006
+  - first:
+      213: 4514931979751878900
+    second: TopDownBasic_007
+  - first:
+      213: 717125493362856991
+    second: TopDownBasic_008
+  - first:
+      213: 4381028113282091091
+    second: TopDownBasic_009
+  - first:
+      213: 3450796632704336455
+    second: TopDownBasic_010
+  - first:
+      213: 4092232566252284636
+    second: TopDownBasic_011
+  - first:
+      213: 958525827952988840
+    second: TopDownBasic_012
+  - first:
+      213: -3150303046162330281
+    second: TopDownBasic_013
+  - first:
+      213: 5719352029710796426
+    second: TopDownBasic_014
+  - first:
+      213: -5907680656018151740
+    second: TopDownBasic_015
+  - first:
+      213: -1874224853593135140
+    second: TopDownBasic_016
+  - first:
+      213: -5068160651816886431
+    second: TopDownBasic_017
+  - first:
+      213: 8974188270999503404
+    second: TopDownBasic_018
+  - first:
+      213: 5260911527656766092
+    second: TopDownBasic_019
+  - first:
+      213: -1435234667131528964
+    second: TopDownBasic_020
+  - first:
+      213: 6210231162627424725
+    second: TopDownBasic_021
+  - first:
+      213: -5425595365384515083
+    second: TopDownBasic_022
+  - first:
+      213: -3899433240910505159
+    second: TopDownBasic_023
+  - first:
+      213: 8722425450998871582
+    second: TopDownBasic_024
+  - first:
+      213: -7060605926458147842
+    second: TopDownBasic_025
+  - first:
+      213: 2743261298496535014
+    second: TopDownBasic_026
+  - first:
+      213: 2757436135151809331
+    second: TopDownBasic_027
+  - first:
+      213: 4520225971846435616
+    second: TopDownBasic_028
+  - first:
+      213: 6868439504746949890
+    second: TopDownBasic_029
+  - first:
+      213: -8728986742058546347
+    second: TopDownBasic_030
+  - first:
+      213: 7940843715718011702
+    second: TopDownBasic_031
+  - first:
+      213: 8424930592354675387
+    second: TopDownBasic_032
+  - first:
+      213: -8364321986348173721
+    second: TopDownBasic_033
+  - first:
+      213: -5065153457976986204
+    second: TopDownBasic_034
+  - first:
+      213: 7573027195487076748
+    second: TopDownBasic_035
+  - first:
+      213: -8045019196820070350
+    second: TopDownBasic_036
+  - first:
+      213: 4500386596401504467
+    second: TopDownBasic_037
+  - first:
+      213: -984987303572652959
+    second: TopDownBasic_038
+  - first:
+      213: 5342016588930920899
+    second: TopDownBasic_039
+  - first:
+      213: -9140462592066092096
+    second: TopDownBasic_040
+  - first:
+      213: -5738135971848762619
+    second: TopDownBasic_041
+  - first:
+      213: 3868666425254543636
+    second: TopDownBasic_042
+  - first:
+      213: -6119378160247291922
+    second: TopDownBasic_043
+  - first:
+      213: -8211560385177679207
+    second: TopDownBasic_044
+  - first:
+      213: 2599049414226902795
+    second: TopDownBasic_045
+  - first:
+      213: -7308421733839941917
+    second: TopDownBasic_046
+  - first:
+      213: 8578843177020007428
+    second: TopDownBasic_047
+  - first:
+      213: 8674825310695873975
+    second: TopDownBasic_048
+  - first:
+      213: 4200754612387386016
+    second: TopDownBasic_049
+  - first:
+      213: 5019254000254892516
+    second: TopDownBasic_050
+  - first:
+      213: 2764154071222619590
+    second: TopDownBasic_051
+  - first:
+      213: -6739307969295496570
+    second: TopDownBasic_052
+  - first:
+      213: -7819013911707130341
+    second: TopDownBasic_053
+  - first:
+      213: 7616423870813855674
+    second: TopDownBasic_054
+  - first:
+      213: -413811623046075273
+    second: TopDownBasic_055
+  - first:
+      213: -2981621800306369711
+    second: TopDownBasic_056
+  - first:
+      213: -5400017159951248469
+    second: TopDownBasic_057
+  - first:
+      213: 217878939919038650
+    second: TopDownBasic_058
+  - first:
+      213: 7648429118507936314
+    second: TopDownBasic_059
+  - first:
+      213: 221312325746336252
+    second: TopDownBasic_060
+  - first:
+      213: 543776196500715218
+    second: TopDownBasic_061
+  - first:
+      213: 3001484742583286427
+    second: TopDownBasic_062
+  - first:
+      213: -4282895574894054745
+    second: TopDownBasic_063
+  - first:
+      213: 8785961134482994715
+    second: TopDownBasic_064
+  - first:
+      213: 8733946672764102676
+    second: TopDownBasic_065
+  - first:
+      213: 6788561049393303092
+    second: TopDownBasic_066
+  - first:
+      213: 6985362107354156363
+    second: TopDownBasic_067
+  - first:
+      213: -7901903506022776642
+    second: TopDownBasic_068
+  - first:
+      213: 7581444221150706953
+    second: TopDownBasic_069
+  - first:
+      213: -3542288462207863421
+    second: TopDownBasic_070
+  - first:
+      213: 7529095588315494723
+    second: TopDownBasic_071
+  - first:
+      213: 2448478715917224631
+    second: TopDownBasic_072
+  - first:
+      213: -3782773547809411040
+    second: TopDownBasic_073
+  - first:
+      213: -3901040464804853465
+    second: TopDownBasic_074
+  - first:
+      213: -1998361912890805605
+    second: TopDownBasic_075
+  - first:
+      213: -3419497934694441188
+    second: TopDownBasic_076
+  - first:
+      213: -3186626296264051333
+    second: TopDownBasic_077
+  - first:
+      213: -5664318053336173743
+    second: TopDownBasic_078
+  - first:
+      213: 2578989672963311852
+    second: TopDownBasic_079
+  - first:
+      213: -5719602492742839106
+    second: TopDownBasic_080
+  - first:
+      213: 3560694439195493265
+    second: TopDownBasic_081
+  - first:
+      213: -9046844052356118406
+    second: TopDownBasic_082
+  - first:
+      213: 4053092194690497856
+    second: TopDownBasic_083
+  - first:
+      213: -4322408561891397936
+    second: TopDownBasic_084
+  - first:
+      213: 6535437815674376921
+    second: TopDownBasic_085
+  - first:
+      213: -2508756385125922782
+    second: TopDownBasic_086
+  - first:
+      213: -7024451050520234153
+    second: TopDownBasic_087
+  - first:
+      213: 5791855131582298479
+    second: TopDownBasic_088
+  - first:
+      213: 8804756651025738923
+    second: TopDownBasic_089
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 1
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 16
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: TopDownBasic_000
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c1ccf61f5ce2b020800000000000000
+      internalID: 2356205448219902402
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_001
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a64380be485aebb0800000000000000
+      internalID: -4906011749074647389
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_002
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2efaa01c55b6c37b0800000000000000
+      internalID: -5243197850111004702
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_003
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf87f63784f1c2b20800000000000000
+      internalID: 3110895838640961788
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_004
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 778217e4c00cacb90800000000000000
+      internalID: -7220747893446989705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_005
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b292f9a09571c1d0800000000000000
+      internalID: -3332252985090469197
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_006
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a7c9fa168c141ffc0800000000000000
+      internalID: -3462914309583037318
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_007
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f07926e6b248ae30800000000000000
+      internalID: 4514931979751878900
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_008
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f14154336ddb3f900800000000000000
+      internalID: 717125493362856991
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_009
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 128
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 358cd2b7bd98ccc30800000000000000
+      internalID: 4381028113282091091
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_010
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 742c47c1141b3ef20800000000000000
+      internalID: 3450796632704336455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_011
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cdaa0c166d78ac830800000000000000
+      internalID: 4092232566252284636
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_012
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a2dc2b792e5d4d00800000000000000
+      internalID: 958525827952988840
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_013
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 75dc9ae0210e744d0800000000000000
+      internalID: -3150303046162330281
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_014
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a86425c5e583f5f40800000000000000
+      internalID: 5719352029710796426
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_015
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4c6679b5eb3b30ea0800000000000000
+      internalID: -5907680656018151740
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_016
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd76f5cfc6a6df5e0800000000000000
+      internalID: -1874224853593135140
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_017
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16f97db4db64aa9b0800000000000000
+      internalID: -5068160651816886431
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_018
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c2207686fa8ba8c70800000000000000
+      internalID: 8974188270999503404
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_019
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c8a3db03923820940800000000000000
+      internalID: 5260911527656766092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_020
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf89c48aca5051ce0800000000000000
+      internalID: -1435234667131528964
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_021
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5d10875d65c2f2650800000000000000
+      internalID: 6210231162627424725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_022
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f1104fd2c964b4b0800000000000000
+      internalID: -5425595365384515083
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_023
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 93bdd22a02e62e9c0800000000000000
+      internalID: -3899433240910505159
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_024
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e163d9afbb74c0970800000000000000
+      internalID: 8722425450998871582
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_025
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efbb17e8150b30e90800000000000000
+      internalID: -7060605926458147842
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_026
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e976f6dd95021620800000000000000
+      internalID: 2743261298496535014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_027
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 333bc8e2e81644620800000000000000
+      internalID: 2757436135151809331
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_028
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 023d66c72911bbe30800000000000000
+      internalID: 4520225971846435616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_029
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 20da3b9c659915f50800000000000000
+      internalID: 6868439504746949890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_030
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 55b81866ec86cd680800000000000000
+      internalID: -8728986742058546347
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_031
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63bd34c794b833e60800000000000000
+      internalID: 7940843715718011702
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_032
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bba2f9e8cbd5be470800000000000000
+      internalID: 8424930592354675387
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_033
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7663ab03875fbeb80800000000000000
+      internalID: -8364321986348173721
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_034
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4a5b07c24c5f4b9b0800000000000000
+      internalID: -5065153457976986204
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_035
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c8141655c1cc81960800000000000000
+      internalID: 7573027195487076748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_036
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23067523aa95a5090800000000000000
+      internalID: -8045019196820070350
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_037
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3d0e07ee3c5947e30800000000000000
+      internalID: 4500386596401504467
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_038
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16c384e144f9452f0800000000000000
+      internalID: -984987303572652959
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_039
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3c1b87fc8c7a22a40800000000000000
+      internalID: 5342016588930920899
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_040
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c3872563bd862180800000000000000
+      internalID: -9140462592066092096
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_041
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 50b401d4cbb0e50b0800000000000000
+      internalID: -5738135971848762619
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_042
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 41107cfdd9340b530800000000000000
+      internalID: 3868666425254543636
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_043
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eef3d203cf9931ba0800000000000000
+      internalID: -6119378160247291922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_044
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 99a80dd165daa0e80800000000000000
+      internalID: -8211560385177679207
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_045
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0f7ea00cada11420800000000000000
+      internalID: 2599049414226902795
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_046
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3eec9bd9725439a90800000000000000
+      internalID: -7308421733839941917
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_047
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 404af06ba6c2e0770800000000000000
+      internalID: 8578843177020007428
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_048
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bd589ca8ab236870800000000000000
+      internalID: 8674825310695873975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_049
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a21feb30141c4a30800000000000000
+      internalID: 4200754612387386016
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_050
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e9b6aa8be8f7a540800000000000000
+      internalID: 5019254000254892516
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_051
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6cd8caf8b7f3c5620800000000000000
+      internalID: 2764154071222619590
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_052
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 68ace2abb1b2972a0800000000000000
+      internalID: -6739307969295496570
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_053
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b16ebd236484d7390800000000000000
+      internalID: -7819013911707130341
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_054
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: abf5aae2829f2b960800000000000000
+      internalID: 7616423870813855674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_055
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77c29647588d14af0800000000000000
+      internalID: -413811623046075273
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_056
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15b9d2a15c62f96d0800000000000000
+      internalID: -2981621800306369711
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_057
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ba39718e0094f05b0800000000000000
+      internalID: -5400017159951248469
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_058
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ab8b9e1ddbf060300800000000000000
+      internalID: 217878939919038650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_059
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3a6b6a92cda42a60800000000000000
+      internalID: 7648429118507936314
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_060
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf1a6804362421300800000000000000
+      internalID: 221312325746336252
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_061
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2d6fcb5d191eb8700800000000000000
+      internalID: 543776196500715218
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_062
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b9a7e68887a67a920800000000000000
+      internalID: 3001484742583286427
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_063
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a2f8589a291094c0800000000000000
+      internalID: -4282895574894054745
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_064
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b163f3f0a110ee970800000000000000
+      internalID: 8785961134482994715
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_065
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4182f457936353970800000000000000
+      internalID: 8733946672764102676
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_066
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 43e042d9e40d53e50800000000000000
+      internalID: 6788561049393303092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_067
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b4d815c93ddf0f060800000000000000
+      internalID: 6985362107354156363
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_068
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eb0491a90acc65290800000000000000
+      internalID: -7901903506022776642
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_069
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90d3026d953b63960800000000000000
+      internalID: 7581444221150706953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_070
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 385b226596347dec0800000000000000
+      internalID: -3542288462207863421
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_071
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3497185fb88bc7860800000000000000
+      internalID: 7529095588315494723
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_072
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bac9566b6ebaf120800000000000000
+      internalID: 2448478715917224631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_073
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 02073111083e08bc0800000000000000
+      internalID: -3782773547809411040
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_074
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 729c1e8ad58bcd9c0800000000000000
+      internalID: -3901040464804853465
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_075
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b9239719d646444e0800000000000000
+      internalID: -1998361912890805605
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_076
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c1f1b54eeb08b80d0800000000000000
+      internalID: -3419497934694441188
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_077
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b75334b5444d6c3d0800000000000000
+      internalID: -3186626296264051333
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_078
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 153b018cdbc4461b0800000000000000
+      internalID: -5664318053336173743
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_079
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ce8016881796ac320800000000000000
+      internalID: 2578989672963311852
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_080
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eb4df9b26d3ef90b0800000000000000
+      internalID: -5719602492742839106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_081
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 193c4f12ab02a6130800000000000000
+      internalID: 3560694439195493265
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_082
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a7845f04447237280800000000000000
+      internalID: -9046844052356118406
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_083
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04d7f6a70e97f3830800000000000000
+      internalID: 4053092194690497856
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_084
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0de2b566058b304c0800000000000000
+      internalID: -4322408561891397936
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_085
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d21dee211a82ba50800000000000000
+      internalID: 6535437815674376921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_086
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22883941c5b1f2dd0800000000000000
+      internalID: -2508756385125922782
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_087
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7573f979cf2248e90800000000000000
+      internalID: -7024451050520234153
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_088
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f697c7c3e8dc06050800000000000000
+      internalID: 5791855131582298479
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TopDownBasic_089
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: baca5264687c03a70800000000000000
+      internalID: 8804756651025738923
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      TopDownBasic_000: 2356205448219902402
+      TopDownBasic_001: -4906011749074647389
+      TopDownBasic_002: -5243197850111004702
+      TopDownBasic_003: 3110895838640961788
+      TopDownBasic_004: -7220747893446989705
+      TopDownBasic_005: -3332252985090469197
+      TopDownBasic_006: -3462914309583037318
+      TopDownBasic_007: 4514931979751878900
+      TopDownBasic_008: 717125493362856991
+      TopDownBasic_009: 4381028113282091091
+      TopDownBasic_010: 3450796632704336455
+      TopDownBasic_011: 4092232566252284636
+      TopDownBasic_012: 958525827952988840
+      TopDownBasic_013: -3150303046162330281
+      TopDownBasic_014: 5719352029710796426
+      TopDownBasic_015: -5907680656018151740
+      TopDownBasic_016: -1874224853593135140
+      TopDownBasic_017: -5068160651816886431
+      TopDownBasic_018: 8974188270999503404
+      TopDownBasic_019: 5260911527656766092
+      TopDownBasic_020: -1435234667131528964
+      TopDownBasic_021: 6210231162627424725
+      TopDownBasic_022: -5425595365384515083
+      TopDownBasic_023: -3899433240910505159
+      TopDownBasic_024: 8722425450998871582
+      TopDownBasic_025: -7060605926458147842
+      TopDownBasic_026: 2743261298496535014
+      TopDownBasic_027: 2757436135151809331
+      TopDownBasic_028: 4520225971846435616
+      TopDownBasic_029: 6868439504746949890
+      TopDownBasic_030: -8728986742058546347
+      TopDownBasic_031: 7940843715718011702
+      TopDownBasic_032: 8424930592354675387
+      TopDownBasic_033: -8364321986348173721
+      TopDownBasic_034: -5065153457976986204
+      TopDownBasic_035: 7573027195487076748
+      TopDownBasic_036: -8045019196820070350
+      TopDownBasic_037: 4500386596401504467
+      TopDownBasic_038: -984987303572652959
+      TopDownBasic_039: 5342016588930920899
+      TopDownBasic_040: -9140462592066092096
+      TopDownBasic_041: -5738135971848762619
+      TopDownBasic_042: 3868666425254543636
+      TopDownBasic_043: -6119378160247291922
+      TopDownBasic_044: -8211560385177679207
+      TopDownBasic_045: 2599049414226902795
+      TopDownBasic_046: -7308421733839941917
+      TopDownBasic_047: 8578843177020007428
+      TopDownBasic_048: 8674825310695873975
+      TopDownBasic_049: 4200754612387386016
+      TopDownBasic_050: 5019254000254892516
+      TopDownBasic_051: 2764154071222619590
+      TopDownBasic_052: -6739307969295496570
+      TopDownBasic_053: -7819013911707130341
+      TopDownBasic_054: 7616423870813855674
+      TopDownBasic_055: -413811623046075273
+      TopDownBasic_056: -2981621800306369711
+      TopDownBasic_057: -5400017159951248469
+      TopDownBasic_058: 217878939919038650
+      TopDownBasic_059: 7648429118507936314
+      TopDownBasic_060: 221312325746336252
+      TopDownBasic_061: 543776196500715218
+      TopDownBasic_062: 3001484742583286427
+      TopDownBasic_063: -4282895574894054745
+      TopDownBasic_064: 8785961134482994715
+      TopDownBasic_065: 8733946672764102676
+      TopDownBasic_066: 6788561049393303092
+      TopDownBasic_067: 6985362107354156363
+      TopDownBasic_068: -7901903506022776642
+      TopDownBasic_069: 7581444221150706953
+      TopDownBasic_070: -3542288462207863421
+      TopDownBasic_071: 7529095588315494723
+      TopDownBasic_072: 2448478715917224631
+      TopDownBasic_073: -3782773547809411040
+      TopDownBasic_074: -3901040464804853465
+      TopDownBasic_075: -1998361912890805605
+      TopDownBasic_076: -3419497934694441188
+      TopDownBasic_077: -3186626296264051333
+      TopDownBasic_078: -5664318053336173743
+      TopDownBasic_079: 2578989672963311852
+      TopDownBasic_080: -5719602492742839106
+      TopDownBasic_081: 3560694439195493265
+      TopDownBasic_082: -9046844052356118406
+      TopDownBasic_083: 4053092194690497856
+      TopDownBasic_084: -4322408561891397936
+      TopDownBasic_085: 6535437815674376921
+      TopDownBasic_086: -2508756385125922782
+      TopDownBasic_087: -7024451050520234153
+      TopDownBasic_088: 5791855131582298479
+      TopDownBasic_089: 8804756651025738923
+      topdown_basic_tileset_0: -3650775886224283644
+      topdown_basic_tileset_1: -5708292497264032289
+      topdown_basic_tileset_10: 1415504391281373129
+      topdown_basic_tileset_11: 525145409595253320
+      topdown_basic_tileset_12: -5647311429088729184
+      topdown_basic_tileset_13: 1607128544080190944
+      topdown_basic_tileset_14: 4599768633457771112
+      topdown_basic_tileset_15: 7479882091301982213
+      topdown_basic_tileset_16: -4184859426713856344
+      topdown_basic_tileset_17: -238894897653345008
+      topdown_basic_tileset_18: -478424598447897829
+      topdown_basic_tileset_19: -8297927675733193122
+      topdown_basic_tileset_2: 2841873068580943361
+      topdown_basic_tileset_20: -3510447739464452535
+      topdown_basic_tileset_21: 8757098681535632335
+      topdown_basic_tileset_22: -7215659449759401831
+      topdown_basic_tileset_23: -8586056507162443745
+      topdown_basic_tileset_24: 8233494907740853914
+      topdown_basic_tileset_25: -5442071432696725435
+      topdown_basic_tileset_3: 7615170813676608565
+      topdown_basic_tileset_4: 1588231954430376121
+      topdown_basic_tileset_5: 4048481054407541929
+      topdown_basic_tileset_6: 2145206149737253359
+      topdown_basic_tileset_7: 8685230048437170029
+      topdown_basic_tileset_8: -7866257390037584196
+      topdown_basic_tileset_9: 3597000105018364968
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -158,6 +158,10 @@ MonoBehaviour:
       displayName: Snow
       sceneName: SnowOpenWorld
       difficulty: {fileID: 0}
+    - theme: 0
+      displayName: Basic
+      sceneName: BasicOpenWorld
+      difficulty: {fileID: 0}
     startPreviewScale: 2
     startPreviewDimAlpha: 0.5
     startPreviewHoverAlpha: 1

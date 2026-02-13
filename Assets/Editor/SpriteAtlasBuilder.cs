@@ -36,9 +36,7 @@ public static class SpriteAtlasBuilder
             "Environment",
             new[]
             {
-                "Assets/Art/Tilesets/ForestPlains",
-                "Assets/Art/Tilesets/Desert",
-                "Assets/Art/Tilesets/Snow"
+                "Assets/SimpleTopdownTileset"
             },
             maxTextureSize: 4096,
             includeInBuild: true,
