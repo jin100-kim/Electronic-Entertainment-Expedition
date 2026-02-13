@@ -149,6 +149,9 @@ public class AutoAttack : MonoBehaviour
     [SerializeField]
     private Color meleeColor = new Color(1f, 0.95f, 0.5f, 1f);
 
+    [SerializeField]
+    private int meleeSectorSegments = 18;
+
     [Header("Sprites (Resources)")]
     [SerializeField]
     private string singleShotSpritePath;
@@ -228,6 +231,7 @@ public class AutoAttack : MonoBehaviour
     private bool _settingsApplied;
     private GameObject _auraIndicator;
     private SpriteRenderer _auraIndicatorRenderer;
+    private PolygonCollider2D _meleeSectorProbe;
 
     private void Awake()
     {
@@ -251,6 +255,12 @@ public class AutoAttack : MonoBehaviour
             Destroy(_auraIndicator);
             _auraIndicator = null;
             _auraIndicatorRenderer = null;
+        }
+
+        if (_meleeSectorProbe != null)
+        {
+            Destroy(_meleeSectorProbe.gameObject);
+            _meleeSectorProbe = null;
         }
     }
 
@@ -685,23 +695,14 @@ public class AutoAttack : MonoBehaviour
         for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i];
-            if (enemy == null || enemy.IsDead)
+            if (!TryGetEnemyHealthWithinRadius(enemy, origin, radius, out var health, out _))
             {
                 continue;
             }
 
-            if (!TryGetContactPointWithinRadius(enemy, origin, radius, out _))
-            {
-                continue;
-            }
-
-            var health = enemy.GetComponent<Health>();
-            if (health != null && !health.IsDead)
-            {
-                health.Damage(damage);
-                ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
-                ApplyHitReactionToTarget(enemy.transform, WeaponType.Aura);
-            }
+            health.Damage(damage);
+            ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
+            ApplyHitReactionToTarget(enemy.transform, WeaponType.Aura);
         }
 
     }
@@ -841,18 +842,7 @@ public class AutoAttack : MonoBehaviour
         for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i];
-            if (enemy == null || enemy.IsDead)
-            {
-                continue;
-            }
-
-            if (!TryGetContactPointWithinRadius(enemy, explosionCenter, radius, out _))
-            {
-                continue;
-            }
-
-            var health = enemy.GetComponent<Health>();
-            if (health == null || health.IsDead)
+            if (!TryGetEnemyHealthWithinRadius(enemy, explosionCenter, radius, out var health, out _))
             {
                 continue;
             }
@@ -868,7 +858,6 @@ public class AutoAttack : MonoBehaviour
             Destroy(indicator, Mathf.Max(0.05f, grenadeEffectDuration));
         }
 
-        SpawnLightningEffect(targetPos);
     }
 
     private GameObject CreateGrenadeVisual(Vector3 position)
@@ -904,9 +893,9 @@ public class AutoAttack : MonoBehaviour
         {
             return;
         }
-        float halfAngle = Mathf.Clamp(meleeConeAngle, 10f, 180f) * 0.5f;
-        float dotThreshold = Mathf.Cos(halfAngle * Mathf.Deg2Rad);
         Vector2 facing = ResolveMeleeFacingDirection();
+        float halfAngle = Mathf.Clamp(meleeConeAngle, 10f, 180f) * 0.5f;
+        UpdateMeleeSectorProbeShape((Vector2)transform.position, facing, range, halfAngle);
         SpawnMeleeRangeIndicator(facing, range, halfAngle);
         float damage = _projectileDamage * _melee.DamageMult;
         int elementCount = GetWeaponElements(WeaponType.Melee, out var e0, out var e1, out var e2);
@@ -926,31 +915,53 @@ public class AutoAttack : MonoBehaviour
                 continue;
             }
 
-            if (!TryGetContactPointWithinRadius(enemy, origin, range, out var contactPoint))
+            var health = enemy.GetComponent<Health>();
+            if (health == null || health.IsDead)
             {
                 continue;
             }
 
-            Vector2 toEnemy = contactPoint - origin;
-            if (toEnemy.sqrMagnitude > 0.0001f)
+            if (!TryGetEnemyContactPointInMeleeSector(enemy, origin, facing, range, halfAngle, out _))
             {
-                Vector2 dir = toEnemy.normalized;
-                if (Vector2.Dot(facing, dir) < dotThreshold)
-                {
-                    continue;
-                }
+                continue;
             }
 
-            var health = enemy.GetComponent<Health>();
-            if (health != null && !health.IsDead)
-            {
-                health.Damage(damage);
-                ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
-                ApplyHitReactionToTarget(enemy.transform, WeaponType.Melee);
-                SpawnLightningEffect(enemy.transform.position);
-            }
+            health.Damage(damage);
+            ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
+            ApplyHitReactionToTarget(enemy.transform, WeaponType.Melee);
         }
 
+    }
+
+    private bool TryGetEnemyContactPointInMeleeSector(EnemyController enemy, Vector2 origin, Vector2 facing, float range, float halfAngle, out Vector2 contactPoint)
+    {
+        contactPoint = origin;
+        if (enemy == null || enemy.IsDead)
+        {
+            return false;
+        }
+
+        var col = enemy.GetComponent<Collider2D>();
+        if (_meleeSectorProbe != null && col != null && col.enabled)
+        {
+            var distance = col.Distance(_meleeSectorProbe);
+            if (!distance.isOverlapped)
+            {
+                return false;
+            }
+
+            contactPoint = distance.pointA;
+            return true;
+        }
+
+        Vector2 enemyCenter = enemy.transform.position;
+        if (!IsPointInsideSector(enemyCenter, origin, facing, range, halfAngle))
+        {
+            return false;
+        }
+
+        contactPoint = enemyCenter;
+        return true;
     }
 
     private void SpawnMeleeRangeIndicator(Vector2 facing, float range, float halfAngle)
@@ -1004,6 +1015,48 @@ public class AutoAttack : MonoBehaviour
         }
 
         return ResolveFacingDirection();
+    }
+
+    private void EnsureMeleeSectorProbe()
+    {
+        if (_meleeSectorProbe != null)
+        {
+            return;
+        }
+
+        var go = new GameObject("MeleeSectorProbe");
+        go.hideFlags = HideFlags.HideInHierarchy;
+        go.transform.SetParent(transform, false);
+        _meleeSectorProbe = go.AddComponent<PolygonCollider2D>();
+        _meleeSectorProbe.isTrigger = true;
+    }
+
+    private void UpdateMeleeSectorProbeShape(Vector2 origin, Vector2 facing, float range, float halfAngle)
+    {
+        EnsureMeleeSectorProbe();
+        if (_meleeSectorProbe == null)
+        {
+            return;
+        }
+
+        Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
+        int segments = Mathf.Clamp(meleeSectorSegments, 6, 64);
+        var points = new Vector2[segments + 2];
+        points[0] = Vector2.zero;
+
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = i / (float)segments;
+            float angle = Mathf.Lerp(-halfAngle, halfAngle, t) * Mathf.Deg2Rad;
+            points[i + 1] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * range;
+        }
+
+        Transform probeTransform = _meleeSectorProbe.transform;
+        probeTransform.position = origin;
+        float facingAngle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
+        probeTransform.rotation = Quaternion.Euler(0f, 0f, facingAngle);
+        _meleeSectorProbe.pathCount = 1;
+        _meleeSectorProbe.SetPath(0, points);
     }
 
                 private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath, byte weaponId, WeaponType weaponType, int pierceOverride = -1)
@@ -1861,6 +1914,43 @@ public class AutoAttack : MonoBehaviour
 
         contactPoint = enemyCenter;
         return true;
+    }
+
+    private static bool TryGetEnemyHealthWithinRadius(EnemyController enemy, Vector2 center, float radius, out Health health, out Vector2 contactPoint)
+    {
+        health = null;
+        if (!TryGetContactPointWithinRadius(enemy, center, radius, out contactPoint))
+        {
+            return false;
+        }
+
+        health = enemy.GetComponent<Health>();
+        if (health == null || health.IsDead)
+        {
+            health = null;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsPointInsideSector(Vector2 point, Vector2 origin, Vector2 facing, float range, float halfAngle)
+    {
+        Vector2 toPoint = point - origin;
+        if (toPoint.sqrMagnitude > range * range)
+        {
+            return false;
+        }
+
+        if (toPoint.sqrMagnitude < 0.0001f)
+        {
+            return true;
+        }
+
+        Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
+        float dotThreshold = Mathf.Cos(halfAngle * Mathf.Deg2Rad);
+        Vector2 dir = toPoint.normalized;
+        return Vector2.Dot(forward, dir) >= dotThreshold;
     }
 
     private static Vector2 Rotate(Vector2 direction, float degrees)

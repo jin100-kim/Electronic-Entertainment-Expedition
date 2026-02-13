@@ -172,7 +172,9 @@ public static class ForestMapBuilder
             }
         }
 
+#pragma warning disable CS0618
         importer.spritesheet = metas.ToArray();
+#pragma warning restore CS0618
         importer.SaveAndReimport();
     }
 
@@ -338,7 +340,7 @@ public static class ForestMapBuilder
     private static void SetupCollision(Tilemap collisionMap)
     {
         var collider = collisionMap.gameObject.AddComponent<TilemapCollider2D>();
-        collider.usedByComposite = true;
+        collider.compositeOperation = Collider2D.CompositeOperation.Merge;
 
         var body = collisionMap.gameObject.AddComponent<Rigidbody2D>();
         body.bodyType = RigidbodyType2D.Static;

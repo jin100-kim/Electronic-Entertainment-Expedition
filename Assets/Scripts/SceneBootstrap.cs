@@ -40,11 +40,7 @@ public static class SceneBootstrap
 
     private static bool HasGameSession()
     {
-#if UNITY_2023_1_OR_NEWER || UNITY_6000_0_OR_NEWER
         return Object.FindFirstObjectByType<GameSession>(FindObjectsInactive.Include) != null;
-#else
-        return Object.FindObjectOfType<GameSession>() != null;
-#endif
     }
 
     private static bool IsSceneLoaded(string sceneName)

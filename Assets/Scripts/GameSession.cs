@@ -233,27 +233,6 @@ public class GameSession : MonoBehaviour
 
     private int coinAmount = 1;
 
-    [Header("Upgrade Levels")]
-    private int damageLevel = 0;
-
-    private int fireRateLevel = 0;
-
-    private int moveSpeedLevel = 0;
-
-    private int healthReinforceLevel = 0;
-
-    private int rangeLevel = 0;
-
-    private int xpGainLevel = 0;
-
-    private int sizeLevel = 0;
-
-    private int magnetLevel = 0;
-
-    private int pierceLevel = 0;
-
-    private int projectileCountLevel = 0;
-
     [Header("Start Character")]
     private bool requireStartCharacterChoice = true;
     
@@ -442,7 +421,6 @@ public class GameSession : MonoBehaviour
     private int _networkUpgradeRoundId = -1;
     private bool _localUpgradeSubmitted;
     private GameObject[] _startPreviews;
-    private bool _startCharacterApplied;
     private bool _hasPendingStartCharacter;
     private StartCharacterType _pendingStartCharacter;
     private Camera _cachedCamera;
@@ -574,7 +552,7 @@ public class GameSession : MonoBehaviour
         homingShotStats = CloneWeaponStats(settings.homingShotStats);
         grenadeStats = CloneWeaponStats(settings.grenadeStats);
         meleeStats = CloneWeaponStats(settings.meleeStats);
-        ApplySevenWeaponProfileDefaults();
+        NormalizeWeaponProfiles();
 
         moveSpeedMult = settings.moveSpeedMult;
         xpGainMult = settings.xpGainMult;
@@ -635,30 +613,22 @@ public class GameSession : MonoBehaviour
         _settingsApplied = true;
     }
 
-    private void ApplySevenWeaponProfileDefaults()
+    private void NormalizeWeaponProfiles()
     {
         maxWeaponSlots = Mathf.Max(1, maxWeaponSlots);
 
-        ApplyWeaponProfile(singleShotStats, "SingleShot", 1f, 1.2f, 1.3333f, 0f, 0, 0.05f, 0.05f, true);
-        ApplyWeaponProfile(multiShotStats, "MultiShot", 0.5f, 0.6f, 0.8333f, 0f, 2, 0.05f, 0.05f, false);
-        ApplyWeaponProfile(piercingShotStats, "PiercingShot", 2.5f, 0.48f, 3.3333f, 0f, 0, 0.2f, 0.2f, false);
-        ApplyWeaponProfile(auraStats, "Aura", 0.5f, 1.8f, 0f, 0.25f, 0, 0.01f, 0f, false);
-        ApplyWeaponProfile(homingShotStats, "HomingShot", 1.2f, 0.72f, 1.6667f, 0f, 0, 0.08f, 0.08f, false);
-        ApplyWeaponProfile(grenadeStats, "Grenade", 1.8f, 0.66f, 2f, 1f, 0, 0.1f, 0.12f, false);
-        ApplyWeaponProfile(meleeStats, "Melee", 2f, 1.5f, 0f, 0.25f, 0, 0.15f, 0.25f, false);
-
+        NormalizeWeaponProfile(singleShotStats, "SingleShot", true);
+        NormalizeWeaponProfile(multiShotStats, "MultiShot", false);
+        NormalizeWeaponProfile(piercingShotStats, "PiercingShot", false);
+        NormalizeWeaponProfile(auraStats, "Aura", false);
+        NormalizeWeaponProfile(homingShotStats, "HomingShot", false);
+        NormalizeWeaponProfile(grenadeStats, "Grenade", false);
+        NormalizeWeaponProfile(meleeStats, "Melee", false);
     }
 
-    private static void ApplyWeaponProfile(
+    private static void NormalizeWeaponProfile(
         WeaponStatsData stats,
         string displayName,
-        float damageMultValue,
-        float fireRateMultValue,
-        float rangeMultValue,
-        float areaMultValue,
-        int bonusProjectilesValue,
-        float hitStunValue,
-        float knockbackValue,
         bool defaultUnlocked)
     {
         if (stats == null)
@@ -666,14 +636,18 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        stats.displayName = displayName;
-        stats.damageMult = damageMultValue;
-        stats.fireRateMult = fireRateMultValue;
-        stats.rangeMult = Mathf.Max(0f, rangeMultValue);
-        stats.areaMult = Mathf.Max(0f, areaMultValue);
-        stats.bonusProjectiles = bonusProjectilesValue;
-        stats.hitStunDuration = hitStunValue;
-        stats.knockbackDistance = knockbackValue;
+        if (string.IsNullOrWhiteSpace(stats.displayName))
+        {
+            stats.displayName = displayName;
+        }
+
+        stats.damageMult = Mathf.Max(0.1f, stats.damageMult);
+        stats.fireRateMult = Mathf.Max(0.1f, stats.fireRateMult);
+        stats.rangeMult = Mathf.Max(0f, stats.rangeMult);
+        stats.areaMult = Mathf.Max(0f, stats.areaMult);
+        stats.bonusProjectiles = Mathf.Max(0, stats.bonusProjectiles);
+        stats.hitStunDuration = Mathf.Max(0f, stats.hitStunDuration);
+        stats.knockbackDistance = Mathf.Max(0f, stats.knockbackDistance);
 
         if (!stats.unlocked)
         {
@@ -693,20 +667,9 @@ public class GameSession : MonoBehaviour
 
     private void ResetRuntimeState()
     {
-        damageLevel = 0;
-        fireRateLevel = 0;
-        moveSpeedLevel = 0;
-        healthReinforceLevel = 0;
-        rangeLevel = 0;
-        xpGainLevel = 0;
-        sizeLevel = 0;
-        magnetLevel = 0;
-        pierceLevel = 0;
-        projectileCountLevel = 0;
         _cachedSpawnerBase = false;
         _spawnerDifficultyApplied = false;
         _stageCompleted = false;
-        _startCharacterApplied = false;
         _waitingMapChoice = false;
         _mapChoiceApplied = false;
         _selectedMapChoice = default;
@@ -1527,7 +1490,7 @@ public class GameSession : MonoBehaviour
     private void StartLocalGame()
     {
         _gameStarted = true;
-        var player = FindObjectOfType<PlayerController>();
+        var player = FindFirstObjectByType<PlayerController>();
         if (player == null)
         {
             player = CreateLocalPlayer(localSpawnPosition);
@@ -3076,7 +3039,7 @@ public class GameSession : MonoBehaviour
 
     private void DisableNetworkUI()
     {
-        var ui = FindObjectOfType<NetworkStartUI>();
+        var ui = FindFirstObjectByType<NetworkStartUI>();
         if (ui != null)
         {
             ui.gameObject.SetActive(false);
@@ -3573,15 +3536,6 @@ public class GameSession : MonoBehaviour
             return 0;
         }
         if (state != null && stats == state.grenadeStats)
-        {
-            return 1;
-        }
-        {
-            return 1;
-        }
-        {
-            return 1;
-        }
         {
             return 1;
         }
@@ -5385,7 +5339,7 @@ public class GameSession : MonoBehaviour
 
     private static void EnsureEventSystem()
     {
-        var existing = FindObjectOfType<EventSystem>();
+        var existing = FindFirstObjectByType<EventSystem>();
         if (existing == null)
         {
             var go = new GameObject("EventSystem");

@@ -16,6 +16,9 @@ public class PlayerController : NetworkBehaviour
     private float moveSpeed = 5f;
 
     [SerializeField]
+    private float damageInvulnerabilityDuration = 0.35f;
+
+    [SerializeField]
     private Color playerColor = new Color(0.2f, 0.9f, 0.3f, 1f);
 
     [SerializeField]
@@ -165,6 +168,7 @@ public class PlayerController : NetworkBehaviour
         _showColliderGizmos = config.game.showColliderGizmos;
 
         moveSpeed = settings.moveSpeed;
+        damageInvulnerabilityDuration = settings.damageInvulnerabilityDuration;
         playerColor = settings.playerColor;
         playerPalette = settings.playerPalette;
         shadowOffset = settings.shadowOffset;
@@ -919,9 +923,15 @@ public class PlayerController : NetworkBehaviour
 
     private void EnsureHealth()
     {
-        if (GetComponent<Health>() == null)
+        var health = GetComponent<Health>();
+        if (health == null)
         {
-            gameObject.AddComponent<Health>();
+            health = gameObject.AddComponent<Health>();
+        }
+
+        if (health != null)
+        {
+            health.SetDamageInvulnerabilityDuration(damageInvulnerabilityDuration);
         }
 
         if (NetworkSession.IsActive && GetComponent<Unity.Netcode.NetworkObject>() != null && GetComponent<NetworkHealth>() == null)

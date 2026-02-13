@@ -10,9 +10,6 @@ public class PlayerStatusBars : MonoBehaviour
     private float barHeight = 0.12f;
 
     [SerializeField]
-    private float spacing = 0.12f;
-
-    [SerializeField]
     private Vector3 offset = new Vector3(0f, 0.65f, 0f);
 
     [SerializeField]

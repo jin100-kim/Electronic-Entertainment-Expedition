@@ -55,106 +55,83 @@ MonoBehaviour:
     projectileCount: 1
     projectilePierceBonus: 0
     weaponDamageMult: 1
-    gunStats:
-      displayName: Gun
+    singleShotStats:
+      displayName: SingleShot
       level: 1
       unlocked: 1
       damageMult: 1
       fireRateMult: 1.2
-      rangeMult: 1
-      bonusProjectiles: 0
-      hitStunDuration: 0.06
-      knockbackDistance: 0.2
-    boomerangStats:
-      displayName: Boomerang
-      level: 0
-      unlocked: 0
-      damageMult: 1
-      fireRateMult: 0.8
-      rangeMult: 0.7
-      bonusProjectiles: 0
-      hitStunDuration: 0.08
-      knockbackDistance: 0.35
-    novaStats:
-      displayName: Nova
-      level: 0
-      unlocked: 0
-      damageMult: 1
-      fireRateMult: 0.6
-      rangeMult: 0.5
+      rangeMult: 1.3333
+      areaMult: 0
       bonusProjectiles: 0
       hitStunDuration: 0.05
-      knockbackDistance: 0.18
-    shotgunStats:
-      displayName: Shotgun
+      knockbackDistance: 0.05
+    multiShotStats:
+      displayName: MultiShot
       level: 0
       unlocked: 0
-      damageMult: 0.9
-      fireRateMult: 0.7
-      rangeMult: 0.75
-      bonusProjectiles: 0
-      hitStunDuration: 0.1
-      knockbackDistance: 0.45
-    laserStats:
-      displayName: Laser
+      damageMult: 0.5
+      fireRateMult: 0.6
+      rangeMult: 0.8333
+      areaMult: 0
+      bonusProjectiles: 2
+      hitStunDuration: 0.05
+      knockbackDistance: 0.05
+    piercingShotStats:
+      displayName: PiercingShot
       level: 0
       unlocked: 0
-      damageMult: 1.1
-      fireRateMult: 0.8
-      rangeMult: 1.4
+      damageMult: 2.5
+      fireRateMult: 0.48000002
+      rangeMult: 3.3333
+      areaMult: 0
       bonusProjectiles: 0
-      hitStunDuration: 0.04
-      knockbackDistance: 0.12
-    chainStats:
-      displayName: Chain Lightning
-      level: 0
-      unlocked: 0
-      damageMult: 0.9
-      fireRateMult: 0.75
-      rangeMult: 1.1
-      bonusProjectiles: 0
-      hitStunDuration: 0.06
+      hitStunDuration: 0.2
       knockbackDistance: 0.2
-    droneStats:
-      displayName: Drone
+    auraStats:
+      displayName: Aura
       level: 0
       unlocked: 0
-      damageMult: 0.8
-      fireRateMult: 0.5
-      rangeMult: 1
+      damageMult: 0.5
+      fireRateMult: 1.8000001
+      rangeMult: 0
+      areaMult: 0.25
       bonusProjectiles: 0
-      hitStunDuration: 0.03
-      knockbackDistance: 0.1
-    shurikenStats:
-      displayName: Shuriken
+      hitStunDuration: 0.01
+      knockbackDistance: 0
+    homingShotStats:
+      displayName: HomingShot
       level: 0
       unlocked: 0
-      damageMult: 0.9
-      fireRateMult: 0.9
-      rangeMult: 1
-      bonusProjectiles: 0
-      hitStunDuration: 0.07
-      knockbackDistance: 0.25
-    frostStats:
-      displayName: Frost Orb
-      level: 0
-      unlocked: 0
-      damageMult: 0.85
-      fireRateMult: 0.8
-      rangeMult: 1
+      damageMult: 1.2
+      fireRateMult: 0.72
+      rangeMult: 1.6667
+      areaMult: 0
       bonusProjectiles: 0
       hitStunDuration: 0.08
-      knockbackDistance: 0.2
-    lightningStats:
-      displayName: Lightning
+      knockbackDistance: 0.08
+    grenadeStats:
+      displayName: Grenade
       level: 0
       unlocked: 0
-      damageMult: 1
-      fireRateMult: 0.7
-      rangeMult: 1
+      damageMult: 1.8
+      fireRateMult: 0.66
+      rangeMult: 2
+      areaMult: 1
       bonusProjectiles: 0
-      hitStunDuration: 0.06
-      knockbackDistance: 0.22
+      hitStunDuration: 0.1
+      knockbackDistance: 0.12
+    meleeStats:
+      displayName: Melee
+      level: 0
+      unlocked: 0
+      damageMult: 2
+      fireRateMult: 1.5
+      rangeMult: 0
+      areaMult: 0.25
+      bonusProjectiles: 0
+      hitStunDuration: 0.15
+      knockbackDistance: 0.25
     moveSpeedMult: 1
     xpGainMult: 1
     magnetRangeMult: 1
@@ -164,8 +141,8 @@ MonoBehaviour:
     regenPerSecond: 0
     coinDropChance: 0.06
     coinAmount: 1
-    requireStartWeaponChoice: 1
-    startWeapon: 0
+    requireStartCharacterChoice: 1
+    startCharacter: 0
     requireMapChoice: 1
     allowMapChoiceInNetwork: 0
     mapChoices:
@@ -206,6 +183,9 @@ MonoBehaviour:
     allowTestSpawnSecret: 1
     testSpawnSecret: test
     testSpawnSecretTimeout: 1.5
+    allowLevelUpSecret: 1
+    levelUpSecret: lvl
+    levelUpSecretTimeout: 1.5
     testSpawnOffsets:
     - {x: 2, y: 0}
     - {x: -2, y: 0}
@@ -284,47 +264,32 @@ MonoBehaviour:
     baseProjectileSize: 50
     baseProjectileLifetime: 2
     baseProjectilePierce: 0
-    straightParallelSpacing: 0.35
-    novaOrbitAngularSpeed: 8
-    shotgunBasePellets: 5
-    shotgunSpreadAngle: 32
-    shotgunPelletDamageMult: 0.75
-    shotgunSpeedMult: 0.95
-    laserSpeedMult: 1.8
-    laserThickness: 0.12
-    laserLengthScale: 1.4
-    laserParallelSpacing: 0.3
-    laserColor: {r: 1, g: 0.3, b: 0.3, a: 1}
-    chainBaseJumps: 3
-    chainJumpRangeMult: 0.7
-    chainLineWidth: 0.12
-    chainEffectDuration: 0.12
-    chainColor: {r: 0.5, g: 0.8, b: 1, a: 1}
-    droneOrbitRadius: 1.8
-    droneAngularSpeed: 3.2
-    droneLifetime: 6
-    droneDamageMult: 0.6
-    droneColor: {r: 0.9, g: 0.9, b: 1, a: 1}
-    shurikenSpeedMult: 1.4
-    shurikenSpinSpeed: 1080
-    shurikenDamageMult: 0.85
-    shurikenColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
-    frostSpeedMult: 0.8
-    frostDamageMult: 0.8
-    frostSlowMultiplier: 0.6
-    frostSlowDuration: 1.5
-    frostColor: {r: 0.6, g: 0.85, b: 1, a: 1}
-    lightningEffectDuration: 0.12
-    lightningLineWidth: 0.14
-    lightningLineLength: 1.6
-    lightningColor: {r: 1, g: 0.95, b: 0.5, a: 1}
-    straightSpritePath: 
-    boomerangSpritePath: 
-    novaSpritePath: 
-    shotgunSpritePath: 
-    droneSpritePath: 
-    shurikenSpritePath: 
-    frostSpritePath: 
+    singleShotParallelSpacing: 0.35
+    piercingShotOrbitAngularSpeed: 8
+    auraBasePellets: 5
+    auraSpreadAngle: 32
+    auraPelletDamageMult: 0.75
+    auraSpeedMult: 0.95
+    homingShotSpeedMult: 1.8
+    homingShotThickness: 0.12
+    homingShotLengthScale: 1.4
+    homingShotParallelSpacing: 0.3
+    homingShotColor: {r: 1, g: 0.3, b: 0.3, a: 1}
+    grenadeBaseJumps: 3
+    grenadeJumpRangeMult: 0.7
+    grenadeLineWidth: 0.12
+    grenadeEffectDuration: 0.12
+    grenadeColor: {r: 0.5, g: 0.8, b: 1, a: 1}
+    meleeEffectDuration: 0.12
+    meleeLineWidth: 0.14
+    meleeLineLength: 1.6
+    meleeColor: {r: 1, g: 0.95, b: 0.5, a: 1}
+    singleShotSpritePath: 
+    multiShotSpritePath: 
+    piercingShotSpritePath: 
+    auraSpritePath: 
+    homingShotSpritePath: 
+    grenadeSpritePath: 
     projectileSpriteScale: 2.5
   elementSystem:
     enabled: 1
@@ -369,6 +334,7 @@ MonoBehaviour:
     combos: []
   player:
     moveSpeed: 5
+    damageInvulnerabilityDuration: 0.35
     playerColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
     playerPalette:
     - {r: 0.2, g: 0.9, b: 0.3, a: 1}

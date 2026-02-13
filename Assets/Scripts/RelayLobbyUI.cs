@@ -707,7 +707,7 @@ public class RelayLobbyUI : MonoBehaviour
 
     private void ApplySelectedMapToGameSession()
     {
-        var session = FindObjectOfType<GameSession>();
+        var session = FindFirstObjectByType<GameSession>();
         if (session != null)
         {
             session.TryPreselectMapBySceneName(_selectedMapScene);
@@ -770,7 +770,7 @@ public class RelayLobbyUI : MonoBehaviour
     private void StartLocalGame()
     {
         _gameStartTriggered = true;
-        var session = FindObjectOfType<GameSession>();
+        var session = FindFirstObjectByType<GameSession>();
         if (session != null)
         {
             session.BeginLocalSession();
@@ -957,7 +957,7 @@ public class RelayLobbyUI : MonoBehaviour
 
     private static void EnsureEventSystem()
     {
-        var eventSystem = FindObjectOfType<EventSystem>();
+        var eventSystem = FindFirstObjectByType<EventSystem>();
         if (eventSystem == null)
         {
             var go = new GameObject("EventSystem");
@@ -979,7 +979,7 @@ public class RelayLobbyUI : MonoBehaviour
 
     private static void DisableLegacyNetworkStartUI()
     {
-        var legacy = FindObjectOfType<NetworkStartUI>();
+        var legacy = FindFirstObjectByType<NetworkStartUI>();
         if (legacy != null)
         {
             legacy.gameObject.SetActive(false);

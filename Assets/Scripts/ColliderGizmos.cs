@@ -122,7 +122,7 @@ public class ColliderGizmos : MonoBehaviour
 
     public static void EnsureAllCollidersTracked()
     {
-        var colliders = Object.FindObjectsOfType<Collider2D>(true);
+        var colliders = Object.FindObjectsByType<Collider2D>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < colliders.Length; i++)
         {
             var col = colliders[i];

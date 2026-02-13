@@ -23,7 +23,7 @@ public class CameraFollow : MonoBehaviour
     {
         if (target == null)
         {
-            var player = FindObjectOfType<PlayerController>();
+            var player = FindFirstObjectByType<PlayerController>();
             if (player != null)
             {
                 target = player.transform;

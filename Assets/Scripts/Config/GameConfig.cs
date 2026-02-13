@@ -443,6 +443,7 @@ public class AutoAttackConfig
 public class PlayerConfig
 {
     public float moveSpeed = 5f;
+    public float damageInvulnerabilityDuration = 0.35f;
     public Color playerColor = new Color(0.2f, 0.9f, 0.3f, 1f);
     public Color[] playerPalette = new[]
     {

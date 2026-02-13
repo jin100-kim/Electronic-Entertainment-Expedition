@@ -5,13 +5,18 @@ public class Health : MonoBehaviour
     [SerializeField]
     private float maxHealth = 100f;
 
+    [SerializeField]
+    private float damageInvulnerabilityDuration = 0f;
+
     public float MaxHealth => maxHealth;
     public float CurrentHealth { get; private set; }
     public bool IsDead => CurrentHealth <= 0f;
     public float RegenPerSecond { get; private set; }
+    public float DamageInvulnerabilityDuration => damageInvulnerabilityDuration;
 
     public System.Action<float> OnDamaged;
     public System.Action OnDied;
+    private float _nextDamageAllowedTime;
 
     private void Awake()
     {
@@ -38,7 +43,16 @@ public class Health : MonoBehaviour
             return;
         }
 
+        if (damageInvulnerabilityDuration > 0f && Time.time < _nextDamageAllowedTime)
+        {
+            return;
+        }
+
         CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
+        if (damageInvulnerabilityDuration > 0f)
+        {
+            _nextDamageAllowedTime = Time.time + damageInvulnerabilityDuration;
+        }
         OnDamaged?.Invoke(amount);
 
         if (IsDead)
@@ -60,6 +74,7 @@ public class Health : MonoBehaviour
     public void ResetHealth()
     {
         CurrentHealth = maxHealth;
+        _nextDamageAllowedTime = 0f;
     }
 
     public void SetCurrentHealth(float value, bool clampToMax = true, bool invokeDamagedEvent = false)
@@ -114,5 +129,10 @@ public class Health : MonoBehaviour
     public void SetRegenPerSecond(float value)
     {
         RegenPerSecond = Mathf.Max(0f, value);
+    }
+
+    public void SetDamageInvulnerabilityDuration(float value)
+    {
+        damageInvulnerabilityDuration = Mathf.Max(0f, value);
     }
 }

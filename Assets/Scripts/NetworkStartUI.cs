@@ -186,7 +186,7 @@ public class NetworkStartUI : MonoBehaviour
             return;
         }
 
-        var session = FindObjectOfType<GameSession>();
+        var session = FindFirstObjectByType<GameSession>();
         if (session != null)
         {
             session.BeginLocalSession();
@@ -217,7 +217,7 @@ public class NetworkStartUI : MonoBehaviour
 
     private static void EnsureEventSystem()
     {
-        var eventSystem = FindObjectOfType<EventSystem>();
+        var eventSystem = FindFirstObjectByType<EventSystem>();
         if (eventSystem == null)
         {
             var eventSystemGo = new GameObject("EventSystem");

@@ -289,7 +289,9 @@ public static class PixelArtAnimationSetup
             metas.Add(meta);
         }
 
+#pragma warning disable CS0618
         importer.spritesheet = metas.ToArray();
+#pragma warning restore CS0618
         importer.SaveAndReimport();
 
         var sprites = AssetDatabase.LoadAllAssetRepresentationsAtPath(path).OfType<Sprite>().ToList();
