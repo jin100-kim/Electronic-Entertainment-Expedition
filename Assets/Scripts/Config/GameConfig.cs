@@ -337,6 +337,7 @@ public class EnemySpawnerConfig
     public int enemyXpReward = 2;
     public float enemyMaxHealth = 40f;
     public float enemyVisualScale = 4f;
+    public float enemyColliderRadius = 0.28f;
 
     public float eliteStartTime = 120f;
     public float eliteInterval = 20f;
@@ -425,17 +426,17 @@ public class AutoAttackConfig
 
     [Header("Sprites (Resources)")]
     [FormerlySerializedAs("straightSpritePath")]
-    public string singleShotSpritePath;
+    public string singleShotSpritePath = "Art/Items/projectile_single_shot";
     [FormerlySerializedAs("boomerangSpritePath")]
-    public string multiShotSpritePath;
+    public string multiShotSpritePath = "Art/Items/projectile_multi_shot";
     [FormerlySerializedAs("novaSpritePath")]
-    public string piercingShotSpritePath;
+    public string piercingShotSpritePath = "Art/Items/projectile_piercing_shot";
     [FormerlySerializedAs("shotgunSpritePath")]
-    public string auraSpritePath;
+    public string auraSpritePath = "Art/Projectiles/projectile_aura";
     [FormerlySerializedAs("shurikenSpritePath")]
-    public string homingShotSpritePath;
+    public string homingShotSpritePath = "Art/Items/projectile_homing_shot";
     [FormerlySerializedAs("frostSpritePath")]
-    public string grenadeSpritePath;
+    public string grenadeSpritePath = "Art/Items/projectile_grenade";
     public float projectileSpriteScale = 2.5f;
 }
 
@@ -443,6 +444,7 @@ public class AutoAttackConfig
 public class PlayerConfig
 {
     public float moveSpeed = 5f;
+    public float colliderRadius = 0.28f;
     public float damageInvulnerabilityDuration = 0.35f;
     public Color playerColor = new Color(0.2f, 0.9f, 0.3f, 1f);
     public Color[] playerPalette = new[]
@@ -484,17 +486,17 @@ public class ExperienceConfig
 [System.Serializable]
 public class PickupConfig
 {
-    public float xpPickupScale = 0.4f;
-    public float coinPickupScale = 0.4f;
+    public float xpPickupScale = 2.1f;
+    public float coinPickupScale = 1.9f;
     public float xpMagnetScanInterval = 0.2f;
     public float coinMagnetScanInterval = 0.2f;
     public int xpSpriteSize = 50;
     public int coinSpriteSize = 40;
-    public string xpSpritePath;
-    public string coinSpritePath;
+    public string xpSpritePath = "Art/Items/pickup_xp";
+    public string coinSpritePath = "Art/Items/pickup_coin";
     public Color xpColor = new Color(0.2f, 0.8f, 1f, 1f);
     public Color coinColor = new Color(1f, 0.85f, 0.2f, 1f);
-    public float xpColliderRadius = 0.15f;
+    public float xpColliderRadius = 0.14f;
     public float coinColliderRadius = 0.12f;
     public int coinSortingOrder = 1;
 }

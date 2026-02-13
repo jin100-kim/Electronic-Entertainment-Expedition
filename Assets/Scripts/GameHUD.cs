@@ -19,6 +19,9 @@ public class GameHUD : MonoBehaviour
     private int smallFontSize = 20;
     private int iconFontSize = 11;
     private int iconLevelFontSize = 12;
+    private readonly Color _iconSlotFillColor = new Color(0.08f, 0.1f, 0.14f, 0.92f);
+    private readonly Color _iconSlotEmptyFillColor = new Color(0.08f, 0.1f, 0.14f, 0.28f);
+    private readonly Color _iconSlotBorderColor = new Color(1f, 1f, 1f, 0.25f);
 
     private GUIStyle _labelStyle;
     private GUIStyle _smallStyle;
@@ -28,6 +31,10 @@ public class GameHUD : MonoBehaviour
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _upgradeIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _weaponIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
     private readonly System.Collections.Generic.List<GameSession.UpgradeIconData> _statIcons = new System.Collections.Generic.List<GameSession.UpgradeIconData>();
+    private readonly System.Collections.Generic.Dictionary<string, int> _weaponIconOrder = new System.Collections.Generic.Dictionary<string, int>();
+    private readonly System.Collections.Generic.Dictionary<string, int> _statIconOrder = new System.Collections.Generic.Dictionary<string, int>();
+    private int _nextWeaponIconOrder;
+    private int _nextStatIconOrder;
 
     private Canvas _canvas;
     private CanvasScaler _canvasScaler;
@@ -46,6 +53,7 @@ public class GameHUD : MonoBehaviour
     {
         public RectTransform Rect;
         public Image Bg;
+        public Image Icon;
         public Text Label;
         public Text Level;
     }
@@ -301,15 +309,25 @@ public class GameHUD : MonoBehaviour
             }
         }
 
+        SortIconsByFirstSeen(_weaponIcons, _weaponIconOrder, ref _nextWeaponIconOrder);
+        SortIconsByFirstSeen(_statIcons, _statIconOrder, ref _nextStatIconOrder);
+
+        int playerLevel = session.PlayerExperience != null ? Mathf.Max(1, session.PlayerExperience.Level) : 1;
+        int weaponUnlockedSlots = Mathf.Max(1, session.WeaponSlotLimit);
+        int weaponSlots = Mathf.Max(_weaponIcons.Count, session.WeaponSlotCapacity);
+        int statSlots = session.StatSlotLimit > 0
+            ? Mathf.Max(_statIcons.Count, session.StatSlotLimit)
+            : _statIcons.Count;
+
         float layoutWidth = GetLayoutWidth();
         int perRow = Mathf.Max(1, Mathf.FloorToInt((layoutWidth - margin * 2f - iconStartOffsetX) / (iconSize + iconGap)));
-        int weaponRows = Mathf.Max(1, Mathf.CeilToInt(_weaponIcons.Count / (float)perRow));
+        int weaponRows = Mathf.Max(1, Mathf.CeilToInt(weaponSlots / (float)perRow));
 
-        EnsureIconList(_weaponIconUI, _weaponIcons.Count);
-        EnsureIconList(_statIconUI, _statIcons.Count);
+        EnsureIconList(_weaponIconUI, weaponSlots);
+        EnsureIconList(_statIconUI, statSlots);
 
-        LayoutIcons(_weaponIconUI, _weaponIcons, perRow, 0f);
-        LayoutIcons(_statIconUI, _statIcons, perRow, weaponRows * (iconSize + iconGap));
+        LayoutIcons(_weaponIconUI, _weaponIcons, perRow, 0f, true, weaponUnlockedSlots, playerLevel);
+        LayoutIcons(_statIconUI, _statIcons, perRow, weaponRows * (iconSize + iconGap), false, 0, playerLevel);
     }
 
     private void EnsureIconList(System.Collections.Generic.List<UpgradeIconUI> list, int count)
@@ -325,9 +343,58 @@ public class GameHUD : MonoBehaviour
         }
     }
 
-    private void LayoutIcons(System.Collections.Generic.List<UpgradeIconUI> uiList, System.Collections.Generic.List<GameSession.UpgradeIconData> dataList, int perRow, float yOffset)
+    private static void SortIconsByFirstSeen(
+        System.Collections.Generic.List<GameSession.UpgradeIconData> icons,
+        System.Collections.Generic.Dictionary<string, int> orderMap,
+        ref int nextOrder)
     {
-        for (int i = 0; i < dataList.Count; i++)
+        if (icons == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < icons.Count; i++)
+        {
+            string orderKey = BuildIconOrderKey(icons[i]);
+            if (!orderMap.ContainsKey(orderKey))
+            {
+                orderMap[orderKey] = nextOrder;
+                nextOrder += 1;
+            }
+        }
+
+        icons.Sort((a, b) =>
+        {
+            string ak = BuildIconOrderKey(a);
+            string bk = BuildIconOrderKey(b);
+            int ao = orderMap.TryGetValue(ak, out var av) ? av : int.MaxValue;
+            int bo = orderMap.TryGetValue(bk, out var bv) ? bv : int.MaxValue;
+            if (ao != bo)
+            {
+                return ao.CompareTo(bo);
+            }
+
+            return string.Compare(ak, bk, System.StringComparison.Ordinal);
+        });
+    }
+
+    private static string BuildIconOrderKey(GameSession.UpgradeIconData data)
+    {
+        string key = string.IsNullOrWhiteSpace(data.Key) ? "unknown" : data.Key.Trim();
+        return $"{(data.IsWeapon ? "W" : "S")}:{key}";
+    }
+
+    private void LayoutIcons(
+        System.Collections.Generic.List<UpgradeIconUI> uiList,
+        System.Collections.Generic.List<GameSession.UpgradeIconData> dataList,
+        int perRow,
+        float yOffset,
+        bool weaponRow,
+        int unlockedWeaponSlots,
+        int playerLevel)
+    {
+        int dataCount = dataList != null ? dataList.Count : 0;
+        for (int i = 0; i < uiList.Count; i++)
         {
             int row = i / perRow;
             int col = i % perRow;
@@ -338,16 +405,75 @@ public class GameHUD : MonoBehaviour
             ui.Rect.sizeDelta = new Vector2(iconSize, iconSize);
             ui.Rect.anchoredPosition = new Vector2(x, y);
 
+            bool slotLocked = weaponRow && i >= unlockedWeaponSlots;
+            bool hasData = i < dataCount;
+            if (slotLocked)
+            {
+                ui.Bg.color = _iconSlotEmptyFillColor;
+                if (ui.Icon != null)
+                {
+                    ui.Icon.enabled = false;
+                }
+
+                int unlockLevel = GetWeaponSlotUnlockLevel(i);
+                ui.Label.text = unlockLevel > playerLevel ? $"Lv{unlockLevel}" : string.Empty;
+                ui.Level.text = string.Empty;
+                ui.Label.fontSize = iconFontSize;
+                continue;
+            }
+
+            if (!hasData)
+            {
+                ui.Bg.color = _iconSlotEmptyFillColor;
+                if (ui.Icon != null)
+                {
+                    ui.Icon.enabled = false;
+                }
+
+                ui.Label.text = string.Empty;
+                ui.Level.text = string.Empty;
+                continue;
+            }
+
             Color color;
             string label;
             GetIconStyle(dataList[i], out color, out label);
-            ui.Bg.color = color;
-            ui.Label.text = label;
+            var iconSprite = UpgradeIconCatalog.ResolveSprite(dataList[i].Key, dataList[i].IsWeapon);
+
+            ui.Bg.color = _iconSlotFillColor;
+            if (ui.Icon != null)
+            {
+                ui.Icon.sprite = iconSprite;
+                ui.Icon.enabled = iconSprite != null;
+                ui.Icon.color = Color.white;
+            }
+
+            ui.Label.text = iconSprite == null ? label : string.Empty;
             ui.Level.text = $"Lv{dataList[i].Level}";
             ui.Label.fontSize = iconFontSize;
             ui.Level.fontSize = iconLevelFontSize;
             ui.Level.rectTransform.sizeDelta = new Vector2(iconSize + 12f, iconLevelFontSize + 6f);
         }
+    }
+
+    private static int GetWeaponSlotUnlockLevel(int slotIndex)
+    {
+        if (slotIndex <= 0)
+        {
+            return 1;
+        }
+
+        if (slotIndex == 1)
+        {
+            return 10;
+        }
+
+        if (slotIndex == 2)
+        {
+            return 20;
+        }
+
+        return 20 + (slotIndex - 2) * 10;
     }
 
     private UpgradeIconUI CreateIcon(Transform parent)
@@ -361,6 +487,22 @@ public class GameHUD : MonoBehaviour
         rect.sizeDelta = new Vector2(iconSize, iconSize);
 
         var bg = go.AddComponent<Image>();
+        bg.color = _iconSlotEmptyFillColor;
+        var outline = go.AddComponent<Outline>();
+        outline.effectColor = _iconSlotBorderColor;
+        outline.effectDistance = new Vector2(1f, -1f);
+        outline.useGraphicAlpha = true;
+
+        var iconGo = new GameObject("Icon");
+        iconGo.transform.SetParent(go.transform, false);
+        var iconRect = iconGo.AddComponent<RectTransform>();
+        iconRect.anchorMin = new Vector2(0f, 0f);
+        iconRect.anchorMax = new Vector2(1f, 1f);
+        iconRect.offsetMin = new Vector2(5f, 5f);
+        iconRect.offsetMax = new Vector2(-5f, -5f);
+        var icon = iconGo.AddComponent<Image>();
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
 
         var fontToUse = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         var label = CreateText(go.transform, "Label", fontToUse, iconFontSize, TextAnchor.MiddleCenter, Color.white);
@@ -386,6 +528,7 @@ public class GameHUD : MonoBehaviour
         {
             Rect = rect,
             Bg = bg,
+            Icon = icon,
             Label = label,
             Level = level
         };
@@ -611,10 +754,6 @@ public class GameHUD : MonoBehaviour
     private void DrawUpgradeIcons(GameSession session)
     {
         session.GetUpgradeIconData(_upgradeIcons);
-        if (_upgradeIcons.Count == 0)
-        {
-            return;
-        }
 
         _weaponIcons.Clear();
         _statIcons.Clear();
@@ -630,23 +769,42 @@ public class GameHUD : MonoBehaviour
             }
         }
 
+        SortIconsByFirstSeen(_weaponIcons, _weaponIconOrder, ref _nextWeaponIconOrder);
+        SortIconsByFirstSeen(_statIcons, _statIconOrder, ref _nextStatIconOrder);
+
+        int playerLevel = session.PlayerExperience != null ? Mathf.Max(1, session.PlayerExperience.Level) : 1;
+        int weaponUnlockedSlots = Mathf.Max(1, session.WeaponSlotLimit);
+        int weaponSlots = Mathf.Max(_weaponIcons.Count, session.WeaponSlotCapacity);
+        int statSlots = session.StatSlotLimit > 0
+            ? Mathf.Max(_statIcons.Count, session.StatSlotLimit)
+            : _statIcons.Count;
+
         float startX = margin + iconStartOffsetX;
         float startY = margin + xpBarHeight + 28f;
         int perRow = Mathf.Max(1, Mathf.FloorToInt((Screen.width - margin * 2f - iconStartOffsetX) / (iconSize + iconGap)));
-        int weaponRows = Mathf.Max(1, Mathf.CeilToInt(_weaponIcons.Count / (float)perRow));
+        int weaponRows = Mathf.Max(1, Mathf.CeilToInt(weaponSlots / (float)perRow));
 
-        DrawIconRow(_weaponIcons, startX, startY, perRow);
-        DrawIconRow(_statIcons, startX, startY + weaponRows * (iconSize + iconGap), perRow);
+        DrawIconRow(_weaponIcons, startX, startY, perRow, weaponSlots, true, weaponUnlockedSlots, playerLevel);
+        DrawIconRow(_statIcons, startX, startY + weaponRows * (iconSize + iconGap), perRow, statSlots, false, 0, playerLevel);
     }
 
-    private void DrawIconRow(System.Collections.Generic.List<GameSession.UpgradeIconData> icons, float startX, float startY, int perRow)
+    private void DrawIconRow(
+        System.Collections.Generic.List<GameSession.UpgradeIconData> icons,
+        float startX,
+        float startY,
+        int perRow,
+        int slotCount,
+        bool weaponRow,
+        int unlockedWeaponSlots,
+        int playerLevel)
     {
-        if (icons == null || icons.Count == 0)
+        if (slotCount <= 0)
         {
             return;
         }
 
-        for (int i = 0; i < icons.Count; i++)
+        int iconCount = icons != null ? icons.Count : 0;
+        for (int i = 0; i < slotCount; i++)
         {
             int row = i / perRow;
             int col = i % perRow;
@@ -654,21 +812,97 @@ public class GameHUD : MonoBehaviour
             float y = startY + row * (iconSize + iconGap);
             Rect rect = new Rect(x, y, iconSize, iconSize);
 
+            bool slotLocked = weaponRow && i >= unlockedWeaponSlots;
+            bool hasData = i < iconCount;
+            var prev = GUI.color;
+            GUI.color = hasData && !slotLocked ? _iconSlotFillColor : _iconSlotEmptyFillColor;
+            GUI.DrawTexture(rect, _solidTex);
+            GUI.color = _iconSlotBorderColor;
+            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 1f), _solidTex);
+            GUI.DrawTexture(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), _solidTex);
+            GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), _solidTex);
+            GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), _solidTex);
+            GUI.color = prev;
+
+            if (slotLocked)
+            {
+                int unlockLevel = GetWeaponSlotUnlockLevel(i);
+                if (unlockLevel > playerLevel)
+                {
+                    GUI.Label(rect, $"Lv{unlockLevel}", _iconStyle);
+                }
+                continue;
+            }
+
+            if (!hasData)
+            {
+                continue;
+            }
+
             Color color;
             string label;
             GetIconStyle(icons[i], out color, out label);
+            var iconSprite = UpgradeIconCatalog.ResolveSprite(icons[i].Key, icons[i].IsWeapon);
 
-            var prev = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(rect, _solidTex);
-            GUI.color = prev;
+            if (iconSprite != null)
+            {
+                DrawSprite(rect, iconSprite, Color.white);
+            }
 
-            GUI.Label(rect, label, _iconStyle);
+            if (iconSprite == null)
+            {
+                GUI.Label(rect, label, _iconStyle);
+            }
 
             string levelText = $"Lv{icons[i].Level}";
             var levelSize = _iconLevelStyle.CalcSize(new GUIContent(levelText));
             GUI.Label(new Rect(rect.xMax - levelSize.x - 2f, rect.yMax - levelSize.y - 1f, levelSize.x, levelSize.y), levelText, _iconLevelStyle);
         }
+    }
+
+    private static void DrawSprite(Rect rect, Sprite sprite, Color tint)
+    {
+        if (sprite == null || sprite.texture == null)
+        {
+            return;
+        }
+
+        var texture = sprite.texture;
+        Rect tr = sprite.textureRect;
+        Rect uv = new Rect(
+            tr.x / texture.width,
+            tr.y / texture.height,
+            tr.width / texture.width,
+            tr.height / texture.height);
+
+        var prev = GUI.color;
+        GUI.color = tint;
+        GUI.DrawTextureWithTexCoords(rect, texture, uv, true);
+        GUI.color = prev;
+    }
+
+    private static bool ContainsAny(string source, params string[] terms)
+    {
+        if (string.IsNullOrEmpty(source) || terms == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < terms.Length; i++)
+        {
+            string t = terms[i];
+            if (string.IsNullOrWhiteSpace(t))
+            {
+                continue;
+            }
+
+            if (source.IndexOf(t, System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void GetIconStyle(GameSession.UpgradeIconData data, out Color color, out string label)
@@ -686,55 +920,40 @@ public class GameHUD : MonoBehaviour
 
             color = new Color(0.85f, 0.55f, 0.2f, 0.95f);
 
-            if (key.Contains("총"))
+            if (ContainsAny(key, "SingleShot", "총", "single"))
             {
                 color = new Color(0.8f, 0.7f, 0.2f, 0.95f);
-                label = "총기류";
+                label = "싱글샷";
             }
-            else if (key.Contains("부메랑"))
+            else if (ContainsAny(key, "MultiShot", "부메랑", "boom"))
             {
                 color = new Color(0.2f, 0.9f, 0.5f, 0.95f);
-                label = "부메랑";
+                label = "멀티샷";
             }
-            else if (key.Contains("노바"))
+            else if (ContainsAny(key, "PiercingShot", "노바", "pierce"))
             {
                 color = new Color(0.5f, 0.6f, 0.95f, 0.95f);
-                label = "노바탄";
+                label = "관통샷";
             }
-            else if (key.Contains("샷건"))
+            else if (ContainsAny(key, "Aura", "오라", "shotgun"))
             {
                 color = new Color(0.9f, 0.6f, 0.3f, 0.95f);
-                label = "샷건탄";
+                label = "오라";
             }
-            else if (key.Contains("레이저"))
+            else if (ContainsAny(key, "HomingShot", "호밍", "레이저", "homing"))
             {
                 color = new Color(0.7f, 0.4f, 1f, 0.95f);
-                label = "레이저";
+                label = "호밍";
             }
-            else if (key.Contains("체인"))
+            else if (ContainsAny(key, "Grenade", "수류탄", "체인", "grenade"))
             {
                 color = new Color(0.3f, 0.7f, 1f, 0.95f);
-                label = "체인번개";
+                label = "수류탄";
             }
-            else if (key.Contains("드론"))
-            {
-                color = new Color(0.6f, 0.9f, 0.9f, 0.95f);
-                label = "드론기";
-            }
-            else if (key.Contains("수리"))
-            {
-                color = new Color(0.95f, 0.8f, 0.3f, 0.95f);
-                label = "수리검";
-            }
-            else if (key.Contains("빙결"))
-            {
-                color = new Color(0.3f, 0.8f, 1f, 0.95f);
-                label = "빙결구체";
-            }
-            else if (key.Contains("번개"))
+            else if (ContainsAny(key, "Melee", "근접", "번개", "melee"))
             {
                 color = new Color(1f, 0.9f, 0.2f, 0.95f);
-                label = "번개탄";
+                label = "근접";
             }
         }
         else
@@ -786,9 +1005,9 @@ public class GameHUD : MonoBehaviour
                 label = "투사체수";
                 color = new Color(0.85f, 0.85f, 0.3f, 0.95f);
             }
-            else if (key.Contains("투사체크기") || key.Contains("크기"))
+            else if (key.Contains("공격범위") || key.Contains("투사체크기") || key.Contains("크기"))
             {
-                label = "투사크기";
+                label = "공격범위";
                 color = new Color(0.7f, 0.75f, 0.8f, 0.95f);
             }
             else if (key.Contains("관통"))

@@ -367,6 +367,21 @@ public class GameSession : MonoBehaviour
     public float ElapsedTime { get; private set; }
     public Health PlayerHealth { get; private set; }
     public Experience PlayerExperience { get; private set; }
+    public int WeaponSlotLimit
+    {
+        get
+        {
+            int level = 1;
+            if (PlayerExperience != null)
+            {
+                level = Mathf.Max(1, PlayerExperience.Level);
+            }
+
+            return GetWeaponSlotLimitForLevel(level);
+        }
+    }
+    public int WeaponSlotCapacity => GetWeaponSlotLimitForLevel(int.MaxValue);
+    public int StatSlotLimit => maxStatSlots > 0 ? maxStatSlots : 0;
     public int CoinCount => _coinCount;
     public int KillCount => _killCount;
 
@@ -424,6 +439,7 @@ public class GameSession : MonoBehaviour
     private bool _hasPendingStartCharacter;
     private StartCharacterType _pendingStartCharacter;
     private Camera _cachedCamera;
+    private Camera _followCamera;
     private bool _rerollAvailable;
     private int _startPreviewHoverIndex = -1;
     private Canvas _uiCanvas;
@@ -432,6 +448,7 @@ public class GameSession : MonoBehaviour
     private Text _upgradeTitleText;
     private Button[] _upgradeButtons;
     private Text[] _upgradeButtonTexts;
+    private Image[] _upgradeButtonIcons;
     private Button _rerollButton;
     private Text _rerollButtonText;
     private RectTransform _gameOverPanel;
@@ -1280,6 +1297,11 @@ public class GameSession : MonoBehaviour
     private void Update()
     {
         UpdateMapSceneVisibility();
+        if (_gameStarted && _player != null)
+        {
+            EnsureCameraFollow(snap: false);
+        }
+
         if (IsGameOver)
         {
             return;
@@ -2616,6 +2638,8 @@ public class GameSession : MonoBehaviour
 
     private void SpawnCoin(Vector3 position)
     {
+        Vector2 jitter = UnityEngine.Random.insideUnitCircle * 0.2f;
+        position += new Vector3(jitter.x, jitter.y, 0f);
         CoinPickup.Spawn(position, coinAmount);
     }
 
@@ -3052,14 +3076,16 @@ public class GameSession : MonoBehaviour
         }
     }
 
-    private void EnsureCameraFollow()
+    private void EnsureCameraFollow(bool snap = true)
     {
-        var cam = Camera.main;
+        var cam = ResolveGameplayCamera();
         if (cam == null)
         {
             return;
         }
 
+        _cachedCamera = cam;
+        _followCamera = cam;
         var follow = cam.GetComponent<CameraFollow>();
         if (follow == null)
         {
@@ -3068,8 +3094,55 @@ public class GameSession : MonoBehaviour
 
         if (_player != null)
         {
-            follow.SetTarget(_player.transform, snap: true);
+            follow.SetTarget(_player.transform, snap: snap);
         }
+    }
+
+    private Camera ResolveGameplayCamera()
+    {
+        if (_followCamera != null && _followCamera.isActiveAndEnabled)
+        {
+            return _followCamera;
+        }
+
+        if (_cachedCamera != null && _cachedCamera.isActiveAndEnabled)
+        {
+            return _cachedCamera;
+        }
+
+        var activeScene = SceneManager.GetActiveScene();
+        var cameras = Camera.allCameras;
+        Camera fallback = null;
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            var cam = cameras[i];
+            if (cam == null || !cam.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            bool isActiveSceneCamera = cam.gameObject.scene == activeScene;
+            if (isActiveSceneCamera && cam.CompareTag("MainCamera"))
+            {
+                return cam;
+            }
+
+            if (fallback == null && isActiveSceneCamera)
+            {
+                fallback = cam;
+            }
+            else if (fallback == null && cam.CompareTag("MainCamera"))
+            {
+                fallback = cam;
+            }
+        }
+
+        if (fallback != null)
+        {
+            return fallback;
+        }
+
+        return Camera.main;
     }
 
     private void EnsureMinimap()
@@ -3803,15 +3876,45 @@ public class GameSession : MonoBehaviour
             _upgradeButtons[i].gameObject.SetActive(active);
             if (!active)
             {
+                if (_upgradeButtonIcons != null && i < _upgradeButtonIcons.Length && _upgradeButtonIcons[i] != null)
+                {
+                    _upgradeButtonIcons[i].enabled = false;
+                }
                 continue;
             }
 
             if (TryGetUpgradeOptionText(i, out string title, out string desc))
             {
+                Sprite iconSprite = null;
+                bool hasIcon = _upgradeButtonIcons != null
+                    && i < _upgradeButtonIcons.Length
+                    && _upgradeButtonIcons[i] != null
+                    && UpgradeIconCatalog.TryResolveOptionTitle(title, out iconSprite);
+                if (hasIcon)
+                {
+                    _upgradeButtonIcons[i].sprite = iconSprite;
+                    _upgradeButtonIcons[i].color = Color.white;
+                    _upgradeButtonIcons[i].enabled = true;
+                    _upgradeButtonTexts[i].rectTransform.offsetMin = new Vector2(50f, 6f);
+                }
+                else
+                {
+                    if (_upgradeButtonIcons != null && i < _upgradeButtonIcons.Length && _upgradeButtonIcons[i] != null)
+                    {
+                        _upgradeButtonIcons[i].enabled = false;
+                    }
+
+                    _upgradeButtonTexts[i].rectTransform.offsetMin = new Vector2(8f, 6f);
+                }
                 _upgradeButtonTexts[i].text = $"{i + 1}. {title}\n{desc}";
             }
             else
             {
+                if (_upgradeButtonIcons != null && i < _upgradeButtonIcons.Length && _upgradeButtonIcons[i] != null)
+                {
+                    _upgradeButtonIcons[i].enabled = false;
+                }
+                _upgradeButtonTexts[i].rectTransform.offsetMin = new Vector2(8f, 6f);
                 _upgradeButtonTexts[i].text = $"{i + 1}.";
             }
 
@@ -4217,6 +4320,12 @@ public class GameSession : MonoBehaviour
             for (int c = 0; c < cameras.Length; c++)
             {
                 cameras[c].enabled = false;
+            }
+
+            var listeners = root.GetComponentsInChildren<AudioListener>(true);
+            for (int l = 0; l < listeners.Length; l++)
+            {
+                listeners[l].enabled = false;
             }
         }
     }
@@ -5078,14 +5187,29 @@ public class GameSession : MonoBehaviour
 
         _upgradeButtons = new Button[4];
         _upgradeButtonTexts = new Text[4];
+        _upgradeButtonIcons = new Image[4];
 
         for (int i = 0; i < _upgradeButtons.Length; i++)
         {
             float bx = sidePadding + i * (boxWidth + gap);
             float by = -topPadding;
             var button = CreateButton(_upgradePanel, $"UpgradeButton_{i}", new Vector2(boxWidth, boxHeight), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(bx, by), upgradeButtonNormalColor);
+            var icon = CreateImage(button.transform, "Icon", Color.white);
+            var iconRect = icon.rectTransform;
+            iconRect.anchorMin = new Vector2(0f, 1f);
+            iconRect.anchorMax = new Vector2(0f, 1f);
+            iconRect.pivot = new Vector2(0f, 1f);
+            iconRect.anchoredPosition = new Vector2(8f, -8f);
+            iconRect.sizeDelta = new Vector2(36f, 36f);
+            icon.preserveAspect = true;
+            icon.enabled = false;
+
             var label = CreateText(button.transform, "Label", fontToUse, 13, TextAnchor.UpperLeft, Color.white);
-            StretchToFill(label.rectTransform, new Vector2(6f, 6f));
+            var labelRect = label.rectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(8f, 6f);
+            labelRect.offsetMax = new Vector2(-6f, -6f);
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Overflow;
             int index = i;
@@ -5093,6 +5217,7 @@ public class GameSession : MonoBehaviour
             ApplyButtonColors(button, upgradeButtonNormalColor, upgradeButtonHoverColor);
             _upgradeButtons[i] = button;
             _upgradeButtonTexts[i] = label;
+            _upgradeButtonIcons[i] = icon;
         }
 
         float rx = sidePadding + 4 * (boxWidth + gap);
@@ -5313,6 +5438,16 @@ public class GameSession : MonoBehaviour
         var button = go.AddComponent<Button>();
         button.targetGraphic = image;
         return button;
+    }
+
+    private static Image CreateImage(Transform parent, string name, Color color)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var image = go.AddComponent<Image>();
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
     }
 
     private static Text CreateText(Transform parent, string name, Font font, int fontSize, TextAnchor alignment, Color color)

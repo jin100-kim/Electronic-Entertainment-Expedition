@@ -38,8 +38,8 @@ public class CoinPickup : MonoBehaviour
             netGo.SetActive(true);
             netGo.transform.position = position;
             netPickup.ApplySettings();
-            netPickup.EnsureVisuals();
             netGo.transform.localScale = Vector3.one * GetSettings().coinPickupScale;
+            netPickup.EnsureVisuals();
             netPickup.SetAmount(value);
 
             var netObj = netGo.GetComponent<NetworkObject>();
@@ -67,6 +67,7 @@ public class CoinPickup : MonoBehaviour
         go.transform.position = position;
         var settings = GetSettings();
         go.transform.localScale = Vector3.one * settings.coinPickupScale;
+        pickup.EnsureVisuals();
         pickup.SetAmount(value);
         return pickup;
     }
@@ -225,7 +226,7 @@ public class CoinPickup : MonoBehaviour
 
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = settings.coinColliderRadius;
+        ApplyWorldRadius(col, settings.coinColliderRadius, go.transform.localScale.x);
 
         var pickup = go.AddComponent<CoinPickup>();
         return pickup;
@@ -285,6 +286,18 @@ public class CoinPickup : MonoBehaviour
         return sprite != null ? sprite : GetCachedSprite(fallbackSize);
     }
 
+    private static bool TryResolvePickupSprite(string path, int fallbackSize, out Sprite sprite)
+    {
+        sprite = LoadResourceSprite(path);
+        if (sprite != null)
+        {
+            return true;
+        }
+
+        sprite = GetCachedSprite(fallbackSize);
+        return false;
+    }
+
     private void ApplySettings()
     {
         if (_settingsApplied)
@@ -313,7 +326,9 @@ public class CoinPickup : MonoBehaviour
             renderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        renderer.sprite = ResolvePickupSprite(settings.coinSpritePath, settings.coinSpriteSize);
+        bool hasSprite = TryResolvePickupSprite(settings.coinSpritePath, settings.coinSpriteSize, out var sprite);
+        renderer.sprite = sprite;
+        Color resolvedColor = ResolvePickupTint(settings.coinColor, hasSprite);
         if (NetworkSession.IsActive)
         {
             var netColor = GetComponent<NetworkColor>();
@@ -321,24 +336,45 @@ public class CoinPickup : MonoBehaviour
             {
                 if (NetworkSession.IsServer)
                 {
-                    netColor.SetColor(settings.coinColor);
+                    netColor.SetColor(resolvedColor);
                 }
                 else
                 {
-                    renderer.color = settings.coinColor;
+                    renderer.color = resolvedColor;
                 }
+            }
+            else
+            {
+                renderer.color = resolvedColor;
             }
         }
         else
         {
-            renderer.color = settings.coinColor;
+            renderer.color = resolvedColor;
         }
         renderer.sortingOrder = settings.coinSortingOrder;
 
         var col = GetComponent<CircleCollider2D>();
         if (col != null)
         {
-            col.radius = settings.coinColliderRadius;
+            ApplyWorldRadius(col, settings.coinColliderRadius, transform.localScale.x);
         }
+    }
+
+    private static void ApplyWorldRadius(CircleCollider2D collider, float worldRadius, float localScale)
+    {
+        if (collider == null)
+        {
+            return;
+        }
+
+        float safeScale = Mathf.Max(0.01f, Mathf.Abs(localScale));
+        float targetWorldRadius = Mathf.Max(0.02f, worldRadius);
+        collider.radius = targetWorldRadius / safeScale;
+    }
+
+    private static Color ResolvePickupTint(Color fallbackColor, bool hasSprite)
+    {
+        return hasSprite ? Color.white : fallbackColor;
     }
 }

@@ -233,6 +233,7 @@ MonoBehaviour:
     enemyXpReward: 2
     enemyMaxHealth: 40
     enemyVisualScale: 4
+    enemyColliderRadius: 0.28
     eliteStartTime: 120
     eliteInterval: 20
     eliteChance: 0.6
@@ -284,12 +285,12 @@ MonoBehaviour:
     meleeLineWidth: 0.14
     meleeLineLength: 1.6
     meleeColor: {r: 1, g: 0.95, b: 0.5, a: 1}
-    singleShotSpritePath: 
-    multiShotSpritePath: 
-    piercingShotSpritePath: 
-    auraSpritePath: 
-    homingShotSpritePath: 
-    grenadeSpritePath: 
+    singleShotSpritePath: Art/Items/projectile_single_shot
+    multiShotSpritePath: Art/Items/projectile_multi_shot
+    piercingShotSpritePath: Art/Items/projectile_piercing_shot
+    auraSpritePath: Art/Projectiles/projectile_aura
+    homingShotSpritePath: Art/Items/projectile_homing_shot
+    grenadeSpritePath: Art/Items/projectile_grenade
     projectileSpriteScale: 2.5
   elementSystem:
     enabled: 1
@@ -334,6 +335,7 @@ MonoBehaviour:
     combos: []
   player:
     moveSpeed: 5
+    colliderRadius: 0.28
     damageInvulnerabilityDuration: 0.35
     playerColor: {r: 0.2, g: 0.9, b: 0.3, a: 1}
     playerPalette:
@@ -364,17 +366,17 @@ MonoBehaviour:
     baseMagnetRange: 1.5
     baseMagnetSpeed: 1.5
   pickups:
-    xpPickupScale: 0.4
-    coinPickupScale: 0.4
+    xpPickupScale: 2.1
+    coinPickupScale: 1.9
     xpMagnetScanInterval: 0.2
     coinMagnetScanInterval: 0.2
     xpSpriteSize: 50
     coinSpriteSize: 40
-    xpSpritePath: 
-    coinSpritePath: 
+    xpSpritePath: Art/Items/pickup_xp
+    coinSpritePath: Art/Items/pickup_coin
     xpColor: {r: 0.2, g: 0.8, b: 1, a: 1}
     coinColor: {r: 1, g: 0.85, b: 0.2, a: 1}
-    xpColliderRadius: 0.15
+    xpColliderRadius: 0.14
     coinColliderRadius: 0.12
     coinSortingOrder: 1
   mapBackground:

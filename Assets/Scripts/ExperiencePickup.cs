@@ -39,8 +39,8 @@ public class ExperiencePickup : MonoBehaviour
             netGo.SetActive(true);
             netGo.transform.position = position;
             netPickup.ApplySettings();
-            netPickup.EnsureVisuals();
             netGo.transform.localScale = Vector3.one * GetSettings().xpPickupScale;
+            netPickup.EnsureVisuals();
             netPickup.SetAmount(value);
 
             var netObj = netGo.GetComponent<NetworkObject>();
@@ -68,6 +68,7 @@ public class ExperiencePickup : MonoBehaviour
         go.transform.position = position;
         var settings = GetSettings();
         go.transform.localScale = Vector3.one * settings.xpPickupScale;
+        pickup.EnsureVisuals();
         pickup.SetAmount(value);
         return pickup;
     }
@@ -241,7 +242,7 @@ public class ExperiencePickup : MonoBehaviour
 
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = settings.xpColliderRadius;
+        ApplyWorldRadius(col, settings.xpColliderRadius, go.transform.localScale.x);
 
         var pickup = go.AddComponent<ExperiencePickup>();
         return pickup;
@@ -301,6 +302,18 @@ public class ExperiencePickup : MonoBehaviour
         return sprite != null ? sprite : GetCachedSprite(fallbackSize);
     }
 
+    private static bool TryResolvePickupSprite(string path, int fallbackSize, out Sprite sprite)
+    {
+        sprite = LoadResourceSprite(path);
+        if (sprite != null)
+        {
+            return true;
+        }
+
+        sprite = GetCachedSprite(fallbackSize);
+        return false;
+    }
+
     private void ApplySettings()
     {
         if (_settingsApplied)
@@ -329,7 +342,9 @@ public class ExperiencePickup : MonoBehaviour
             renderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        renderer.sprite = ResolvePickupSprite(settings.xpSpritePath, settings.xpSpriteSize);
+        bool hasSprite = TryResolvePickupSprite(settings.xpSpritePath, settings.xpSpriteSize, out var sprite);
+        renderer.sprite = sprite;
+        Color resolvedColor = ResolvePickupTint(settings.xpColor, hasSprite);
         if (NetworkSession.IsActive)
         {
             var netColor = GetComponent<NetworkColor>();
@@ -337,23 +352,44 @@ public class ExperiencePickup : MonoBehaviour
             {
                 if (NetworkSession.IsServer)
                 {
-                    netColor.SetColor(settings.xpColor);
+                    netColor.SetColor(resolvedColor);
                 }
                 else
                 {
-                    renderer.color = settings.xpColor;
+                    renderer.color = resolvedColor;
                 }
+            }
+            else
+            {
+                renderer.color = resolvedColor;
             }
         }
         else
         {
-            renderer.color = settings.xpColor;
+            renderer.color = resolvedColor;
         }
 
         var col = GetComponent<CircleCollider2D>();
         if (col != null)
         {
-            col.radius = settings.xpColliderRadius;
+            ApplyWorldRadius(col, settings.xpColliderRadius, transform.localScale.x);
         }
+    }
+
+    private static void ApplyWorldRadius(CircleCollider2D collider, float worldRadius, float localScale)
+    {
+        if (collider == null)
+        {
+            return;
+        }
+
+        float safeScale = Mathf.Max(0.01f, Mathf.Abs(localScale));
+        float targetWorldRadius = Mathf.Max(0.02f, worldRadius);
+        collider.radius = targetWorldRadius / safeScale;
+    }
+
+    private static Color ResolvePickupTint(Color fallbackColor, bool hasSprite)
+    {
+        return hasSprite ? Color.white : fallbackColor;
     }
 }

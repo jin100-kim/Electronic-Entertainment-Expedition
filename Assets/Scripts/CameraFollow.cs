@@ -23,10 +23,31 @@ public class CameraFollow : MonoBehaviour
     {
         if (target == null)
         {
-            var player = FindFirstObjectByType<PlayerController>();
-            if (player != null)
+            var players = PlayerController.Active;
+            PlayerController selected = null;
+            for (int i = 0; i < players.Count; i++)
             {
-                target = player.transform;
+                var p = players[i];
+                if (p == null)
+                {
+                    continue;
+                }
+
+                if (p.IsOwner)
+                {
+                    selected = p;
+                    break;
+                }
+
+                if (selected == null)
+                {
+                    selected = p;
+                }
+            }
+
+            if (selected != null)
+            {
+                target = selected.transform;
             }
         }
 

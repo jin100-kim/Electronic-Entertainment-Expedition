@@ -33,6 +33,9 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField]
     private float enemyVisualScale = 4f;
 
+    [SerializeField]
+    private float enemyColliderRadius = 0.28f;
+
     [Header("Elite/Boss Spawn")]
     [SerializeField]
     private float eliteStartTime = 120f;
@@ -198,6 +201,7 @@ public class EnemySpawner : MonoBehaviour
         enemyXpReward = settings.enemyXpReward;
         enemyMaxHealth = settings.enemyMaxHealth;
         enemyVisualScale = settings.enemyVisualScale;
+        enemyColliderRadius = settings.enemyColliderRadius > 0f ? settings.enemyColliderRadius : 0.28f;
 
         eliteStartTime = settings.eliteStartTime;
         eliteInterval = settings.eliteInterval;
@@ -395,7 +399,7 @@ public class EnemySpawner : MonoBehaviour
             col = enemy.AddComponent<CircleCollider2D>();
         }
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = Mathf.Max(0.05f, enemyColliderRadius);
 
         var controller = enemy.GetComponent<EnemyController>();
         if (controller == null)

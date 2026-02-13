@@ -110,9 +110,13 @@ public static class ForestMapBuilder
         SetupCollision(collisionMap);
 
         var size = ResolveMapSize();
-        FillGround(groundMap, groundTile, size.Width, size.Height);
-        ScatterDetails(detailMap, detailTile, size.Width, size.Height, density: 0.04f, seed: 1234);
-        PlaceObstacles(obstacleMap, collisionMap, obstacleTile, size.Width, size.Height, count: 14, seed: 4321);
+        int seedBase = ((int)config.Theme + 1) * 7331;
+        int obstacleCount = Mathf.Max(24, Mathf.RoundToInt((size.Width + size.Height) * 0.55f));
+
+        FillGroundPattern(groundMap, groundTile, detailTile, size.Width, size.Height, seedBase);
+        ScatterDetails(detailMap, detailTile, size.Width, size.Height, density: 0.055f, seed: seedBase + 101);
+        PlaceObstacles(obstacleMap, collisionMap, obstacleTile, size.Width, size.Height, obstacleCount, seedBase + 211);
+        ClearSpawnArea(detailMap, obstacleMap, collisionMap, radius: 4);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, config.ScenePath);
@@ -376,17 +380,61 @@ public static class ForestMapBuilder
         map.SetTilesBlock(bounds, tiles);
     }
 
-    private static void ScatterDetails(Tilemap map, TileBase detail, int width, int height, float density, int seed)
+    private static void FillGroundPattern(Tilemap map, TileBase primary, TileBase secondary, int width, int height, int seed)
     {
-        var rng = new System.Random(seed);
+        FillGround(map, primary, width, height);
+        if (secondary == null || secondary == primary)
+        {
+            return;
+        }
+
         int halfX = width / 2;
         int halfY = height / 2;
+        float sx = seed * 0.0013f;
+        float sy = seed * 0.0017f;
+        const float coarseFreq = 0.085f;
+        const float fineFreq = 0.215f;
 
         for (int y = -halfY; y < halfY; y++)
         {
             for (int x = -halfX; x < halfX; x++)
             {
-                if (rng.NextDouble() < density)
+                float coarse = Mathf.PerlinNoise((x + sx) * coarseFreq, (y + sy) * coarseFreq);
+                float fine = Mathf.PerlinNoise((x - sy) * fineFreq, (y + sx) * fineFreq);
+                float mixed = coarse * 0.72f + fine * 0.28f;
+
+                if (mixed > 0.62f)
+                {
+                    map.SetTile(new Vector3Int(x, y, 0), secondary);
+                }
+            }
+        }
+    }
+
+    private static void ScatterDetails(Tilemap map, TileBase detail, int width, int height, float density, int seed)
+    {
+        var rng = new System.Random(seed);
+        int halfX = width / 2;
+        int halfY = height / 2;
+        float sx = seed * 0.0021f;
+        float sy = seed * 0.0011f;
+        const float noiseFreq = 0.18f;
+        float threshold = 1f - Mathf.Clamp01(density) * 1.35f;
+
+        for (int y = -halfY; y < halfY; y++)
+        {
+            for (int x = -halfX; x < halfX; x++)
+            {
+                // Keep center readable for combat and avoid visual clutter at spawn.
+                if (Mathf.Abs(x) <= 2 && Mathf.Abs(y) <= 2)
+                {
+                    continue;
+                }
+
+                float noise = Mathf.PerlinNoise((x + sx) * noiseFreq, (y + sy) * noiseFreq);
+                bool byNoise = noise > threshold;
+                bool byRandom = rng.NextDouble() < density * 0.22f;
+                if (byNoise || byRandom)
                 {
                     map.SetTile(new Vector3Int(x, y, 0), detail);
                 }
@@ -399,28 +447,108 @@ public static class ForestMapBuilder
         var rng = new System.Random(seed);
         int halfX = width / 2;
         int halfY = height / 2;
+        var occupied = new HashSet<Vector3Int>();
 
-        var perimeter = new List<Vector3Int>();
-        for (int x = -halfX + 2; x < halfX - 2; x++)
+        void PlaceAt(int x, int y)
         {
-            perimeter.Add(new Vector3Int(x, -halfY + 2, 0));
-            perimeter.Add(new Vector3Int(x, halfY - 3, 0));
-        }
-        for (int y = -halfY + 3; y < halfY - 3; y++)
-        {
-            perimeter.Add(new Vector3Int(-halfX + 2, y, 0));
-            perimeter.Add(new Vector3Int(halfX - 3, y, 0));
-        }
+            if (Mathf.Abs(x) <= 4 && Mathf.Abs(y) <= 4)
+            {
+                return;
+            }
 
-        count = Mathf.Min(count, perimeter.Count);
-        for (int i = 0; i < count; i++)
-        {
-            int index = rng.Next(perimeter.Count);
-            var pos = perimeter[index];
-            perimeter.RemoveAt(index);
+            var pos = new Vector3Int(x, y, 0);
+            if (!occupied.Add(pos))
+            {
+                return;
+            }
 
             obstacles.SetTile(pos, tile);
             collision.SetTile(pos, tile);
+        }
+
+        // Build a mostly closed outer ring with random gaps to create entrances.
+        for (int x = -halfX + 2; x < halfX - 2; x++)
+        {
+            if (rng.NextDouble() > 0.18d)
+            {
+                PlaceAt(x, -halfY + 2);
+            }
+            if (rng.NextDouble() > 0.18d)
+            {
+                PlaceAt(x, halfY - 3);
+            }
+        }
+        for (int y = -halfY + 3; y < halfY - 3; y++)
+        {
+            if (rng.NextDouble() > 0.18d)
+            {
+                PlaceAt(-halfX + 2, y);
+            }
+            if (rng.NextDouble() > 0.18d)
+            {
+                PlaceAt(halfX - 3, y);
+            }
+        }
+
+        int clusterCount = Mathf.Clamp(count / 5, 4, 18);
+        for (int c = 0; c < clusterCount; c++)
+        {
+            int cx = rng.Next(-halfX + 5, halfX - 5);
+            int cy = rng.Next(-halfY + 5, halfY - 5);
+            int radius = rng.Next(1, 4);
+
+            for (int y = -radius; y <= radius; y++)
+            {
+                for (int x = -radius; x <= radius; x++)
+                {
+                    float d = Mathf.Sqrt(x * x + y * y);
+                    if (d > radius + 0.15f)
+                    {
+                        continue;
+                    }
+
+                    if (rng.NextDouble() < (0.9d - d * 0.22d))
+                    {
+                        PlaceAt(cx + x, cy + y);
+                    }
+                }
+            }
+        }
+
+        while (occupied.Count < count)
+        {
+            int x = rng.Next(-halfX + 4, halfX - 4);
+            int y = rng.Next(-halfY + 4, halfY - 4);
+            if (rng.NextDouble() > 0.22d)
+            {
+                PlaceAt(x, y);
+            }
+        }
+    }
+
+    private static void ClearSpawnArea(Tilemap details, Tilemap obstacles, Tilemap collision, int radius)
+    {
+        int r = Mathf.Max(1, radius);
+        for (int y = -r; y <= r; y++)
+        {
+            for (int x = -r; x <= r; x++)
+            {
+                var pos = new Vector3Int(x, y, 0);
+                if (details != null)
+                {
+                    details.SetTile(pos, null);
+                }
+
+                if (obstacles != null)
+                {
+                    obstacles.SetTile(pos, null);
+                }
+
+                if (collision != null)
+                {
+                    collision.SetTile(pos, null);
+                }
+            }
         }
     }
 

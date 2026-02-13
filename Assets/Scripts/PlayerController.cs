@@ -16,6 +16,9 @@ public class PlayerController : NetworkBehaviour
     private float moveSpeed = 5f;
 
     [SerializeField]
+    private float colliderRadius = 0.28f;
+
+    [SerializeField]
     private float damageInvulnerabilityDuration = 0.35f;
 
     [SerializeField]
@@ -168,6 +171,7 @@ public class PlayerController : NetworkBehaviour
         _showColliderGizmos = config.game.showColliderGizmos;
 
         moveSpeed = settings.moveSpeed;
+        colliderRadius = settings.colliderRadius > 0f ? settings.colliderRadius : 0.28f;
         damageInvulnerabilityDuration = settings.damageInvulnerabilityDuration;
         playerColor = settings.playerColor;
         playerPalette = settings.playerPalette;
@@ -918,7 +922,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = Mathf.Max(0.05f, colliderRadius);
     }
 
     private void EnsureHealth()

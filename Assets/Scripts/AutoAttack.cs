@@ -74,7 +74,7 @@ public class AutoAttack : MonoBehaviour
     private Color auraIndicatorColor = new Color(0.2f, 0.9f, 0.5f, 0.2f);
 
     [SerializeField]
-    private int auraIndicatorSortingOrder = 5;
+    private int auraIndicatorSortingOrder = -2;
 
     [SerializeField]
     private Color grenadeTargetIndicatorColor = new Color(1f, 0.4f, 0.2f, 0.3f);
@@ -173,6 +173,46 @@ public class AutoAttack : MonoBehaviour
 
     [SerializeField]
     private float projectileSpriteScale = 2.5f;
+
+    [SerializeField]
+    private float directionalProjectileBaseAngle = 45f;
+
+    [Header("Combat VFX")]
+    [SerializeField]
+    private float muzzleFxDuration = 0.08f;
+
+    [SerializeField]
+    private float auraPulseDuration = 0.2f;
+
+    [SerializeField]
+    private float grenadeExplosionFxDuration = 0.38f;
+
+    [SerializeField]
+    private int combatFxSortingOrder = 2200;
+
+    [SerializeField]
+    private Color muzzleFxColor = new Color(1f, 0.95f, 0.7f, 0.9f);
+
+    [SerializeField]
+    private Color auraPulseColor = new Color(0.45f, 1f, 0.75f, 0.3f);
+
+    [SerializeField]
+    private Color grenadeExplosionColor = new Color(1f, 0.75f, 0.35f, 0.55f);
+
+    [SerializeField]
+    private Color meleeSlashColor = new Color(1f, 0.95f, 0.8f, 0.95f);
+
+    [SerializeField]
+    private string meleeSlashSpritePath = "Art/Projectiles/projectile_homing_shot";
+
+    [SerializeField]
+    private string auraPulseSpritePath = "Art/Projectiles/projectile_aura";
+
+    [SerializeField]
+    private string grenadeExplosionSpritePath = "Art/Projectiles/projectile_grenade";
+
+    [SerializeField]
+    private string muzzleSpritePath = "Art/Projectiles/projectile_single_shot";
 
     private float _fireInterval;
     private float _baseInterval;
@@ -682,7 +722,7 @@ public class AutoAttack : MonoBehaviour
 
     private void FireAura()
     {
-        float radius = Mathf.Max(0.1f, _range * Mathf.Max(0f, _aura.AreaMult) * _attackAreaMult);
+        float radius = GetAuraRadius();
         if (radius <= 0.1001f)
         {
             return;
@@ -704,7 +744,7 @@ public class AutoAttack : MonoBehaviour
             ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
             ApplyHitReactionToTarget(enemy.transform, WeaponType.Aura);
         }
-
+        SpawnAuraPulseEffect(origin, radius);
     }
 
     private void UpdateAuraIndicator(bool forceHide)
@@ -725,7 +765,7 @@ public class AutoAttack : MonoBehaviour
             return;
         }
 
-        float radius = Mathf.Max(0.1f, _range * Mathf.Max(0f, _aura.AreaMult) * _attackAreaMult);
+        float radius = GetAuraRadius();
         if (radius <= 0.1001f)
         {
             _auraIndicator.SetActive(false);
@@ -748,7 +788,14 @@ public class AutoAttack : MonoBehaviour
         _auraIndicatorRenderer = _auraIndicator.AddComponent<SpriteRenderer>();
         _auraIndicatorRenderer.sprite = CreateCircleSprite(128);
         _auraIndicatorRenderer.color = auraIndicatorColor;
-        _auraIndicatorRenderer.sortingOrder = auraIndicatorSortingOrder;
+        _auraIndicatorRenderer.sortingOrder = Mathf.Min(auraIndicatorSortingOrder, -2);
+    }
+
+    // Aura radius intentionally ignores range upgrades and only scales with aura area + attack-area upgrades.
+    private float GetAuraRadius()
+    {
+        float auraArea = Mathf.Max(0f, _aura.AreaMult);
+        return Mathf.Max(0.1f, baseRange * auraArea * _attackAreaMult);
     }
 
     private void FireHomingShot(Vector2 direction)
@@ -787,7 +834,7 @@ public class AutoAttack : MonoBehaviour
         float throwRange = _range * Mathf.Max(0.1f, _grenade.RangeMult);
         int count = GetWeaponCount(_grenade);
         float damage = _projectileDamage * _grenade.DamageMult;
-        float radius = Mathf.Max(0.1f, thrownExplosionRadius * Mathf.Max(0f, _grenade.AreaMult) * _attackAreaMult);
+        float radius = GetGrenadeExplosionRadius();
         if (radius <= 0.1001f)
         {
             return;
@@ -809,11 +856,19 @@ public class AutoAttack : MonoBehaviour
 
     }
 
+    // Grenade explosion radius intentionally ignores range upgrades and only scales with grenade area + attack-area upgrades.
+    private float GetGrenadeExplosionRadius()
+    {
+        float grenadeArea = Mathf.Max(0f, _grenade.AreaMult);
+        return Mathf.Max(0.1f, thrownExplosionRadius * grenadeArea * _attackAreaMult);
+    }
+
     private System.Collections.IEnumerator ThrownProjectileAndExplode(Vector3 targetPos, float delay, float damage, float radius)
     {
         Vector3 startPos = transform.position;
         float travelTime = Mathf.Max(0.02f, delay);
         var projectile = CreateGrenadeVisual(startPos);
+        float spinSpeed = Random.Range(-540f, 540f);
 
         float elapsed = 0f;
         while (elapsed < travelTime)
@@ -826,6 +881,7 @@ public class AutoAttack : MonoBehaviour
                 float arc = grenadeArcHeight * 4f * t * (1f - t);
                 pos.y += arc;
                 projectile.transform.position = pos;
+                projectile.transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
             }
 
             yield return null;
@@ -851,13 +907,7 @@ public class AutoAttack : MonoBehaviour
             ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
             ApplyHitReactionToTarget(enemy.transform, WeaponType.Grenade);
         }
-
-        var indicator = CreateAreaIndicator("GrenadeExplosionIndicator", targetPos, radius, grenadeTargetIndicatorColor, grenadeIndicatorSortingOrder);
-        if (indicator != null)
-        {
-            Destroy(indicator, Mathf.Max(0.05f, grenadeEffectDuration));
-        }
-
+        SpawnGrenadeExplosionEffect(targetPos, radius);
     }
 
     private GameObject CreateGrenadeVisual(Vector3 position)
@@ -865,10 +915,10 @@ public class AutoAttack : MonoBehaviour
         var go = new GameObject("GrenadeProjectileVisual");
         go.transform.position = position;
         var renderer = go.AddComponent<SpriteRenderer>();
-        bool hasSprite = TryResolveProjectileSprite(auraSpritePath, _projectileSize, out var sprite);
+        bool hasSprite = TryResolveProjectileSprite(grenadeSpritePath, _projectileSize, out var sprite);
         renderer.sprite = sprite;
-        renderer.color = grenadeProjectileColor;
-        renderer.sortingOrder = grenadeIndicatorSortingOrder + 1;
+        renderer.color = ResolveSpriteTint(grenadeProjectileColor, hasSprite);
+        renderer.sortingOrder = Mathf.Max(combatFxSortingOrder, grenadeIndicatorSortingOrder) + 1;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale * 0.85f : 0.35f);
         return go;
     }
@@ -884,6 +934,149 @@ public class AutoAttack : MonoBehaviour
         renderer.color = color;
         renderer.sortingOrder = sortingOrder;
         return go;
+    }
+
+    private void SpawnAuraPulseEffect(Vector2 origin, float radius)
+    {
+        float duration = Mathf.Max(0.06f, auraPulseDuration);
+        var sprite = ResolveEffectSprite(auraPulseSpritePath, auraSpritePath, 96);
+        int sorting = Mathf.Min(auraIndicatorSortingOrder - 1, -3);
+        var go = CreateFxSprite("AuraPulseFx", origin, sprite, auraPulseColor, sorting, 0f);
+        if (go == null)
+        {
+            return;
+        }
+
+        // Keep pulse near full aura size so it reads as a range pulse, not a center spark.
+        float start = Mathf.Max(0.1f, radius * 0.9f);
+        float end = Mathf.Max(start, radius * 1.03f);
+        StartCoroutine(AnimateFxScaleAndFade(
+            go,
+            new Vector3(start * 2f, start * 2f, 1f),
+            new Vector3(end * 2f, end * 2f, 1f),
+            duration));
+    }
+
+    private void SpawnGrenadeExplosionEffect(Vector2 position, float radius)
+    {
+        float duration = Mathf.Max(0.12f, grenadeExplosionFxDuration);
+        var baseSprite = ResolveEffectSprite(grenadeExplosionSpritePath, grenadeSpritePath, 96);
+
+        int sortingBase = Mathf.Max(combatFxSortingOrder, grenadeIndicatorSortingOrder);
+        var main = CreateFxSprite("GrenadeExplosionFx", position, baseSprite, grenadeExplosionColor, sortingBase + 2, 0f);
+        if (main != null)
+        {
+            float start = Mathf.Max(0.12f, radius * 0.35f);
+            float end = Mathf.Max(start + 0.05f, radius * 1.2f);
+            StartCoroutine(AnimateFxScaleAndFade(
+                main,
+                new Vector3(start * 2f, start * 2f, 1f),
+                new Vector3(end * 2f, end * 2f, 1f),
+                duration));
+        }
+
+        var flashColor = new Color(1f, 1f, 0.92f, 0.8f);
+        var flash = CreateFxSprite("GrenadeExplosionFlashFx", position, CreateCircleSprite(64), flashColor, sortingBase + 3, 0f);
+        if (flash != null)
+        {
+            float start = Mathf.Max(0.08f, radius * 0.2f);
+            float end = Mathf.Max(start + 0.05f, radius * 0.75f);
+            StartCoroutine(AnimateFxScaleAndFade(
+                flash,
+                new Vector3(start * 2f, start * 2f, 1f),
+                new Vector3(end * 2f, end * 2f, 1f),
+                duration * 0.6f));
+        }
+    }
+
+    private void SpawnProjectileMuzzleEffect(Vector2 position, Vector2 direction, Color tint, string preferredSpritePath)
+    {
+        float duration = Mathf.Max(0.03f, muzzleFxDuration);
+        var sprite = ResolveEffectSprite(preferredSpritePath, muzzleSpritePath, 64);
+        Vector2 forward = direction.sqrMagnitude > 0.0001f ? direction.normalized : ResolveFacingDirection();
+        float angle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
+
+        var color = muzzleFxColor;
+        color.r = Mathf.Clamp01((color.r + tint.r) * 0.5f);
+        color.g = Mathf.Clamp01((color.g + tint.g) * 0.5f);
+        color.b = Mathf.Clamp01((color.b + tint.b) * 0.5f);
+
+        var go = CreateFxSprite("MuzzleFx", position, sprite, color, combatFxSortingOrder + 4, angle);
+        if (go == null)
+        {
+            return;
+        }
+
+        float baseScale = Mathf.Max(0.18f, projectileSpriteScale * 0.36f);
+        var fromScale = new Vector3(baseScale * 0.65f, baseScale * 0.45f, 1f);
+        var toScale = new Vector3(baseScale * 1.2f, baseScale * 0.65f, 1f);
+        StartCoroutine(AnimateFxScaleAndFade(go, fromScale, toScale, duration));
+    }
+
+    private GameObject CreateFxSprite(string name, Vector2 position, Sprite sprite, Color color, int sortingOrder, float angleDeg)
+    {
+        var go = new GameObject(name);
+        go.transform.position = position;
+        go.transform.rotation = Quaternion.Euler(0f, 0f, angleDeg);
+
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite != null ? sprite : CreateCircleSprite(64);
+        renderer.color = color;
+        renderer.sortingOrder = sortingOrder;
+        return go;
+    }
+
+    private System.Collections.IEnumerator AnimateFxScaleAndFade(GameObject go, Vector3 fromScale, Vector3 toScale, float duration)
+    {
+        if (go == null)
+        {
+            yield break;
+        }
+
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            Destroy(go);
+            yield break;
+        }
+
+        float life = Mathf.Max(0.01f, duration);
+        float elapsed = 0f;
+        Color baseColor = renderer.color;
+        go.transform.localScale = fromScale;
+
+        while (elapsed < life && go != null)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / life);
+            go.transform.localScale = Vector3.LerpUnclamped(fromScale, toScale, t);
+            var c = baseColor;
+            c.a = Mathf.Lerp(baseColor.a, 0f, t);
+            renderer.color = c;
+            yield return null;
+        }
+
+        if (go != null)
+        {
+            Destroy(go);
+        }
+    }
+
+    private Sprite ResolveEffectSprite(string primaryPath, string fallbackPath, int fallbackSize)
+    {
+        var sprite = LoadResourceSprite(primaryPath);
+        if (sprite != null)
+        {
+            return sprite;
+        }
+
+        sprite = LoadResourceSprite(fallbackPath);
+        if (sprite != null)
+        {
+            return sprite;
+        }
+
+        return CreateCircleSprite(fallbackSize);
     }
 
     private void FireMelee()
@@ -972,34 +1165,140 @@ public class AutoAttack : MonoBehaviour
         }
 
         Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
-        const int arcSegments = 18;
+        float facingAngle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
+        float coneAngle = Mathf.Max(12f, halfAngle * 2f);
+        float duration = Mathf.Max(0.08f, meleeEffectDuration * 1.35f);
 
-        var go = new GameObject("MeleeRangeIndicator");
-        var line = go.AddComponent<LineRenderer>();
-        line.useWorldSpace = true;
-        line.loop = false;
-        line.material = GetChainMaterial();
-        line.startWidth = meleeLineWidth * 0.75f;
-        line.endWidth = meleeLineWidth * 0.75f;
-        line.startColor = meleeColor;
-        line.endColor = meleeColor;
-        line.sortingOrder = 2190;
+        SpawnMeleeSwingArcEffect((Vector2)transform.position, forward, range, halfAngle, duration);
 
-        int pointCount = arcSegments + 3;
-        line.positionCount = pointCount;
-        Vector3 origin = transform.position;
-        line.SetPosition(0, origin);
-
-        for (int i = 0; i <= arcSegments; i++)
+        var sprite = ResolveEffectSprite(meleeSlashSpritePath, homingShotSpritePath, 96);
+        var color = meleeSlashColor;
+        color.a = Mathf.Clamp01(color.a);
+        var go = CreateFxSprite("MeleeSlashFx", transform.position, sprite, color, combatFxSortingOrder + 5, facingAngle - halfAngle * 0.9f);
+        if (go == null)
         {
-            float t = i / (float)arcSegments;
-            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
-            Vector2 dir = Rotate(forward, angle);
-            line.SetPosition(i + 1, origin + (Vector3)(dir * range));
+            return;
         }
 
-        line.SetPosition(pointCount - 1, origin);
-        Destroy(go, Mathf.Max(0.03f, meleeEffectDuration));
+        float width = Mathf.Max(0.55f, range * 1.45f);
+        float height = Mathf.Max(0.28f, range * (coneAngle / 160f));
+        var fromScale = new Vector3(width * 0.7f, height * 0.55f, 1f);
+        var toScale = new Vector3(width * 1.08f, height * 1.02f, 1f);
+        float startAngle = facingAngle - halfAngle * 0.95f;
+        float endAngle = facingAngle + halfAngle * 0.95f;
+        StartCoroutine(AnimateMeleeSlashSpriteSweep(go, (Vector2)transform.position, forward, fromScale, toScale, duration, startAngle, endAngle));
+    }
+
+    private void SpawnMeleeSwingArcEffect(Vector2 origin, Vector2 forward, float range, float halfAngle, float duration)
+    {
+        var go = new GameObject("MeleeSwingArcFx");
+        var line = go.AddComponent<LineRenderer>();
+        line.useWorldSpace = true;
+        line.material = GetChainMaterial();
+        line.sortingOrder = combatFxSortingOrder + 4;
+        line.numCapVertices = 3;
+        line.numCornerVertices = 3;
+        line.positionCount = Mathf.Clamp(meleeSectorSegments, 10, 42) + 1;
+        StartCoroutine(AnimateMeleeSwingArc(line, origin, forward, range, halfAngle, duration));
+    }
+
+    private System.Collections.IEnumerator AnimateMeleeSwingArc(LineRenderer line, Vector2 origin, Vector2 forward, float range, float halfAngle, float duration)
+    {
+        if (line == null)
+        {
+            yield break;
+        }
+
+        float life = Mathf.Max(0.04f, duration);
+        float elapsed = 0f;
+        int segments = Mathf.Max(2, line.positionCount - 1);
+        float baseWidth = Mathf.Max(0.05f, meleeLineWidth * 1.4f);
+        Color baseColor = Color.Lerp(meleeColor, meleeSlashColor, 0.45f);
+        baseColor.a = Mathf.Max(0.78f, baseColor.a);
+
+        while (elapsed < life && line != null)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / life);
+
+            float center = Mathf.Lerp(-halfAngle * 0.95f, halfAngle * 0.95f, t);
+            float span = Mathf.Lerp(Mathf.Max(12f, halfAngle * 0.95f), Mathf.Max(6f, halfAngle * 0.32f), t);
+            float start = center - span;
+            float end = center + span;
+            float radius = Mathf.Lerp(range * 0.58f, range * 1.04f, t);
+
+            for (int i = 0; i <= segments; i++)
+            {
+                float ratio = i / (float)segments;
+                float angle = Mathf.Lerp(start, end, ratio);
+                Vector2 dir = Rotate(forward, angle).normalized;
+                float wobble = Mathf.Sin((ratio + t * 1.5f) * Mathf.PI * 2f) * range * 0.018f;
+                line.SetPosition(i, origin + dir * (radius + wobble));
+            }
+
+            float alpha = Mathf.Lerp(baseColor.a, 0f, t);
+            Color c = baseColor;
+            c.a = alpha;
+            line.startColor = c;
+            line.endColor = c;
+            float width = Mathf.Lerp(baseWidth, baseWidth * 0.28f, t);
+            line.startWidth = width;
+            line.endWidth = width * 0.62f;
+            yield return null;
+        }
+
+        if (line != null)
+        {
+            Destroy(line.gameObject);
+        }
+    }
+
+    private System.Collections.IEnumerator AnimateMeleeSlashSpriteSweep(
+        GameObject go,
+        Vector2 origin,
+        Vector2 forward,
+        Vector3 fromScale,
+        Vector3 toScale,
+        float duration,
+        float startAngle,
+        float endAngle)
+    {
+        if (go == null)
+        {
+            yield break;
+        }
+
+        var renderer = go.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            Destroy(go);
+            yield break;
+        }
+
+        float life = Mathf.Max(0.04f, duration);
+        float elapsed = 0f;
+        Color baseColor = renderer.color;
+
+        while (elapsed < life && go != null)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / life);
+            go.transform.localScale = Vector3.LerpUnclamped(fromScale, toScale, t);
+            float angle = Mathf.Lerp(startAngle, endAngle, t);
+            go.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+            go.transform.position = origin + forward * Mathf.Lerp(0.1f, 0.45f, t);
+
+            float pulse = Mathf.Sin(t * Mathf.PI);
+            Color c = baseColor;
+            c.a = Mathf.Clamp01(baseColor.a * pulse);
+            renderer.color = c;
+            yield return null;
+        }
+
+        if (go != null)
+        {
+            Destroy(go);
+        }
     }
 
     private Vector2 ResolveMeleeFacingDirection()
@@ -1095,6 +1394,10 @@ public class AutoAttack : MonoBehaviour
 
         go.transform.position = transform.position + (Vector3)spawnOffset;
         go.transform.rotation = Quaternion.identity;
+        if (ShouldAlignDirectionalProjectile(weaponType))
+        {
+            go.transform.rotation = Quaternion.Euler(0f, 0f, GetDirectionalProjectileRotation(direction));
+        }
 
         var renderer = go.GetComponent<SpriteRenderer>();
         if (renderer == null)
@@ -1106,6 +1409,7 @@ public class AutoAttack : MonoBehaviour
         renderer.sprite = projectileSprite;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var baseColor = new Color(0.9f, 0.9f, 0.2f, 1f);
+        var projectileTint = ResolveSpriteTint(baseColor, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
 
         var rb = go.GetComponent<Rigidbody2D>();
@@ -1136,11 +1440,26 @@ public class AutoAttack : MonoBehaviour
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
 
-        ApplyNetworkVisual(renderer, netColor, baseColor, spritePath, weaponId);
+        ApplyNetworkVisual(renderer, netColor, projectileTint, spritePath, weaponId);
+        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, baseColor, spritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
+    }
+
+    private bool ShouldAlignDirectionalProjectile(WeaponType weaponType)
+    {
+        return weaponType == WeaponType.SingleShot
+            || weaponType == WeaponType.MultiShot
+            || weaponType == WeaponType.PiercingShot;
+    }
+
+    private float GetDirectionalProjectileRotation(Vector2 direction)
+    {
+        Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        return angle - directionalProjectileBaseAngle;
     }
 
     private void SpawnNovaProjectile(Vector2 direction, float lifetime, float rotationSign, byte weaponId, WeaponType weaponType)
@@ -1180,6 +1499,7 @@ public class AutoAttack : MonoBehaviour
         renderer.sprite = novaSprite;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
+        var projectileTint = ResolveSpriteTint(novaColor, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
 
         var rb = go.GetComponent<Rigidbody2D>();
@@ -1208,7 +1528,8 @@ public class AutoAttack : MonoBehaviour
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
-        ApplyNetworkVisual(renderer, netColor, novaColor, piercingShotSpritePath, weaponId);
+        ApplyNetworkVisual(renderer, netColor, projectileTint, piercingShotSpritePath, weaponId);
+        SpawnProjectileMuzzleEffect(transform.position, direction, novaColor, piercingShotSpritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -1278,6 +1599,7 @@ public class AutoAttack : MonoBehaviour
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
         ApplyNetworkVisual(renderer, netColor, homingShotColor, null, weaponId);
+        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, homingShotColor, homingShotSpritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -1325,6 +1647,7 @@ public class AutoAttack : MonoBehaviour
         bool hasSprite = TryResolveProjectileSprite(spritePath, _projectileSize, out var coloredSprite);
         renderer.sprite = coloredSprite;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
+        var projectileTint = ResolveSpriteTint(color, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
 
         var rb = go.GetComponent<Rigidbody2D>();
@@ -1351,7 +1674,8 @@ public class AutoAttack : MonoBehaviour
         int resolvedPierce = pierceOverride >= 0 ? pierceOverride : _projectilePierce;
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, resolvedPierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
-        ApplyNetworkVisual(renderer, netColor, color, spritePath, weaponId);
+        ApplyNetworkVisual(renderer, netColor, projectileTint, spritePath, weaponId);
+        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, color, spritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -1396,6 +1720,7 @@ public class AutoAttack : MonoBehaviour
         renderer.sprite = boomerangSprite;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var boomColor = new Color(0.2f, 0.9f, 0.9f, 1f);
+        var projectileTint = ResolveSpriteTint(boomColor, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
 
         var rb = go.GetComponent<Rigidbody2D>();
@@ -1423,7 +1748,8 @@ public class AutoAttack : MonoBehaviour
         boom.SetRelease(b => ReleaseBoomerang(b));
         ApplyElementsToBoomerang(boom, WeaponType.MultiShot);
         ApplyHitReactionToBoomerang(boom, WeaponType.MultiShot);
-        ApplyNetworkVisual(renderer, netColor, boomColor, multiShotSpritePath, weaponId);
+        ApplyNetworkVisual(renderer, netColor, projectileTint, multiShotSpritePath, weaponId);
+        SpawnProjectileMuzzleEffect(transform.position, direction, boomColor, multiShotSpritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -2036,6 +2362,11 @@ public class AutoAttack : MonoBehaviour
         {
             renderer.color = color;
         }
+    }
+
+    private static Color ResolveSpriteTint(Color fallbackColor, bool hasSprite)
+    {
+        return hasSprite ? Color.white : fallbackColor;
     }
 }
 
