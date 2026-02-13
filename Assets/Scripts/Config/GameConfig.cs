@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(menuName = "Game/Game Config", fileName = "GameConfig")]
 public class GameConfig : ScriptableObject
@@ -101,9 +102,10 @@ public class GameSessionSettings
     public float weaponDamageMult = 1f;
 
     [Header("Weapon Stats")]
-    public WeaponStatsData gunStats = new WeaponStatsData
+    [FormerlySerializedAs("gunStats")]
+    public WeaponStatsData singleShotStats = new WeaponStatsData
     {
-        displayName = "Gun",
+        displayName = "SingleShot",
         level = 1,
         unlocked = true,
         damageMult = 1f,
@@ -114,9 +116,10 @@ public class GameSessionSettings
         knockbackDistance = 0.2f
     };
 
-    public WeaponStatsData boomerangStats = new WeaponStatsData
+    [FormerlySerializedAs("boomerangStats")]
+    public WeaponStatsData multiShotStats = new WeaponStatsData
     {
-        displayName = "Boomerang",
+        displayName = "MultiShot",
         level = 0,
         unlocked = false,
         damageMult = 1f,
@@ -127,9 +130,10 @@ public class GameSessionSettings
         knockbackDistance = 0.35f
     };
 
-    public WeaponStatsData novaStats = new WeaponStatsData
+    [FormerlySerializedAs("novaStats")]
+    public WeaponStatsData piercingShotStats = new WeaponStatsData
     {
-        displayName = "Nova",
+        displayName = "PiercingShot",
         level = 0,
         unlocked = false,
         damageMult = 1f,
@@ -140,9 +144,10 @@ public class GameSessionSettings
         knockbackDistance = 0.18f
     };
 
-    public WeaponStatsData shotgunStats = new WeaponStatsData
+    [FormerlySerializedAs("shotgunStats")]
+    public WeaponStatsData auraStats = new WeaponStatsData
     {
-        displayName = "Shotgun",
+        displayName = "Aura",
         level = 0,
         unlocked = false,
         damageMult = 0.9f,
@@ -153,9 +158,10 @@ public class GameSessionSettings
         knockbackDistance = 0.45f
     };
 
-    public WeaponStatsData laserStats = new WeaponStatsData
+    [FormerlySerializedAs("laserStats")]
+    public WeaponStatsData homingShotStats = new WeaponStatsData
     {
-        displayName = "Laser",
+        displayName = "HomingShot",
         level = 0,
         unlocked = false,
         damageMult = 1.1f,
@@ -166,9 +172,10 @@ public class GameSessionSettings
         knockbackDistance = 0.12f
     };
 
-    public WeaponStatsData chainStats = new WeaponStatsData
+    [FormerlySerializedAs("chainStats")]
+    public WeaponStatsData grenadeStats = new WeaponStatsData
     {
-        displayName = "Chain Lightning",
+        displayName = "Grenade",
         level = 0,
         unlocked = false,
         damageMult = 0.9f,
@@ -179,48 +186,10 @@ public class GameSessionSettings
         knockbackDistance = 0.2f
     };
 
-    public WeaponStatsData droneStats = new WeaponStatsData
+    [FormerlySerializedAs("lightningStats")]
+    public WeaponStatsData meleeStats = new WeaponStatsData
     {
-        displayName = "Drone",
-        level = 0,
-        unlocked = false,
-        damageMult = 0.8f,
-        fireRateMult = 0.5f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0,
-        hitStunDuration = 0.03f,
-        knockbackDistance = 0.1f
-    };
-
-    public WeaponStatsData shurikenStats = new WeaponStatsData
-    {
-        displayName = "Shuriken",
-        level = 0,
-        unlocked = false,
-        damageMult = 0.9f,
-        fireRateMult = 0.9f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0,
-        hitStunDuration = 0.07f,
-        knockbackDistance = 0.25f
-    };
-
-    public WeaponStatsData frostStats = new WeaponStatsData
-    {
-        displayName = "Frost Orb",
-        level = 0,
-        unlocked = false,
-        damageMult = 0.85f,
-        fireRateMult = 0.8f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0,
-        hitStunDuration = 0.08f,
-        knockbackDistance = 0.2f
-    };
-
-    public WeaponStatsData lightningStats = new WeaponStatsData
-    {
-        displayName = "Lightning",
+        displayName = "Melee",
         level = 0,
         unlocked = false,
         damageMult = 1.0f,
@@ -244,18 +213,20 @@ public class GameSessionSettings
     public float coinDropChance = 0.06f;
     public int coinAmount = 1;
 
-    [Header("Start Weapon")]
-    public bool requireStartWeaponChoice = true;
-    public StartWeaponType startWeapon = StartWeaponType.Gun;
+    [Header("Start Character")]
+    [FormerlySerializedAs("requireStartWeaponChoice")]
+    public bool requireStartCharacterChoice = true;
+    [FormerlySerializedAs("startWeapon")]
+    public StartCharacterType startCharacter = StartCharacterType.SingleShot;
 
     [Header("Start Map")]
     public bool requireMapChoice = true;
     public bool allowMapChoiceInNetwork = false;
     public MapChoiceEntry[] mapChoices = new[]
     {
-        new MapChoiceEntry { theme = MapTheme.Forest, displayName = "숲", sceneName = "ForestOpenWorld" },
-        new MapChoiceEntry { theme = MapTheme.Desert, displayName = "사막", sceneName = "DesertOpenWorld" },
-        new MapChoiceEntry { theme = MapTheme.Snow, displayName = "설원", sceneName = "SnowOpenWorld" }
+        new MapChoiceEntry { theme = MapTheme.Forest, displayName = "Forest", sceneName = "ForestOpenWorld" },
+        new MapChoiceEntry { theme = MapTheme.Desert, displayName = "Desert", sceneName = "DesertOpenWorld" },
+        new MapChoiceEntry { theme = MapTheme.Snow, displayName = "Snow", sceneName = "SnowOpenWorld" }
     };
 
     [Header("Start Character Preview")]
@@ -301,7 +272,7 @@ public class GameSessionSettings
 public class MapChoiceEntry
 {
     public MapTheme theme = MapTheme.Forest;
-    public string displayName = "숲";
+    public string displayName = "Forest";
     public string sceneName = "ForestOpenWorld";
     public DifficultyConfig difficulty;
 }
@@ -396,56 +367,65 @@ public class AutoAttackConfig
     public int baseProjectileSize = 50;
     public float baseProjectileLifetime = 2f;
     public int baseProjectilePierce = 0;
-    public float straightParallelSpacing = 0.35f;
-    public float novaOrbitAngularSpeed = 8f;
+    [FormerlySerializedAs("straightParallelSpacing")]
+    public float singleShotParallelSpacing = 0.35f;
+    [FormerlySerializedAs("novaOrbitAngularSpeed")]
+    public float piercingShotOrbitAngularSpeed = 8f;
 
-    public int shotgunBasePellets = 5;
-    public float shotgunSpreadAngle = 32f;
-    public float shotgunPelletDamageMult = 0.75f;
-    public float shotgunSpeedMult = 0.95f;
+    [FormerlySerializedAs("shotgunBasePellets")]
+    public int auraBasePellets = 5;
+    [FormerlySerializedAs("shotgunSpreadAngle")]
+    public float auraSpreadAngle = 32f;
+    [FormerlySerializedAs("shotgunPelletDamageMult")]
+    public float auraPelletDamageMult = 0.75f;
+    [FormerlySerializedAs("shotgunSpeedMult")]
+    public float auraSpeedMult = 0.95f;
 
-    public float laserSpeedMult = 1.8f;
-    public float laserThickness = 0.12f;
-    public float laserLengthScale = 1.4f;
-    public float laserParallelSpacing = 0.3f;
-    public Color laserColor = new Color(1f, 0.3f, 0.3f, 1f);
+    [FormerlySerializedAs("laserSpeedMult")]
+    public float homingShotSpeedMult = 1.8f;
+    [FormerlySerializedAs("laserThickness")]
+    public float homingShotThickness = 0.12f;
+    [FormerlySerializedAs("laserLengthScale")]
+    public float homingShotLengthScale = 1.4f;
+    [FormerlySerializedAs("laserParallelSpacing")]
+    public float homingShotParallelSpacing = 0.3f;
+    [FormerlySerializedAs("laserColor")]
+    public Color homingShotColor = new Color(1f, 0.3f, 0.3f, 1f);
 
-    public int chainBaseJumps = 3;
-    public float chainJumpRangeMult = 0.7f;
-    public float chainLineWidth = 0.12f;
-    public float chainEffectDuration = 0.12f;
-    public Color chainColor = new Color(0.5f, 0.8f, 1f, 1f);
+    [FormerlySerializedAs("chainBaseJumps")]
+    public int grenadeBaseJumps = 3;
+    [FormerlySerializedAs("chainJumpRangeMult")]
+    public float grenadeJumpRangeMult = 0.7f;
+    [FormerlySerializedAs("chainLineWidth")]
+    public float grenadeLineWidth = 0.12f;
+    [FormerlySerializedAs("chainEffectDuration")]
+    public float grenadeEffectDuration = 0.12f;
+    [FormerlySerializedAs("chainColor")]
+    public Color grenadeColor = new Color(0.5f, 0.8f, 1f, 1f);
 
-    public float droneOrbitRadius = 1.8f;
-    public float droneAngularSpeed = 3.2f;
-    public float droneLifetime = 6f;
-    public float droneDamageMult = 0.6f;
-    public Color droneColor = new Color(0.9f, 0.9f, 1f, 1f);
 
-    public float shurikenSpeedMult = 1.4f;
-    public float shurikenSpinSpeed = 1080f;
-    public float shurikenDamageMult = 0.85f;
-    public Color shurikenColor = new Color(0.9f, 0.9f, 0.9f, 1f);
-
-    public float frostSpeedMult = 0.8f;
-    public float frostDamageMult = 0.8f;
-    public float frostSlowMultiplier = 0.6f;
-    public float frostSlowDuration = 1.5f;
-    public Color frostColor = new Color(0.6f, 0.85f, 1f, 1f);
-
-    public float lightningEffectDuration = 0.12f;
-    public float lightningLineWidth = 0.14f;
-    public float lightningLineLength = 1.6f;
-    public Color lightningColor = new Color(1f, 0.95f, 0.5f, 1f);
+    [FormerlySerializedAs("lightningEffectDuration")]
+    public float meleeEffectDuration = 0.12f;
+    [FormerlySerializedAs("lightningLineWidth")]
+    public float meleeLineWidth = 0.14f;
+    [FormerlySerializedAs("lightningLineLength")]
+    public float meleeLineLength = 1.6f;
+    [FormerlySerializedAs("lightningColor")]
+    public Color meleeColor = new Color(1f, 0.95f, 0.5f, 1f);
 
     [Header("Sprites (Resources)")]
-    public string straightSpritePath;
-    public string boomerangSpritePath;
-    public string novaSpritePath;
-    public string shotgunSpritePath;
-    public string droneSpritePath;
-    public string shurikenSpritePath;
-    public string frostSpritePath;
+    [FormerlySerializedAs("straightSpritePath")]
+    public string singleShotSpritePath;
+    [FormerlySerializedAs("boomerangSpritePath")]
+    public string multiShotSpritePath;
+    [FormerlySerializedAs("novaSpritePath")]
+    public string piercingShotSpritePath;
+    [FormerlySerializedAs("shotgunSpritePath")]
+    public string auraSpritePath;
+    [FormerlySerializedAs("shurikenSpritePath")]
+    public string homingShotSpritePath;
+    [FormerlySerializedAs("frostSpritePath")]
+    public string grenadeSpritePath;
     public float projectileSpriteScale = 2.5f;
 }
 
@@ -555,4 +535,7 @@ public class WindowConfig
     public int height = 720;
     public FullScreenMode fullscreenMode = FullScreenMode.Windowed;
 }
+
+
+
 

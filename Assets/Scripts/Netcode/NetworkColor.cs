@@ -201,20 +201,20 @@ public class NetworkColor : NetworkBehaviour
         var settings = config.autoAttack;
         switch ((AutoAttack.WeaponType)weaponId)
         {
-            case AutoAttack.WeaponType.Straight:
-                return settings.straightSpritePath;
-            case AutoAttack.WeaponType.Boomerang:
-                return settings.boomerangSpritePath;
-            case AutoAttack.WeaponType.Nova:
-                return settings.novaSpritePath;
-            case AutoAttack.WeaponType.Shotgun:
-                return settings.shotgunSpritePath;
-            case AutoAttack.WeaponType.Drone:
-                return settings.droneSpritePath;
-            case AutoAttack.WeaponType.Shuriken:
-                return settings.shurikenSpritePath;
-            case AutoAttack.WeaponType.FrostOrb:
-                return settings.frostSpritePath;
+            case AutoAttack.WeaponType.SingleShot:
+                return settings.singleShotSpritePath;
+            case AutoAttack.WeaponType.MultiShot:
+                return settings.multiShotSpritePath;
+            case AutoAttack.WeaponType.PiercingShot:
+                return settings.piercingShotSpritePath;
+            case AutoAttack.WeaponType.Aura:
+                return settings.auraSpritePath;
+            case AutoAttack.WeaponType.HomingShot:
+                return settings.homingShotSpritePath;
+            case AutoAttack.WeaponType.Grenade:
+                return settings.grenadeSpritePath;
+            case AutoAttack.WeaponType.Melee:
+                return null;
             default:
                 return null;
         }
@@ -270,3 +270,6 @@ public class NetworkColor : NetworkBehaviour
         return _solidSprite;
     }
 }
+
+
+

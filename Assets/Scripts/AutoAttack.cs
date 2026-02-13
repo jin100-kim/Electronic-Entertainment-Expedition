@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class AutoAttack : MonoBehaviour
 {
@@ -7,16 +7,13 @@ public class AutoAttack : MonoBehaviour
 
     public enum WeaponType
     {
-        Straight,
-        Boomerang,
-        Nova,
-        Shotgun,
-        Laser,
-        ChainLightning,
-        Lightning,
-        Drone,
-        Shuriken,
-        FrostOrb
+        SingleShot,
+        MultiShot,
+        PiercingShot,
+        Aura,
+        HomingShot,
+        Grenade,
+        Melee
     }
 
     [SerializeField]
@@ -41,135 +38,135 @@ public class AutoAttack : MonoBehaviour
     private int baseProjectilePierce = 0;
 
     [SerializeField]
-    private float straightParallelSpacing = 0.35f;
+    private float singleShotParallelSpacing = 0.35f;
 
     [SerializeField]
-    private float novaOrbitAngularSpeed = 8f;
-
-    [Header("Shotgun")]
-    [SerializeField]
-    private int shotgunBasePellets = 5;
+    private float straightBurstShotInterval = 0.06f;
 
     [SerializeField]
-    private float shotgunSpreadAngle = 32f;
+    private float radialSpreadStepAngle = 15f;
 
     [SerializeField]
-    private float shotgunPelletDamageMult = 0.75f;
+    private float pierceBurstShotInterval = 0.06f;
 
     [SerializeField]
-    private float shotgunSpeedMult = 0.95f;
-
-    [Header("Laser")]
-    [SerializeField]
-    private float laserSpeedMult = 1.8f;
+    private int pierceBaseCount = 10;
 
     [SerializeField]
-    private float laserThickness = 0.12f;
+    private float auraDamageTickMult = 1f;
 
     [SerializeField]
-    private float laserLengthScale = 1.4f;
+    private float homingTurnSpeed = 720f;
 
     [SerializeField]
-    private float laserParallelSpacing = 0.3f;
+    private float homingRetargetRangeMult = 1.2f;
 
     [SerializeField]
-    private Color laserColor = new Color(1f, 0.3f, 0.3f, 1f);
-
-    [Header("Chain Lightning")]
-    [SerializeField]
-    private int chainBaseJumps = 3;
+    private float thrownTravelSpeed = 10f;
 
     [SerializeField]
-    private float chainJumpRangeMult = 0.7f;
+    private float thrownExplosionRadius = 1.8f;
 
     [SerializeField]
-    private float chainLineWidth = 0.12f;
+    private float grenadeArcHeight = 0.75f;
 
     [SerializeField]
-    private float chainEffectDuration = 0.12f;
+    private Color auraIndicatorColor = new Color(0.2f, 0.9f, 0.5f, 0.2f);
 
     [SerializeField]
-    private Color chainColor = new Color(0.5f, 0.8f, 1f, 1f);
-
-    [Header("Drone")]
-    [SerializeField]
-    private float droneOrbitRadius = 1.8f;
+    private int auraIndicatorSortingOrder = 5;
 
     [SerializeField]
-    private float droneAngularSpeed = 3.2f;
+    private Color grenadeTargetIndicatorColor = new Color(1f, 0.4f, 0.2f, 0.3f);
 
     [SerializeField]
-    private float droneLifetime = 6f;
+    private int grenadeIndicatorSortingOrder = 20;
 
     [SerializeField]
-    private float droneDamageMult = 0.6f;
+    private Color grenadeProjectileColor = new Color(1f, 0.8f, 0.3f, 0.9f);
 
     [SerializeField]
-    private Color droneColor = new Color(0.9f, 0.9f, 1f, 1f);
-
-    [Header("Shuriken")]
-    [SerializeField]
-    private float shurikenSpeedMult = 1.4f;
+    private float meleeConeAngle = 75f;
 
     [SerializeField]
-    private float shurikenSpinSpeed = 1080f;
+    private float piercingShotOrbitAngularSpeed = 8f;
+
+    [Header("Aura")]
+    [SerializeField]
+    private int auraBasePellets = 5;
 
     [SerializeField]
-    private float shurikenDamageMult = 0.85f;
+    private float auraSpreadAngle = 32f;
 
     [SerializeField]
-    private Color shurikenColor = new Color(0.9f, 0.9f, 0.9f, 1f);
-
-    [Header("Frost Orb")]
-    [SerializeField]
-    private float frostSpeedMult = 0.8f;
+    private float auraPelletDamageMult = 0.75f;
 
     [SerializeField]
-    private float frostDamageMult = 0.8f;
+    private float auraSpeedMult = 0.95f;
+
+    [Header("Homing Shot")]
+    [SerializeField]
+    private float homingShotSpeedMult = 1.8f;
 
     [SerializeField]
-    private float frostSlowMultiplier = 0.6f;
+    private float homingShotThickness = 0.12f;
 
     [SerializeField]
-    private float frostSlowDuration = 1.5f;
+    private float homingShotLengthScale = 1.4f;
 
     [SerializeField]
-    private Color frostColor = new Color(0.6f, 0.85f, 1f, 1f);
-
-    [Header("Lightning Strike")]
-    [SerializeField]
-    private float lightningEffectDuration = 0.12f;
+    private float homingShotParallelSpacing = 0.3f;
 
     [SerializeField]
-    private float lightningLineWidth = 0.14f;
+    private Color homingShotColor = new Color(1f, 0.3f, 0.3f, 1f);
+
+    [Header("Grenade")]
+    [SerializeField]
+    private int grenadeBaseJumps = 3;
 
     [SerializeField]
-    private float lightningLineLength = 1.6f;
+    private float grenadeJumpRangeMult = 0.7f;
 
     [SerializeField]
-    private Color lightningColor = new Color(1f, 0.95f, 0.5f, 1f);
+    private float grenadeLineWidth = 0.12f;
+
+    [SerializeField]
+    private float grenadeEffectDuration = 0.12f;
+
+    [SerializeField]
+    private Color grenadeColor = new Color(0.5f, 0.8f, 1f, 1f);
+
+    [Header("Melee")]
+    [SerializeField]
+    private float meleeEffectDuration = 0.12f;
+
+    [SerializeField]
+    private float meleeLineWidth = 0.14f;
+
+    [SerializeField]
+    private float meleeLineLength = 1.6f;
+
+    [SerializeField]
+    private Color meleeColor = new Color(1f, 0.95f, 0.5f, 1f);
 
     [Header("Sprites (Resources)")]
     [SerializeField]
-    private string straightSpritePath;
+    private string singleShotSpritePath;
 
     [SerializeField]
-    private string boomerangSpritePath;
+    private string multiShotSpritePath;
 
     [SerializeField]
-    private string novaSpritePath;
+    private string piercingShotSpritePath;
 
     [SerializeField]
-    private string shotgunSpritePath;
+    private string auraSpritePath;
 
     [SerializeField]
-    private string droneSpritePath;
+    private string homingShotSpritePath;
 
     [SerializeField]
-    private string shurikenSpritePath;
-
-    [SerializeField]
-    private string frostSpritePath;
+    private string grenadeSpritePath;
 
     [SerializeField]
     private float projectileSpriteScale = 2.5f;
@@ -191,9 +188,8 @@ public class AutoAttack : MonoBehaviour
     private ElementLoadout _elementLoadout;
 
     private static readonly System.Collections.Generic.Stack<GameObject> _circleProjectilePool = new System.Collections.Generic.Stack<GameObject>();
-    private static readonly System.Collections.Generic.Stack<GameObject> _laserProjectilePool = new System.Collections.Generic.Stack<GameObject>();
-    private static readonly System.Collections.Generic.Stack<GameObject> _boomerangPool = new System.Collections.Generic.Stack<GameObject>();
-    private static readonly System.Collections.Generic.Stack<GameObject> _dronePool = new System.Collections.Generic.Stack<GameObject>();
+    private static readonly System.Collections.Generic.Stack<GameObject> _homingShotProjectilePool = new System.Collections.Generic.Stack<GameObject>();
+    private static readonly System.Collections.Generic.Stack<GameObject> _multiShotPool = new System.Collections.Generic.Stack<GameObject>();
 
     private const float TargetScanInterval = 0.1f;
     private const byte WeaponIdNone = 255;
@@ -211,44 +207,47 @@ public class AutoAttack : MonoBehaviour
         public float KnockbackDistance;
     }
 
-    private WeaponConfig _straight;
-    private WeaponConfig _boomerang;
-    private WeaponConfig _nova;
-    private WeaponConfig _shotgun;
-    private WeaponConfig _laser;
-    private WeaponConfig _chain;
-    private WeaponConfig _lightning;
-    private WeaponConfig _drone;
-    private WeaponConfig _shuriken;
-    private WeaponConfig _frost;
+    private WeaponConfig _singleShot;
+    private WeaponConfig _multiShot;
+    private WeaponConfig _piercingShot;
+    private WeaponConfig _aura;
+    private WeaponConfig _homingShot;
+    private WeaponConfig _grenade;
+    private WeaponConfig _melee;
 
-    private float _nextFireStraight;
-    private float _nextFireBoomerang;
-    private float _nextFireNova;
-    private float _nextFireShotgun;
-    private float _nextFireLaser;
-    private float _nextFireChain;
-    private float _nextFireLightning;
-    private float _nextFireDrone;
-    private float _nextFireShuriken;
-    private float _nextFireFrost;
+    private float _nextFireSingleShot;
+    private float _nextFireMultiShot;
+    private float _nextFirePiercingShot;
+    private float _nextFireAura;
+    private float _nextFireHomingShot;
+    private float _nextFireGrenade;
+    private float _nextFireMelee;
     private bool _settingsApplied;
+    private GameObject _auraIndicator;
+    private SpriteRenderer _auraIndicatorRenderer;
 
     private void Awake()
     {
         ApplySettings();
         ApplyStats(1f, 1f, 1f, 1f, 1f, 1, 0, 1f);
         _elementLoadout = GetComponent<ElementLoadout>();
-        _straight = CreateDefaultConfig(true);
-        _boomerang = CreateDefaultConfig(false);
-        _nova = CreateDefaultConfig(false);
-        _shotgun = CreateDefaultConfig(false);
-        _laser = CreateDefaultConfig(false);
-        _chain = CreateDefaultConfig(false);
-        _lightning = CreateDefaultConfig(false);
-        _drone = CreateDefaultConfig(false);
-        _shuriken = CreateDefaultConfig(false);
-        _frost = CreateDefaultConfig(false);
+        _singleShot = CreateDefaultConfig(true);
+        _multiShot = CreateDefaultConfig(false);
+        _piercingShot = CreateDefaultConfig(false);
+        _aura = CreateDefaultConfig(false);
+        _homingShot = CreateDefaultConfig(false);
+        _grenade = CreateDefaultConfig(false);
+        _melee = CreateDefaultConfig(false);
+    }
+
+    private void OnDisable()
+    {
+        if (_auraIndicator != null)
+        {
+            Destroy(_auraIndicator);
+            _auraIndicator = null;
+            _auraIndicatorRenderer = null;
+        }
     }
 
     private void ApplySettings()
@@ -268,55 +267,38 @@ public class AutoAttack : MonoBehaviour
         baseProjectileSize = settings.baseProjectileSize;
         baseProjectileLifetime = settings.baseProjectileLifetime;
         baseProjectilePierce = settings.baseProjectilePierce;
-        straightParallelSpacing = settings.straightParallelSpacing;
-        novaOrbitAngularSpeed = settings.novaOrbitAngularSpeed;
+        singleShotParallelSpacing = settings.singleShotParallelSpacing;
+        piercingShotOrbitAngularSpeed = settings.piercingShotOrbitAngularSpeed;
 
-        shotgunBasePellets = settings.shotgunBasePellets;
-        shotgunSpreadAngle = settings.shotgunSpreadAngle;
-        shotgunPelletDamageMult = settings.shotgunPelletDamageMult;
-        shotgunSpeedMult = settings.shotgunSpeedMult;
+        auraBasePellets = settings.auraBasePellets;
+        auraSpreadAngle = settings.auraSpreadAngle;
+        auraPelletDamageMult = settings.auraPelletDamageMult;
+        auraSpeedMult = settings.auraSpeedMult;
 
-        laserSpeedMult = settings.laserSpeedMult;
-        laserThickness = settings.laserThickness;
-        laserLengthScale = settings.laserLengthScale;
-        laserParallelSpacing = settings.laserParallelSpacing;
-        laserColor = settings.laserColor;
+        homingShotSpeedMult = settings.homingShotSpeedMult;
+        homingShotThickness = settings.homingShotThickness;
+        homingShotLengthScale = settings.homingShotLengthScale;
+        homingShotParallelSpacing = settings.homingShotParallelSpacing;
+        homingShotColor = settings.homingShotColor;
 
-        chainBaseJumps = settings.chainBaseJumps;
-        chainJumpRangeMult = settings.chainJumpRangeMult;
-        chainLineWidth = settings.chainLineWidth;
-        chainEffectDuration = settings.chainEffectDuration;
-        chainColor = settings.chainColor;
+        grenadeBaseJumps = settings.grenadeBaseJumps;
+        grenadeJumpRangeMult = settings.grenadeJumpRangeMult;
+        grenadeLineWidth = settings.grenadeLineWidth;
+        grenadeEffectDuration = settings.grenadeEffectDuration;
+        grenadeColor = settings.grenadeColor;
 
-        droneOrbitRadius = settings.droneOrbitRadius;
-        droneAngularSpeed = settings.droneAngularSpeed;
-        droneLifetime = settings.droneLifetime;
-        droneDamageMult = settings.droneDamageMult;
-        droneColor = settings.droneColor;
 
-        shurikenSpeedMult = settings.shurikenSpeedMult;
-        shurikenSpinSpeed = settings.shurikenSpinSpeed;
-        shurikenDamageMult = settings.shurikenDamageMult;
-        shurikenColor = settings.shurikenColor;
+        meleeEffectDuration = settings.meleeEffectDuration;
+        meleeLineWidth = settings.meleeLineWidth;
+        meleeLineLength = settings.meleeLineLength;
+        meleeColor = settings.meleeColor;
 
-        frostSpeedMult = settings.frostSpeedMult;
-        frostDamageMult = settings.frostDamageMult;
-        frostSlowMultiplier = settings.frostSlowMultiplier;
-        frostSlowDuration = settings.frostSlowDuration;
-        frostColor = settings.frostColor;
-
-        lightningEffectDuration = settings.lightningEffectDuration;
-        lightningLineWidth = settings.lightningLineWidth;
-        lightningLineLength = settings.lightningLineLength;
-        lightningColor = settings.lightningColor;
-
-        straightSpritePath = settings.straightSpritePath;
-        boomerangSpritePath = settings.boomerangSpritePath;
-        novaSpritePath = settings.novaSpritePath;
-        shotgunSpritePath = settings.shotgunSpritePath;
-        droneSpritePath = settings.droneSpritePath;
-        shurikenSpritePath = settings.shurikenSpritePath;
-        frostSpritePath = settings.frostSpritePath;
+        singleShotSpritePath = settings.singleShotSpritePath;
+        multiShotSpritePath = settings.multiShotSpritePath;
+        piercingShotSpritePath = settings.piercingShotSpritePath;
+        auraSpritePath = settings.auraSpritePath;
+        homingShotSpritePath = settings.homingShotSpritePath;
+        grenadeSpritePath = settings.grenadeSpritePath;
         projectileSpriteScale = settings.projectileSpriteScale;
 
         _settingsApplied = true;
@@ -326,20 +308,25 @@ public class AutoAttack : MonoBehaviour
     {
         if (NetworkSession.IsActive && !NetworkSession.IsServer)
         {
+            UpdateAuraIndicator(forceHide: true);
             return;
         }
 
         if (GameSession.Instance != null && GameSession.Instance.IsGameOver)
         {
+            UpdateAuraIndicator(forceHide: true);
             return;
         }
 
         if (GameSession.Instance != null && !GameSession.Instance.IsGameplayActive)
         {
+            UpdateAuraIndicator(forceHide: true);
             return;
         }
 
-        bool needsTarget = _straight.Enabled || _boomerang.Enabled || _shotgun.Enabled || _laser.Enabled || _chain.Enabled || _shuriken.Enabled || _frost.Enabled;
+        UpdateAuraIndicator(forceHide: false);
+
+        bool needsTarget = _singleShot.Enabled || _multiShot.Enabled || _piercingShot.Enabled || _homingShot.Enabled;
         Transform target = null;
         Vector2 dir = Vector2.zero;
 
@@ -372,64 +359,46 @@ public class AutoAttack : MonoBehaviour
             }
         }
 
-        if (_straight.Enabled && Time.time >= _nextFireStraight && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_singleShot.Enabled && Time.time >= _nextFireSingleShot && target != null && dir.sqrMagnitude > 0.0001f)
         {
-            FireStraight(dir.normalized);
-            _nextFireStraight = Time.time + GetIntervalForWeapon(_straight.FireRateMult);
+            FireSingleShot(dir.normalized);
+            _nextFireSingleShot = Time.time + GetIntervalForWeapon(_singleShot.FireRateMult);
         }
 
-        if (_boomerang.Enabled && Time.time >= _nextFireBoomerang && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_multiShot.Enabled && Time.time >= _nextFireMultiShot && target != null && dir.sqrMagnitude > 0.0001f)
         {
-            FireBoomerang(dir.normalized);
-            _nextFireBoomerang = Time.time + GetIntervalForWeapon(_boomerang.FireRateMult);
+            FireMultiShot(dir.normalized);
+            _nextFireMultiShot = Time.time + GetIntervalForWeapon(_multiShot.FireRateMult);
         }
 
-        if (_nova.Enabled && Time.time >= _nextFireNova)
+        if (_piercingShot.Enabled && Time.time >= _nextFirePiercingShot)
         {
-            FireNova();
-            _nextFireNova = Time.time + GetIntervalForWeapon(_nova.FireRateMult);
+            FirePiercingShot();
+            _nextFirePiercingShot = Time.time + GetIntervalForWeapon(_piercingShot.FireRateMult);
         }
 
-        if (_shotgun.Enabled && Time.time >= _nextFireShotgun && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_aura.Enabled && Time.time >= _nextFireAura)
         {
-            FireShotgun(dir.normalized);
-            _nextFireShotgun = Time.time + GetIntervalForWeapon(_shotgun.FireRateMult);
+            FireAura();
+            _nextFireAura = Time.time + GetIntervalForWeapon(_aura.FireRateMult);
         }
 
-        if (_laser.Enabled && Time.time >= _nextFireLaser && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_homingShot.Enabled && Time.time >= _nextFireHomingShot)
         {
-            FireLaser(dir.normalized);
-            _nextFireLaser = Time.time + GetIntervalForWeapon(_laser.FireRateMult);
+            FireHomingShot(dir.normalized);
+            _nextFireHomingShot = Time.time + GetIntervalForWeapon(_homingShot.FireRateMult);
         }
 
-        if (_chain.Enabled && Time.time >= _nextFireChain && target != null && dir.sqrMagnitude > 0.0001f)
+        if (_grenade.Enabled && Time.time >= _nextFireGrenade)
         {
-            FireChainLightning(target);
-            _nextFireChain = Time.time + GetIntervalForWeapon(_chain.FireRateMult);
+            FireGrenade();
+            _nextFireGrenade = Time.time + GetIntervalForWeapon(_grenade.FireRateMult);
         }
 
-        if (_lightning.Enabled && Time.time >= _nextFireLightning)
+        if (_melee.Enabled && Time.time >= _nextFireMelee)
         {
-            FireLightningStrike();
-            _nextFireLightning = Time.time + GetIntervalForWeapon(_lightning.FireRateMult);
-        }
-
-        if (_drone.Enabled && Time.time >= _nextFireDrone)
-        {
-            FireDrone();
-            _nextFireDrone = Time.time + GetIntervalForWeapon(_drone.FireRateMult);
-        }
-
-        if (_shuriken.Enabled && Time.time >= _nextFireShuriken && target != null && dir.sqrMagnitude > 0.0001f)
-        {
-            FireShuriken(dir.normalized);
-            _nextFireShuriken = Time.time + GetIntervalForWeapon(_shuriken.FireRateMult);
-        }
-
-        if (_frost.Enabled && Time.time >= _nextFireFrost && target != null && dir.sqrMagnitude > 0.0001f)
-        {
-            FireFrostOrb(dir.normalized);
-            _nextFireFrost = Time.time + GetIntervalForWeapon(_frost.FireRateMult);
+            FireMelee();
+            _nextFireMelee = Time.time + GetIntervalForWeapon(_melee.FireRateMult);
         }
     }
 
@@ -453,35 +422,26 @@ public class AutoAttack : MonoBehaviour
         var cfg = CreateConfigFromStats(stats);
         switch (type)
         {
-            case WeaponType.Boomerang:
-                _boomerang = cfg;
+            case WeaponType.MultiShot:
+                _multiShot = cfg;
                 break;
-            case WeaponType.Nova:
-                _nova = cfg;
+            case WeaponType.PiercingShot:
+                _piercingShot = cfg;
                 break;
-            case WeaponType.Shotgun:
-                _shotgun = cfg;
+            case WeaponType.Aura:
+                _aura = cfg;
                 break;
-            case WeaponType.Laser:
-                _laser = cfg;
+            case WeaponType.HomingShot:
+                _homingShot = cfg;
                 break;
-            case WeaponType.ChainLightning:
-                _chain = cfg;
+            case WeaponType.Grenade:
+                _grenade = cfg;
                 break;
-            case WeaponType.Lightning:
-                _lightning = cfg;
-                break;
-            case WeaponType.Drone:
-                _drone = cfg;
-                break;
-            case WeaponType.Shuriken:
-                _shuriken = cfg;
-                break;
-            case WeaponType.FrostOrb:
-                _frost = cfg;
+            case WeaponType.Melee:
+                _melee = cfg;
                 break;
             default:
-                _straight = cfg;
+                _singleShot = cfg;
                 break;
         }
     }
@@ -490,26 +450,20 @@ public class AutoAttack : MonoBehaviour
     {
         switch (type)
         {
-            case WeaponType.Boomerang:
-                return _boomerang;
-            case WeaponType.Nova:
-                return _nova;
-            case WeaponType.Shotgun:
-                return _shotgun;
-            case WeaponType.Laser:
-                return _laser;
-            case WeaponType.ChainLightning:
-                return _chain;
-            case WeaponType.Lightning:
-                return _lightning;
-            case WeaponType.Drone:
-                return _drone;
-            case WeaponType.Shuriken:
-                return _shuriken;
-            case WeaponType.FrostOrb:
-                return _frost;
+            case WeaponType.MultiShot:
+                return _multiShot;
+            case WeaponType.PiercingShot:
+                return _piercingShot;
+            case WeaponType.Aura:
+                return _aura;
+            case WeaponType.HomingShot:
+                return _homingShot;
+            case WeaponType.Grenade:
+                return _grenade;
+            case WeaponType.Melee:
+                return _melee;
             default:
-                return _straight;
+                return _singleShot;
         }
     }
 
@@ -543,22 +497,6 @@ public class AutoAttack : MonoBehaviour
         }
 
         boomerang.SetHitReaction(cfg.KnockbackDistance, cfg.HitStunDuration);
-    }
-
-    private void ApplyHitReactionToDrone(DroneProjectile drone, WeaponType type)
-    {
-        if (drone == null)
-        {
-            return;
-        }
-
-        var cfg = GetWeaponConfig(type);
-        if (cfg.HitStunDuration <= 0f && cfg.KnockbackDistance <= 0f)
-        {
-            return;
-        }
-
-        drone.SetHitReaction(cfg.KnockbackDistance, cfg.HitStunDuration);
     }
 
     private void ApplyHitReactionToTarget(Transform target, WeaponType type)
@@ -613,197 +551,137 @@ public class AutoAttack : MonoBehaviour
         return bestTarget;
     }
 
-    private void FireStraight(Vector2 direction)
+    private void FireSingleShot(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _straight.RangeMult;
+        _range *= _singleShot.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
-        byte weaponId = ToWeaponId(WeaponType.Straight);
+        byte weaponId = ToWeaponId(WeaponType.SingleShot);
+        float damage = _projectileDamage * _singleShot.DamageMult;
 
-        int count = GetWeaponCount(_straight);
+        int count = GetWeaponCount(_singleShot);
         if (count <= 1)
         {
-            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, straightSpritePath, weaponId, WeaponType.Straight);
+            SpawnProjectile(direction, damage, 0f, lifetime, singleShotSpritePath, weaponId, WeaponType.SingleShot);
             _range = savedRange;
             return;
         }
 
-        Vector2 perp = new Vector2(-direction.y, direction.x);
-        float start = -(count - 1) * 0.5f;
-        for (int i = 0; i < count; i++)
-        {
-            float offsetIndex = start + i;
-            Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
-            SpawnProjectile(direction, _projectileDamage * _straight.DamageMult, 0f, lifetime, spawnOffset, straightSpritePath, weaponId, WeaponType.Straight);
-        }
+        StartCoroutine(FireSingleShotBurst(direction, damage, lifetime, weaponId, count));
 
         _range = savedRange;
     }
 
-    private void FireBoomerang(Vector2 direction)
+    private System.Collections.IEnumerator FireSingleShotBurst(Vector2 direction, float damage, float lifetime, byte weaponId, int count)
     {
-        float savedRange = _range;
-        _range *= _boomerang.RangeMult;
-        float lifetime = CalculateBoomerangLifetimeForRange(_range);
-        byte weaponId = ToWeaponId(WeaponType.Boomerang);
-
-        int count = GetWeaponCount(_boomerang);
-        if (count <= 1)
+        if (count <= 0)
         {
-            SpawnBoomerang(direction, _projectileDamage * _boomerang.DamageMult, lifetime, weaponId);
-            _range = savedRange;
-            return;
+            yield break;
         }
 
-        float angleStep = 20f;
+        Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
+        float interval = Mathf.Max(0f, straightBurstShotInterval);
+
+        for (int i = 0; i < count; i++)
+        {
+            SpawnProjectile(dir, damage, 0f, lifetime, singleShotSpritePath, weaponId, WeaponType.SingleShot);
+
+            if (i < count - 1 && interval > 0f)
+            {
+                yield return new WaitForSeconds(interval);
+            }
+        }
+    }
+
+    private void FireMultiShot(Vector2 direction)
+    {
+        float savedRange = _range;
+        _range *= _multiShot.RangeMult;
+        float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.MultiShot);
+        float damage = _projectileDamage * _multiShot.DamageMult;
+
+        int count = GetWeaponCount(_multiShot);
+        float angleStep = Mathf.Max(1f, radialSpreadStepAngle);
         float start = -angleStep * (count - 1) * 0.5f;
+        Vector2 baseDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : ResolveFacingDirection();
         for (int i = 0; i < count; i++)
         {
             float angle = start + angleStep * i;
-            Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnBoomerang(dir, _projectileDamage * _boomerang.DamageMult, lifetime, weaponId);
+            Vector2 dir = Quaternion.Euler(0f, 0f, angle) * baseDirection;
+            SpawnProjectile(dir, damage, 0f, lifetime, multiShotSpritePath, weaponId, WeaponType.MultiShot);
         }
 
         _range = savedRange;
     }
 
-    private void FireNova()
+    private void FirePiercingShot()
     {
-        float savedRange = _range;
-        _range *= _nova.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
-        byte weaponId = ToWeaponId(WeaponType.Nova);
-
-        int count = 8 + _nova.BonusCount;
-        float angleStep = 360f / count;
-        for (int i = 0; i < count; i++)
-        {
-            float angle = angleStep * i;
-            Vector2 dir = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
-            SpawnNovaProjectile(dir, lifetime, 1f, weaponId, WeaponType.Nova);
-        }
-
-        _range = savedRange;
-    }
-
-    private void FireShotgun(Vector2 direction)
-    {
-        float savedRange = _range;
-        _range *= _shotgun.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
-        byte weaponId = ToWeaponId(WeaponType.Shotgun);
-
-        int count = Mathf.Max(1, shotgunBasePellets + _shotgun.BonusCount + Mathf.Max(0, _projectileCount - 1));
-        float spread = Mathf.Max(0f, shotgunSpreadAngle);
-        float step = count <= 1 ? 0f : spread / (count - 1);
-        float start = -spread * 0.5f;
-        float pelletDamage = _projectileDamage * _shotgun.DamageMult * shotgunPelletDamageMult;
-        float speed = _projectileSpeed * Mathf.Max(0.1f, shotgunSpeedMult);
-
-        for (int i = 0; i < count; i++)
-        {
-            float angle = start + step * i;
-            Vector2 dir = Quaternion.Euler(0f, 0f, angle) * direction;
-            SpawnProjectile(dir, pelletDamage, 0f, lifetime, Vector2.zero, speed, shotgunSpritePath, weaponId, WeaponType.Shotgun);
-        }
-
-        _range = savedRange;
-    }
-
-    private void FireLaser(Vector2 direction)
-    {
-        float savedRange = _range;
-        _range *= _laser.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
-        byte weaponId = WeaponIdNone;
-
-        int count = GetWeaponCount(_laser);
-        Vector2 perp = new Vector2(-direction.y, direction.x);
-        float start = -(count - 1) * 0.5f;
-        float speed = _projectileSpeed * Mathf.Max(0.1f, laserSpeedMult);
-
-        for (int i = 0; i < count; i++)
-        {
-            float offsetIndex = start + i;
-            Vector2 spawnOffset = perp * (offsetIndex * laserParallelSpacing);
-            SpawnLaserProjectile(direction, _projectileDamage * _laser.DamageMult, lifetime, spawnOffset, speed, weaponId, WeaponType.Laser);
-        }
-
-        _range = savedRange;
-    }
-
-    private void FireChainLightning(Transform target)
-    {
+        var target = FindLowestHealthRatioEnemy();
         if (target == null)
         {
             return;
         }
 
         float savedRange = _range;
-        _range *= _chain.RangeMult;
-        float jumpRange = Mathf.Max(0.1f, _range * chainJumpRangeMult);
-        int jumps = Mathf.Max(1, chainBaseJumps + _chain.BonusCount);
-
-        var enemies = EnemyController.Active;
-        var hit = new System.Collections.Generic.HashSet<Health>();
-        var points = new System.Collections.Generic.List<Vector3>();
-        int elementCount = GetWeaponElements(WeaponType.ChainLightning, out var e0, out var e1, out var e2);
-        points.Add(transform.position);
-
-        Transform current = target;
-        for (int i = 0; i < jumps; i++)
+        _range *= _piercingShot.RangeMult;
+        float lifetime = CalculateLifetimeForRange(_range);
+        byte weaponId = ToWeaponId(WeaponType.PiercingShot);
+        float damage = _projectileDamage * _piercingShot.DamageMult;
+        int count = GetWeaponCount(_piercingShot);
+        int pierceCount = Mathf.Max(_projectilePierce, Mathf.Max(0, pierceBaseCount));
+        Vector2 direction = ((Vector2)(target.position - transform.position)).normalized;
+        if (direction.sqrMagnitude < 0.0001f)
         {
-            if (current == null)
-            {
-                break;
-            }
-
-            var health = current.GetComponent<Health>();
-            if (health != null && !hit.Contains(health))
-            {
-                health.Damage(_projectileDamage * _chain.DamageMult);
-                ApplyElementsToTarget(current, e0, e1, e2, elementCount);
-                ApplyHitReactionToTarget(current, WeaponType.ChainLightning);
-                hit.Add(health);
-            }
-
-            points.Add(current.position);
-            current = FindClosestEnemyToPoint(current.position, enemies, hit, jumpRange);
+            direction = ResolveFacingDirection();
         }
 
-        SpawnChainEffect(points);
+        if (count <= 1)
+        {
+            SpawnProjectile(direction, damage, 0f, lifetime, piercingShotSpritePath, weaponId, WeaponType.PiercingShot, pierceCount);
+        }
+        else
+        {
+            StartCoroutine(FirePierceBurst(direction, damage, lifetime, weaponId, count, pierceCount));
+        }
+
         _range = savedRange;
     }
 
-    private void FireLightningStrike()
+    private System.Collections.IEnumerator FirePierceBurst(Vector2 direction, float damage, float lifetime, byte weaponId, int count, int pierceCount)
     {
-        var enemies = EnemyController.Active;
-        if (enemies == null || enemies.Count == 0)
+        float interval = Mathf.Max(0f, pierceBurstShotInterval);
+        Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : ResolveFacingDirection();
+        for (int i = 0; i < count; i++)
         {
-            return;
+            SpawnProjectile(dir, damage, 0f, lifetime, piercingShotSpritePath, weaponId, WeaponType.PiercingShot, pierceCount);
+            if (i < count - 1 && interval > 0f)
+            {
+                yield return new WaitForSeconds(interval);
+            }
         }
+    }
 
-        int strikes = Mathf.Max(1, 1 + _lightning.BonusCount);
-        int elementCount = GetWeaponElements(WeaponType.Lightning, out var e0, out var e1, out var e2);
-        var used = new System.Collections.Generic.HashSet<int>();
-        for (int i = 0; i < strikes; i++)
+    private void FireAura()
+    {
+        float savedRange = _range;
+        _range *= _aura.RangeMult;
+        float radius = Mathf.Max(0.5f, _range);
+        float damage = _projectileDamage * _aura.DamageMult * auraDamageTickMult;
+        int elementCount = GetWeaponElements(WeaponType.Aura, out var e0, out var e1, out var e2);
+        float sqrRadius = radius * radius;
+        var enemies = EnemyController.Active;
+
+        for (int i = 0; i < enemies.Count; i++)
         {
-            if (used.Count >= enemies.Count)
-            {
-                break;
-            }
-
-            int idx = Random.Range(0, enemies.Count);
-            int safety = 0;
-            while (used.Contains(idx) && safety < 10)
-            {
-                idx = Random.Range(0, enemies.Count);
-                safety++;
-            }
-
-            used.Add(idx);
-            var enemy = enemies[idx];
+            var enemy = enemies[i];
             if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            Vector3 delta = enemy.transform.position - transform.position;
+            if (delta.sqrMagnitude > sqrRadius)
             {
                 continue;
             }
@@ -811,93 +689,263 @@ public class AutoAttack : MonoBehaviour
             var health = enemy.GetComponent<Health>();
             if (health != null && !health.IsDead)
             {
-                health.Damage(_projectileDamage * _lightning.DamageMult);
+                health.Damage(damage);
                 ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
-                ApplyHitReactionToTarget(enemy.transform, WeaponType.Lightning);
+                ApplyHitReactionToTarget(enemy.transform, WeaponType.Aura);
             }
-
-            SpawnLightningEffect(enemy.transform.position);
         }
+
+        _range = savedRange;
     }
 
-    private void FireDrone()
+    private void UpdateAuraIndicator(bool forceHide)
     {
-        int count = Mathf.Max(1, _drone.BonusCount + 1);
-        float radius = Mathf.Max(0.4f, droneOrbitRadius * _drone.RangeMult);
-        float speed = droneAngularSpeed;
-        float lifetime = Mathf.Max(0.2f, droneLifetime);
-        byte weaponId = ToWeaponId(WeaponType.Drone);
-        for (int i = 0; i < count; i++)
+        bool shouldShow = !forceHide && _aura.Enabled;
+        if (!shouldShow)
         {
-            float angle = (Mathf.PI * 2f / count) * i;
-            SpawnDroneProjectile(radius, speed, _projectileDamage * _drone.DamageMult * droneDamageMult, lifetime, angle, weaponId);
+            if (_auraIndicator != null)
+            {
+                _auraIndicator.SetActive(false);
+            }
+            return;
         }
+
+        EnsureAuraIndicator();
+        if (_auraIndicator == null)
+        {
+            return;
+        }
+
+        float radius = Mathf.Max(0.5f, _range * _aura.RangeMult);
+        float diameter = radius * 2f;
+        _auraIndicator.transform.position = transform.position;
+        _auraIndicator.transform.localScale = new Vector3(diameter, diameter, 1f);
+        _auraIndicator.SetActive(true);
     }
 
-    private void FireShuriken(Vector2 direction)
+    private void EnsureAuraIndicator()
+    {
+        if (_auraIndicator != null)
+        {
+            return;
+        }
+
+        _auraIndicator = new GameObject("AuraRangeIndicator");
+        _auraIndicatorRenderer = _auraIndicator.AddComponent<SpriteRenderer>();
+        _auraIndicatorRenderer.sprite = CreateCircleSprite(128);
+        _auraIndicatorRenderer.color = auraIndicatorColor;
+        _auraIndicatorRenderer.sortingOrder = auraIndicatorSortingOrder;
+    }
+
+    private void FireHomingShot(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _shuriken.RangeMult;
+        _range *= _homingShot.RangeMult;
         float lifetime = CalculateLifetimeForRange(_range);
-        byte weaponId = ToWeaponId(WeaponType.Shuriken);
+        byte weaponId = ToWeaponId(WeaponType.HomingShot);
+        float damage = _projectileDamage * _homingShot.DamageMult;
+        float speed = _projectileSpeed * Mathf.Max(0.1f, homingShotSpeedMult);
+        float retargetRange = Mathf.Max(1f, _range * homingRetargetRangeMult);
 
-        int count = GetWeaponCount(_shuriken);
-        if (count <= 1)
+        int count = GetWeaponCount(_homingShot);
+        Vector2 baseDir = direction.sqrMagnitude > 0.0001f ? direction.normalized : ResolveFacingDirection();
+        float step = count <= 1 ? 0f : 360f / count;
+
+        for (int i = 0; i < count; i++)
         {
-            var proj = SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, weaponId);
-            ApplyElementsToProjectile(proj, WeaponType.Shuriken);
-            ApplyHitReactionToProjectile(proj, WeaponType.Shuriken);
+            Vector2 shotDir = Quaternion.Euler(0f, 0f, step * i) * baseDir;
+            var proj = SpawnColoredProjectile(shotDir, damage, homingShotColor, 0f, lifetime, speed, homingShotSpritePath, weaponId, Vector2.zero, 1);
+            ApplyElementsToProjectile(proj, WeaponType.HomingShot);
+            ApplyHitReactionToProjectile(proj, WeaponType.HomingShot);
+            if (proj != null)
+            {
+                Transform preferred = FindClosestEnemyToPoint(transform.position, EnemyController.Active, null, retargetRange);
+                proj.SetHoming(preferred, homingTurnSpeed, retargetRange);
+            }
+        }
+
+        _range = savedRange;
+    }
+
+    private void FireGrenade()
+    {
+        float savedRange = _range;
+        _range *= _grenade.RangeMult;
+        int count = GetWeaponCount(_grenade);
+        float damage = _projectileDamage * _grenade.DamageMult;
+        float radius = Mathf.Max(0.5f, thrownExplosionRadius * _grenade.RangeMult);
+        float speed = Mathf.Max(0.1f, thrownTravelSpeed);
+        for (int i = 0; i < count; i++)
+        {
+            Transform target = FindRandomEnemy(_range);
+            if (target == null)
+            {
+                continue;
+            }
+
+            Vector3 targetPos = target.position;
+            float distance = Vector3.Distance(transform.position, targetPos);
+            float travelTime = distance / speed;
+            StartCoroutine(ThrownProjectileAndExplode(targetPos, travelTime, damage, radius));
+        }
+
+        _range = savedRange;
+    }
+
+    private System.Collections.IEnumerator ThrownProjectileAndExplode(Vector3 targetPos, float delay, float damage, float radius)
+    {
+        Vector3 startPos = transform.position;
+        float travelTime = Mathf.Max(0.02f, delay);
+        var projectile = CreateGrenadeVisual(startPos);
+        var indicator = CreateAreaIndicator("GrenadeTargetIndicator", targetPos, radius, grenadeTargetIndicatorColor, grenadeIndicatorSortingOrder);
+
+        float elapsed = 0f;
+        while (elapsed < travelTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / travelTime);
+            if (projectile != null)
+            {
+                Vector3 pos = Vector3.Lerp(startPos, targetPos, t);
+                float arc = grenadeArcHeight * 4f * t * (1f - t);
+                pos.y += arc;
+                projectile.transform.position = pos;
+            }
+
+            yield return null;
+        }
+
+        if (projectile != null)
+        {
+            Destroy(projectile);
+        }
+
+        float sqrRadius = radius * radius;
+        int elementCount = GetWeaponElements(WeaponType.Grenade, out var e0, out var e1, out var e2);
+        var enemies = EnemyController.Active;
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            Vector3 delta = enemy.transform.position - targetPos;
+            if (delta.sqrMagnitude > sqrRadius)
+            {
+                continue;
+            }
+
+            var health = enemy.GetComponent<Health>();
+            if (health == null || health.IsDead)
+            {
+                continue;
+            }
+
+            health.Damage(damage);
+            ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
+            ApplyHitReactionToTarget(enemy.transform, WeaponType.Grenade);
+        }
+
+        if (indicator != null)
+        {
+            Destroy(indicator);
+        }
+
+        SpawnLightningEffect(targetPos);
+    }
+
+    private GameObject CreateGrenadeVisual(Vector3 position)
+    {
+        var go = new GameObject("GrenadeProjectileVisual");
+        go.transform.position = position;
+        var renderer = go.AddComponent<SpriteRenderer>();
+        bool hasSprite = TryResolveProjectileSprite(auraSpritePath, _projectileSize, out var sprite);
+        renderer.sprite = sprite;
+        renderer.color = grenadeProjectileColor;
+        renderer.sortingOrder = grenadeIndicatorSortingOrder + 1;
+        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale * 0.85f : 0.35f);
+        return go;
+    }
+
+    private GameObject CreateAreaIndicator(string name, Vector3 position, float radius, Color color, int sortingOrder)
+    {
+        var go = new GameObject(name);
+        go.transform.position = position;
+        go.transform.localScale = new Vector3(radius * 2f, radius * 2f, 1f);
+
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = CreateCircleSprite(128);
+        renderer.color = color;
+        renderer.sortingOrder = sortingOrder;
+        return go;
+    }
+
+    private void FireMelee()
+    {
+        float savedRange = _range;
+        _range *= _melee.RangeMult;
+        float range = Mathf.Max(0.5f, _range);
+        float sqrRange = range * range;
+        float halfAngle = Mathf.Clamp(meleeConeAngle, 10f, 180f) * 0.5f;
+        float dotThreshold = Mathf.Cos(halfAngle * Mathf.Deg2Rad);
+        Vector2 facing = ResolveFacingDirection();
+        float damage = _projectileDamage * _melee.DamageMult;
+        int elementCount = GetWeaponElements(WeaponType.Melee, out var e0, out var e1, out var e2);
+
+        var enemies = EnemyController.Active;
+        if (enemies == null || enemies.Count == 0)
+        {
             _range = savedRange;
             return;
         }
 
-        Vector2 perp = new Vector2(-direction.y, direction.x);
-        float start = -(count - 1) * 0.5f;
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < enemies.Count; i++)
         {
-            float offsetIndex = start + i;
-            Vector2 spawnOffset = perp * (offsetIndex * straightParallelSpacing);
-            var proj = SpawnColoredProjectile(direction, _projectileDamage * _shuriken.DamageMult * shurikenDamageMult, shurikenColor, shurikenSpinSpeed, lifetime, _projectileSpeed * shurikenSpeedMult, shurikenSpritePath, weaponId, spawnOffset);
-            ApplyElementsToProjectile(proj, WeaponType.Shuriken);
-            ApplyHitReactionToProjectile(proj, WeaponType.Shuriken);
-        }
-
-        _range = savedRange;
-    }
-
-    private void FireFrostOrb(Vector2 direction)
-    {
-        float savedRange = _range;
-        _range *= _frost.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
-        byte weaponId = ToWeaponId(WeaponType.FrostOrb);
-
-        int count = GetWeaponCount(_frost);
-        for (int i = 0; i < count; i++)
-        {
-            var proj = SpawnColoredProjectile(direction, _projectileDamage * _frost.DamageMult * frostDamageMult, frostColor, 360f, lifetime, _projectileSpeed * frostSpeedMult, frostSpritePath, weaponId);
-            if (proj != null)
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
             {
-                ApplyElementsToProjectile(proj, WeaponType.FrostOrb);
-                ApplyHitReactionToProjectile(proj, WeaponType.FrostOrb);
-                proj.SetSlowEffect(frostSlowMultiplier, frostSlowDuration);
+                continue;
+            }
+
+            Vector2 toEnemy = enemy.transform.position - transform.position;
+            float sqr = toEnemy.sqrMagnitude;
+            if (sqr > sqrRange || sqr < 0.0001f)
+            {
+                continue;
+            }
+
+            Vector2 dir = toEnemy.normalized;
+            if (Vector2.Dot(facing, dir) < dotThreshold)
+            {
+                continue;
+            }
+
+            var health = enemy.GetComponent<Health>();
+            if (health != null && !health.IsDead)
+            {
+                health.Damage(damage);
+                ApplyElementsToTarget(enemy.transform, e0, e1, e2, elementCount);
+                ApplyHitReactionToTarget(enemy.transform, WeaponType.Melee);
+                SpawnLightningEffect(enemy.transform.position);
             }
         }
 
         _range = savedRange;
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath, byte weaponId, WeaponType weaponType)
+                private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath, byte weaponId, WeaponType weaponType, int pierceOverride = -1)
     {
-        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero, _projectileSpeed, spritePath, weaponId, weaponType);
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, Vector2.zero, _projectileSpeed, spritePath, weaponId, weaponType, pierceOverride);
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, string spritePath, byte weaponId, WeaponType weaponType)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, string spritePath, byte weaponId, WeaponType weaponType, int pierceOverride = -1)
     {
-        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, spawnOffset, _projectileSpeed, spritePath, weaponId, weaponType);
+        SpawnProjectile(direction, damageOverride, spinSpeed, lifetimeOverride, spawnOffset, _projectileSpeed, spritePath, weaponId, weaponType, pierceOverride);
     }
 
-    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride, string spritePath, byte weaponId, WeaponType weaponType)
+    private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, Vector2 spawnOffset, float speedOverride, string spritePath, byte weaponId, WeaponType weaponType, int pierceOverride = -1)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -958,7 +1006,8 @@ public class AutoAttack : MonoBehaviour
             proj = go.AddComponent<Projectile>();
         }
         float life = lifetimeOverride > 0f ? lifetimeOverride : _projectileLifetime;
-        proj.Initialize(direction, speedOverride, damageOverride, life, _projectilePierce, spinSpeed);
+        int resolvedPierce = pierceOverride >= 0 ? pierceOverride : _projectilePierce;
+        proj.Initialize(direction, speedOverride, damageOverride, life, resolvedPierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
@@ -1003,7 +1052,7 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         const float fallbackScale = 0.4f;
-        bool hasSprite = TryResolveProjectileSprite(novaSpritePath, _projectileSize, out var novaSprite);
+        bool hasSprite = TryResolveProjectileSprite(piercingShotSpritePath, _projectileSize, out var novaSprite);
         renderer.sprite = novaSprite;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
@@ -1030,12 +1079,12 @@ public class AutoAttack : MonoBehaviour
         {
             proj = go.AddComponent<Projectile>();
         }
-        float angularSpeed = Mathf.Max(0.1f, novaOrbitAngularSpeed) * rotationSign;
-        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _nova.DamageMult, lifetime, _projectilePierce, 720f);
+        float angularSpeed = Mathf.Max(0.1f, piercingShotOrbitAngularSpeed) * rotationSign;
+        proj.InitializeOrbit(transform.position, direction, _projectileSpeed, angularSpeed, _projectileDamage * _piercingShot.DamageMult, lifetime, _projectilePierce, 720f);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
-        ApplyNetworkVisual(renderer, netColor, novaColor, novaSpritePath, weaponId);
+        ApplyNetworkVisual(renderer, netColor, novaColor, piercingShotSpritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -1058,7 +1107,7 @@ public class AutoAttack : MonoBehaviour
         }
         else
         {
-            go = GetPooledObject(_laserProjectilePool, "Laser");
+            go = GetPooledObject(_homingShotProjectilePool, "Laser");
         }
 
         if (go == null)
@@ -1067,7 +1116,7 @@ public class AutoAttack : MonoBehaviour
         }
 
         go.transform.position = transform.position + (Vector3)spawnOffset;
-        go.transform.localScale = new Vector3(laserLengthScale, laserThickness, 1f);
+        go.transform.localScale = new Vector3(homingShotLengthScale, homingShotThickness, 1f);
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         go.transform.rotation = Quaternion.Euler(0f, 0f, angle);
 
@@ -1101,10 +1150,10 @@ public class AutoAttack : MonoBehaviour
             proj = go.AddComponent<Projectile>();
         }
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, 0f);
-        proj.SetRelease(p => ReleaseProjectile(p, _laserProjectilePool));
+        proj.SetRelease(p => ReleaseProjectile(p, _homingShotProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
-        ApplyNetworkVisual(renderer, netColor, laserColor, null, weaponId);
+        ApplyNetworkVisual(renderer, netColor, homingShotColor, null, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -1113,10 +1162,10 @@ public class AutoAttack : MonoBehaviour
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId)
     {
-        return SpawnColoredProjectile(direction, damageOverride, color, spinSpeed, lifetime, speedOverride, spritePath, weaponId, Vector2.zero);
+        return SpawnColoredProjectile(direction, damageOverride, color, spinSpeed, lifetime, speedOverride, spritePath, weaponId, Vector2.zero, -1);
     }
 
-    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId, Vector2 spawnOffset)
+    private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId, Vector2 spawnOffset, int pierceOverride = -1)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -1175,7 +1224,8 @@ public class AutoAttack : MonoBehaviour
         {
             proj = go.AddComponent<Projectile>();
         }
-        proj.Initialize(direction, speedOverride, damageOverride, lifetime, _projectilePierce, spinSpeed);
+        int resolvedPierce = pierceOverride >= 0 ? pierceOverride : _projectilePierce;
+        proj.Initialize(direction, speedOverride, damageOverride, lifetime, resolvedPierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyNetworkVisual(renderer, netColor, color, spritePath, weaponId);
         if (networked)
@@ -1185,77 +1235,7 @@ public class AutoAttack : MonoBehaviour
         return proj;
     }
 
-    private void SpawnDroneProjectile(float radius, float angularSpeed, float damageOverride, float lifetime, float startAngle, byte weaponId)
-    {
-        bool networked = NetworkSession.IsActive;
-        if (networked && !NetworkSession.IsServer)
-        {
-            return;
-        }
-
-        GameObject go = null;
-        if (networked)
-        {
-            RuntimeNetworkPrefabs.EnsureRegistered();
-            go = RuntimeNetworkPrefabs.InstantiateDrone();
-        }
-        else
-        {
-            go = GetPooledObject(_dronePool, "Drone");
-        }
-
-        if (go == null)
-        {
-            return;
-        }
-
-        go.transform.position = transform.position;
-        go.transform.rotation = Quaternion.identity;
-
-        var renderer = go.GetComponent<SpriteRenderer>();
-        if (renderer == null)
-        {
-            renderer = go.AddComponent<SpriteRenderer>();
-        }
-        const float fallbackScale = 0.4f;
-        bool hasSprite = TryResolveProjectileSprite(droneSpritePath, _projectileSize, out var droneSprite);
-        renderer.sprite = droneSprite;
-        go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
-        var netColor = go.GetComponent<NetworkColor>();
-
-        var rb = go.GetComponent<Rigidbody2D>();
-        if (rb == null)
-        {
-            rb = go.AddComponent<Rigidbody2D>();
-        }
-        rb.bodyType = RigidbodyType2D.Kinematic;
-        rb.gravityScale = 0f;
-
-        var col = go.GetComponent<CircleCollider2D>();
-        if (col == null)
-        {
-            col = go.AddComponent<CircleCollider2D>();
-        }
-        col.isTrigger = true;
-        col.radius = GetScaledColliderRadius(0.45f, fallbackScale, hasSprite);
-
-        var drone = go.GetComponent<DroneProjectile>();
-        if (drone == null)
-        {
-            drone = go.AddComponent<DroneProjectile>();
-        }
-        drone.Initialize(transform, radius, angularSpeed, damageOverride, lifetime, startAngle);
-        drone.SetRelease(d => ReleaseDrone(d));
-        ApplyElementsToDrone(drone, WeaponType.Drone);
-        ApplyHitReactionToDrone(drone, WeaponType.Drone);
-        ApplyNetworkVisual(renderer, netColor, droneColor, droneSpritePath, weaponId);
-        if (networked)
-        {
-            SpawnNetworkObject(go);
-        }
-    }
-
-    private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime, byte weaponId)
+        private void SpawnBoomerang(Vector2 direction, float damageOverride, float lifetime, byte weaponId)
     {
         bool networked = NetworkSession.IsActive;
         if (networked && !NetworkSession.IsServer)
@@ -1271,7 +1251,7 @@ public class AutoAttack : MonoBehaviour
         }
         else
         {
-            go = GetPooledObject(_boomerangPool, "Boomerang");
+            go = GetPooledObject(_multiShotPool, "Boomerang");
         }
 
         if (go == null)
@@ -1288,7 +1268,7 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         const float fallbackScale = 0.45f;
-        bool hasSprite = TryResolveProjectileSprite(boomerangSpritePath, _projectileSize, out var boomerangSprite);
+        bool hasSprite = TryResolveProjectileSprite(multiShotSpritePath, _projectileSize, out var boomerangSprite);
         renderer.sprite = boomerangSprite;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var boomColor = new Color(0.2f, 0.9f, 0.9f, 1f);
@@ -1317,9 +1297,9 @@ public class AutoAttack : MonoBehaviour
         }
         boom.Initialize(transform, direction, _projectileSpeed, damageOverride, lifetime, 9999);
         boom.SetRelease(b => ReleaseBoomerang(b));
-        ApplyElementsToBoomerang(boom, WeaponType.Boomerang);
-        ApplyHitReactionToBoomerang(boom, WeaponType.Boomerang);
-        ApplyNetworkVisual(renderer, netColor, boomColor, boomerangSpritePath, weaponId);
+        ApplyElementsToBoomerang(boom, WeaponType.MultiShot);
+        ApplyHitReactionToBoomerang(boom, WeaponType.MultiShot);
+        ApplyNetworkVisual(renderer, netColor, boomColor, multiShotSpritePath, weaponId);
         if (networked)
         {
             SpawnNetworkObject(go);
@@ -1366,18 +1346,7 @@ public class AutoAttack : MonoBehaviour
         proj.SetElements(first, second, third, count);
     }
 
-    private void ApplyElementsToDrone(DroneProjectile proj, WeaponType type)
-    {
-        if (proj == null)
-        {
-            return;
-        }
-
-        int count = GetWeaponElements(type, out var first, out var second, out var third);
-        proj.SetElements(first, second, third, count);
-    }
-
-    private static void ApplyElementsToTarget(Transform target, ElementType first, ElementType second, ElementType third, int count)
+        private static void ApplyElementsToTarget(Transform target, ElementType first, ElementType second, ElementType third, int count)
     {
         if (target == null || count <= 0)
         {
@@ -1617,28 +1586,11 @@ public class AutoAttack : MonoBehaviour
         }
         else
         {
-            ReturnToPool(_boomerangPool, boomerang.gameObject);
+            ReturnToPool(_multiShotPool, boomerang.gameObject);
         }
     }
 
-    private static void ReleaseDrone(DroneProjectile drone)
-    {
-        if (drone == null)
-        {
-            return;
-        }
-
-        if (NetworkSession.IsActive)
-        {
-            DespawnNetworkObject(drone.gameObject);
-        }
-        else
-        {
-            ReturnToPool(_dronePool, drone.gameObject);
-        }
-    }
-
-    private static GameObject GetPooledObject(System.Collections.Generic.Stack<GameObject> pool, string name)
+        private static GameObject GetPooledObject(System.Collections.Generic.Stack<GameObject> pool, string name)
     {
         GameObject go = null;
         while (pool.Count > 0 && go == null)
@@ -1712,6 +1664,84 @@ public class AutoAttack : MonoBehaviour
         return bestTarget;
     }
 
+    private Transform FindLowestHealthRatioEnemy()
+    {
+        float limit = _range * _range;
+        Transform bestTarget = null;
+        float bestRatio = float.MaxValue;
+        var enemies = EnemyController.Active;
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            Vector3 delta = enemy.transform.position - transform.position;
+            if (delta.sqrMagnitude > limit)
+            {
+                continue;
+            }
+
+            var health = enemy.GetComponent<Health>();
+            if (health == null || health.MaxHealth <= 0f || health.IsDead)
+            {
+                continue;
+            }
+
+            float ratio = health.CurrentHealth / health.MaxHealth;
+            if (ratio < bestRatio)
+            {
+                bestRatio = ratio;
+                bestTarget = enemy.transform;
+            }
+        }
+
+        return bestTarget;
+    }
+
+    private Transform FindRandomEnemy(float range)
+    {
+        float limit = range * range;
+        var candidates = new System.Collections.Generic.List<Transform>();
+        var enemies = EnemyController.Active;
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            Vector3 delta = enemy.transform.position - transform.position;
+            if (delta.sqrMagnitude > limit)
+            {
+                continue;
+            }
+
+            candidates.Add(enemy.transform);
+        }
+
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        int idx = Random.Range(0, candidates.Count);
+        return candidates[idx];
+    }
+
+    private Vector2 ResolveFacingDirection()
+    {
+        if (_cachedDir.sqrMagnitude > 0.0001f)
+        {
+            return _cachedDir.normalized;
+        }
+
+        return transform.localScale.x < 0f ? Vector2.left : Vector2.right;
+    }
+
     private void SpawnChainEffect(System.Collections.Generic.List<Vector3> points)
     {
         if (points == null || points.Count < 2)
@@ -1723,14 +1753,14 @@ public class AutoAttack : MonoBehaviour
         var line = go.AddComponent<LineRenderer>();
         line.positionCount = points.Count;
         line.SetPositions(points.ToArray());
-        line.startWidth = chainLineWidth;
-        line.endWidth = chainLineWidth;
+        line.startWidth = grenadeLineWidth;
+        line.endWidth = grenadeLineWidth;
         line.sortingOrder = 2000;
         line.material = GetChainMaterial();
-        line.startColor = chainColor;
-        line.endColor = chainColor;
+        line.startColor = grenadeColor;
+        line.endColor = grenadeColor;
 
-        Destroy(go, chainEffectDuration);
+        Destroy(go, grenadeEffectDuration);
     }
 
     private void SpawnLightningEffect(Vector3 position)
@@ -1738,31 +1768,31 @@ public class AutoAttack : MonoBehaviour
         var go = new GameObject("LightningStrike");
         var line = go.AddComponent<LineRenderer>();
         line.positionCount = 2;
-        line.startWidth = lightningLineWidth;
-        line.endWidth = lightningLineWidth * 0.6f;
+        line.startWidth = meleeLineWidth;
+        line.endWidth = meleeLineWidth * 0.6f;
         line.sortingOrder = 2200;
         line.material = GetChainMaterial();
-        line.startColor = lightningColor;
-        line.endColor = lightningColor;
+        line.startColor = meleeColor;
+        line.endColor = meleeColor;
 
-        Vector3 top = position + Vector3.up * lightningLineLength;
+        Vector3 top = position + Vector3.up * meleeLineLength;
         line.SetPosition(0, top);
         line.SetPosition(1, position);
 
-        Destroy(go, lightningEffectDuration);
+        Destroy(go, meleeEffectDuration);
     }
 
-    private static Material _chainMaterial;
+    private static Material _grenadeMaterial;
 
     private static Material GetChainMaterial()
     {
-        if (_chainMaterial != null)
+        if (_grenadeMaterial != null)
         {
-            return _chainMaterial;
+            return _grenadeMaterial;
         }
 
-        _chainMaterial = new Material(Shader.Find("Sprites/Default"));
-        return _chainMaterial;
+        _grenadeMaterial = new Material(Shader.Find("Sprites/Default"));
+        return _grenadeMaterial;
     }
 
     private static void ApplyNetworkVisual(SpriteRenderer renderer, NetworkColor netColor, Color color, string spritePath, byte weaponId)
@@ -1787,3 +1817,7 @@ public class AutoAttack : MonoBehaviour
         }
     }
 }
+
+
+
+

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -94,7 +94,7 @@ public class GameSession : MonoBehaviour
     [Header("Upgrades")]
     private int maxUpgradeLevel = 10;
 
-    private int maxWeaponSlots = 5;
+    private int maxWeaponSlots = 3;
 
     private int maxStatSlots = 5;
 
@@ -114,114 +114,95 @@ public class GameSession : MonoBehaviour
 
     private float weaponDamageMult = 1f;
 
-    private WeaponStatsData gunStats = new WeaponStatsData
+    private WeaponStatsData singleShotStats = new WeaponStatsData
     {
-        displayName = "총",
+        displayName = "SingleShot",
         level = 1,
         unlocked = true,
         damageMult = 1f,
         fireRateMult = 1.2f,
-        rangeMult = 1f,
-        bonusProjectiles = 0
+        rangeMult = 1.3333f,
+        bonusProjectiles = 0,
+        hitStunDuration = 0.05f,
+        knockbackDistance = 0.05f
     };
 
-    private WeaponStatsData boomerangStats = new WeaponStatsData
+    private WeaponStatsData multiShotStats = new WeaponStatsData
     {
-        displayName = "부메랑",
+        displayName = "MultiShot",
         level = 0,
         unlocked = false,
-        damageMult = 1f,
-        fireRateMult = 0.8f,
-        rangeMult = 0.7f,
-        bonusProjectiles = 0
-    };
-
-    private WeaponStatsData novaStats = new WeaponStatsData
-    {
-        displayName = "노바",
-        level = 0,
-        unlocked = false,
-        damageMult = 1f,
+        damageMult = 0.5f,
         fireRateMult = 0.6f,
+        rangeMult = 0.8333f,
+        bonusProjectiles = 2,
+        hitStunDuration = 0.05f,
+        knockbackDistance = 0.05f
+    };
+
+    private WeaponStatsData piercingShotStats = new WeaponStatsData
+    {
+        displayName = "PiercingShot",
+        level = 0,
+        unlocked = false,
+        damageMult = 2.5f,
+        fireRateMult = 0.48f,
+        rangeMult = 3.3333f,
+        bonusProjectiles = 0,
+        hitStunDuration = 0.2f,
+        knockbackDistance = 0.2f
+    };
+
+    private WeaponStatsData auraStats = new WeaponStatsData
+    {
+        displayName = "Aura",
+        level = 0,
+        unlocked = false,
+        damageMult = 0.5f,
+        fireRateMult = 1.8f,
         rangeMult = 0.5f,
-        bonusProjectiles = 0
+        bonusProjectiles = 0,
+        hitStunDuration = 0.01f,
+        knockbackDistance = 0f
     };
 
-    private WeaponStatsData shotgunStats = new WeaponStatsData
+    private WeaponStatsData homingShotStats = new WeaponStatsData
     {
-        displayName = "샷건",
+        displayName = "HomingShot",
         level = 0,
         unlocked = false,
-        damageMult = 0.9f,
-        fireRateMult = 0.7f,
-        rangeMult = 0.75f,
-        bonusProjectiles = 0
+        damageMult = 1.2f,
+        fireRateMult = 0.72f,
+        rangeMult = 1.6667f,
+        bonusProjectiles = 0,
+        hitStunDuration = 0.08f,
+        knockbackDistance = 0.08f
     };
 
-    private WeaponStatsData laserStats = new WeaponStatsData
+    private WeaponStatsData grenadeStats = new WeaponStatsData
     {
-        displayName = "레이저",
+        displayName = "Grenade",
         level = 0,
         unlocked = false,
-        damageMult = 1.1f,
-        fireRateMult = 0.8f,
-        rangeMult = 1.4f,
-        bonusProjectiles = 0
+        damageMult = 1.8f,
+        fireRateMult = 0.66f,
+        rangeMult = 2f,
+        bonusProjectiles = 0,
+        hitStunDuration = 0.1f,
+        knockbackDistance = 0.12f
     };
 
-    private WeaponStatsData chainStats = new WeaponStatsData
+    private WeaponStatsData meleeStats = new WeaponStatsData
     {
-        displayName = "체인 라이트닝",
+        displayName = "Melee",
         level = 0,
         unlocked = false,
-        damageMult = 0.9f,
-        fireRateMult = 0.75f,
-        rangeMult = 1.1f,
-        bonusProjectiles = 0
-    };
-
-    private WeaponStatsData droneStats = new WeaponStatsData
-    {
-        displayName = "드론",
-        level = 0,
-        unlocked = false,
-        damageMult = 0.8f,
-        fireRateMult = 0.5f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0
-    };
-
-    private WeaponStatsData shurikenStats = new WeaponStatsData
-    {
-        displayName = "수리검",
-        level = 0,
-        unlocked = false,
-        damageMult = 0.9f,
-        fireRateMult = 0.9f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0
-    };
-
-    private WeaponStatsData frostStats = new WeaponStatsData
-    {
-        displayName = "빙결 구체",
-        level = 0,
-        unlocked = false,
-        damageMult = 0.85f,
-        fireRateMult = 0.8f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0
-    };
-
-    private WeaponStatsData lightningStats = new WeaponStatsData
-    {
-        displayName = "번개",
-        level = 0,
-        unlocked = false,
-        damageMult = 1.0f,
-        fireRateMult = 0.7f,
-        rangeMult = 1.0f,
-        bonusProjectiles = 0
+        damageMult = 2f,
+        fireRateMult = 1.5f,
+        rangeMult = 0.4167f,
+        bonusProjectiles = 0,
+        hitStunDuration = 0.15f,
+        knockbackDistance = 0.25f
     };
 
     private float moveSpeedMult = 1f;
@@ -264,10 +245,58 @@ public class GameSession : MonoBehaviour
 
     private int projectileCountLevel = 0;
 
-    [Header("Start Weapon")]
-    private bool requireStartWeaponChoice = true;
+    [Header("Start Character")]
+    private bool requireStartCharacterChoice = true;
     
-    private StartWeaponType startWeapon = StartWeaponType.Gun;
+    private StartCharacterType startCharacter = StartCharacterType.SingleShot;
+
+    [System.Serializable]
+    private struct StartCharacterTuning
+    {
+        public StartCharacterType character;
+        public AutoAttack.WeaponType defaultWeapon;
+        public float damageMult;
+        public float fireRateMult;
+        public float rangeMult;
+        public float moveSpeedMult;
+        public float weaponDamageMult;
+    }
+
+    [Header("Start Character Tuning")]
+    [SerializeField]
+    private StartCharacterTuning[] startCharacterTunings = new[]
+    {
+        new StartCharacterTuning
+        {
+            character = StartCharacterType.SingleShot,
+            defaultWeapon = AutoAttack.WeaponType.SingleShot,
+            damageMult = 1f,
+            fireRateMult = 1f,
+            rangeMult = 1f,
+            moveSpeedMult = 1f,
+            weaponDamageMult = 1f
+        },
+        new StartCharacterTuning
+        {
+            character = StartCharacterType.Melee,
+            defaultWeapon = AutoAttack.WeaponType.Melee,
+            damageMult = 1f,
+            fireRateMult = 1f,
+            rangeMult = 1f,
+            moveSpeedMult = 1f,
+            weaponDamageMult = 1f
+        },
+        new StartCharacterTuning
+        {
+            character = StartCharacterType.Aura,
+            defaultWeapon = AutoAttack.WeaponType.Aura,
+            damageMult = 1f,
+            fireRateMult = 1f,
+            rangeMult = 1f,
+            moveSpeedMult = 1f,
+            weaponDamageMult = 1f
+        }
+    };
 
     [Header("Start Map")]
     private bool requireMapChoice = true;
@@ -331,11 +360,11 @@ public class GameSession : MonoBehaviour
 
     public Vector2 MapHalfSize => mapHalfSize;
     public int MonsterLevel => Mathf.Max(1, 1 + Mathf.FloorToInt(ElapsedTime / Mathf.Max(1f, monsterLevelInterval)));
-    public bool IsWaitingStartWeaponChoice => _waitingStartWeaponChoice;
-    public bool IsGameplayActive => _gameStarted && !_waitingStartWeaponChoice && !_waitingMapChoice;
+    public bool IsWaitingStartCharacterChoice => _waitingStartCharacterChoice;
+    public bool IsGameplayActive => _gameStarted && !_waitingStartCharacterChoice && !_waitingMapChoice;
     public bool IsChoosingUpgrade => _choosingUpgrade;
 
-    private bool StraightUnlocked => gunStats != null && gunStats.unlocked && gunStats.level > 0;
+    private bool SingleShotUnlocked => singleShotStats != null && singleShotStats.unlocked && singleShotStats.level > 0;
 
     public bool IsGameOver { get; private set; }
     public bool IsStageComplete => _stageCompleted;
@@ -376,7 +405,7 @@ public class GameSession : MonoBehaviour
     private readonly List<UpgradeOption> _options = new List<UpgradeOption>();
     private readonly Dictionary<string, int> _upgradeCounts = new Dictionary<string, int>();
     private readonly List<string> _upgradeOrder = new List<string>();
-    private bool _waitingStartWeaponChoice;
+    private bool _waitingStartCharacterChoice;
     private bool _waitingMapChoice;
     private bool _mapChoiceApplied;
     private MapChoiceEntry _selectedMapChoice;
@@ -396,9 +425,9 @@ public class GameSession : MonoBehaviour
     private int _networkUpgradeRoundId = -1;
     private bool _localUpgradeSubmitted;
     private GameObject[] _startPreviews;
-    private bool _startWeaponApplied;
-    private bool _hasPendingStartWeapon;
-    private StartWeaponType _pendingStartWeapon;
+    private bool _startCharacterApplied;
+    private bool _hasPendingStartCharacter;
+    private StartCharacterType _pendingStartCharacter;
     private Camera _cachedCamera;
     private bool _rerollAvailable;
     private int _startPreviewHoverIndex = -1;
@@ -519,16 +548,14 @@ public class GameSession : MonoBehaviour
         projectilePierceBonus = settings.projectilePierceBonus;
         weaponDamageMult = settings.weaponDamageMult;
 
-        gunStats = CloneWeaponStats(settings.gunStats);
-        boomerangStats = CloneWeaponStats(settings.boomerangStats);
-        novaStats = CloneWeaponStats(settings.novaStats);
-        shotgunStats = CloneWeaponStats(settings.shotgunStats);
-        laserStats = CloneWeaponStats(settings.laserStats);
-        chainStats = CloneWeaponStats(settings.chainStats);
-        droneStats = CloneWeaponStats(settings.droneStats);
-        shurikenStats = CloneWeaponStats(settings.shurikenStats);
-        frostStats = CloneWeaponStats(settings.frostStats);
-        lightningStats = CloneWeaponStats(settings.lightningStats);
+        singleShotStats = CloneWeaponStats(settings.singleShotStats);
+        multiShotStats = CloneWeaponStats(settings.multiShotStats);
+        piercingShotStats = CloneWeaponStats(settings.piercingShotStats);
+        auraStats = CloneWeaponStats(settings.auraStats);
+        homingShotStats = CloneWeaponStats(settings.homingShotStats);
+        grenadeStats = CloneWeaponStats(settings.grenadeStats);
+        meleeStats = CloneWeaponStats(settings.meleeStats);
+        ApplySevenWeaponProfileDefaults();
 
         moveSpeedMult = settings.moveSpeedMult;
         xpGainMult = settings.xpGainMult;
@@ -541,8 +568,8 @@ public class GameSession : MonoBehaviour
         coinDropChance = settings.coinDropChance;
         coinAmount = settings.coinAmount;
 
-        requireStartWeaponChoice = settings.requireStartWeaponChoice;
-        startWeapon = settings.startWeapon;
+        requireStartCharacterChoice = settings.requireStartCharacterChoice;
+        startCharacter = settings.startCharacter;
         requireMapChoice = settings.requireMapChoice;
         allowMapChoiceInNetwork = settings.allowMapChoiceInNetwork;
         mapChoices = ResolveMapChoices(settings.mapChoices);
@@ -584,6 +611,60 @@ public class GameSession : MonoBehaviour
         _settingsApplied = true;
     }
 
+    private void ApplySevenWeaponProfileDefaults()
+    {
+        maxWeaponSlots = Mathf.Clamp(maxWeaponSlots, 1, 3);
+
+        ApplyWeaponProfile(singleShotStats, "SingleShot", 1f, 1.2f, 1.3333f, 0, 0.05f, 0.05f, true);
+        ApplyWeaponProfile(multiShotStats, "MultiShot", 0.5f, 0.6f, 0.8333f, 2, 0.05f, 0.05f, false);
+        ApplyWeaponProfile(piercingShotStats, "PiercingShot", 2.5f, 0.48f, 3.3333f, 0, 0.2f, 0.2f, false);
+        ApplyWeaponProfile(auraStats, "Aura", 0.5f, 1.8f, 0.5f, 0, 0.01f, 0f, false);
+        ApplyWeaponProfile(homingShotStats, "HomingShot", 1.2f, 0.72f, 1.6667f, 0, 0.08f, 0.08f, false);
+        ApplyWeaponProfile(grenadeStats, "Grenade", 1.8f, 0.66f, 2f, 0, 0.1f, 0.12f, false);
+        ApplyWeaponProfile(meleeStats, "Melee", 2f, 1.5f, 0.4167f, 0, 0.15f, 0.25f, false);
+
+    }
+
+    private static void ApplyWeaponProfile(
+        WeaponStatsData stats,
+        string displayName,
+        float damageMultValue,
+        float fireRateMultValue,
+        float rangeMultValue,
+        int bonusProjectilesValue,
+        float hitStunValue,
+        float knockbackValue,
+        bool defaultUnlocked)
+    {
+        if (stats == null)
+        {
+            return;
+        }
+
+        stats.displayName = displayName;
+        stats.damageMult = damageMultValue;
+        stats.fireRateMult = fireRateMultValue;
+        stats.rangeMult = rangeMultValue;
+        stats.bonusProjectiles = bonusProjectilesValue;
+        stats.hitStunDuration = hitStunValue;
+        stats.knockbackDistance = knockbackValue;
+
+        if (!stats.unlocked)
+        {
+            stats.level = 0;
+        }
+        else if (stats.level <= 0)
+        {
+            stats.level = 1;
+        }
+
+        if (defaultUnlocked && !stats.unlocked && stats.level <= 0)
+        {
+            stats.unlocked = true;
+            stats.level = 1;
+        }
+    }
+
     private void ResetRuntimeState()
     {
         damageLevel = 0;
@@ -599,12 +680,12 @@ public class GameSession : MonoBehaviour
         _cachedSpawnerBase = false;
         _spawnerDifficultyApplied = false;
         _stageCompleted = false;
-        _startWeaponApplied = false;
+        _startCharacterApplied = false;
         _waitingMapChoice = false;
         _mapChoiceApplied = false;
         _selectedMapChoice = default;
         _loadedMapScene = string.Empty;
-        _hasPendingStartWeapon = false;
+        _hasPendingStartCharacter = false;
         _upgradeSelections.Clear();
         _upgradePendingClients.Clear();
         _upgradeOptionsByClient.Clear();
@@ -657,35 +738,35 @@ public class GameSession : MonoBehaviour
             magnetRangeStep = magnetRangeStep,
             magnetSpeedStep = magnetSpeedStep,
             regenPerSecond = regenPerSecond,
-            gunStats = CloneWeaponStats(gunStats),
-            boomerangStats = CloneWeaponStats(boomerangStats),
-            novaStats = CloneWeaponStats(novaStats),
-            shotgunStats = CloneWeaponStats(shotgunStats),
-            laserStats = CloneWeaponStats(laserStats),
-            chainStats = CloneWeaponStats(chainStats),
-            droneStats = CloneWeaponStats(droneStats),
-            shurikenStats = CloneWeaponStats(shurikenStats),
-            frostStats = CloneWeaponStats(frostStats),
-            lightningStats = CloneWeaponStats(lightningStats),
-            startWeapon = startWeapon
+            singleShotStats = CloneWeaponStats(singleShotStats),
+            multiShotStats = CloneWeaponStats(multiShotStats),
+            piercingShotStats = CloneWeaponStats(piercingShotStats),
+            auraStats = CloneWeaponStats(auraStats),
+            homingShotStats = CloneWeaponStats(homingShotStats),
+            grenadeStats = CloneWeaponStats(grenadeStats),
+            meleeStats = CloneWeaponStats(meleeStats),
+            startCharacter = startCharacter
         };
 
-        if (requireStartWeaponChoice)
+        state.baseDamageMult = state.damageMult;
+        state.baseFireRateMult = state.fireRateMult;
+        state.baseRangeMult = state.rangeMult;
+        state.baseMoveSpeedMult = state.moveSpeedMult;
+        state.baseWeaponDamageMult = state.weaponDamageMult;
+
+        if (requireStartCharacterChoice)
         {
-            ResetWeaponToLocked(state.gunStats);
-            ResetWeaponToLocked(state.boomerangStats);
-            ResetWeaponToLocked(state.novaStats);
-            ResetWeaponToLocked(state.shotgunStats);
-            ResetWeaponToLocked(state.laserStats);
-            ResetWeaponToLocked(state.chainStats);
-            ResetWeaponToLocked(state.droneStats);
-            ResetWeaponToLocked(state.shurikenStats);
-            ResetWeaponToLocked(state.frostStats);
-            ResetWeaponToLocked(state.lightningStats);
+            ResetWeaponToLocked(state.singleShotStats);
+            ResetWeaponToLocked(state.multiShotStats);
+            ResetWeaponToLocked(state.piercingShotStats);
+            ResetWeaponToLocked(state.auraStats);
+            ResetWeaponToLocked(state.homingShotStats);
+            ResetWeaponToLocked(state.grenadeStats);
+            ResetWeaponToLocked(state.meleeStats);
         }
         else
         {
-            ApplyStartWeaponSelection(state, startWeapon, false);
+            ApplyStartCharacterSelection(state, startCharacter, false);
         }
 
         return state;
@@ -925,10 +1006,10 @@ public class GameSession : MonoBehaviour
         return Mathf.Max(1, count);
     }
 
-    private bool HasLocalStartWeaponSelection()
+    private bool HasLocalStartCharacterSelection()
     {
         var owner = FindOwnerPlayer();
-        return owner != null && owner.HasStartWeaponSelection;
+        return owner != null && owner.HasStartCharacterSelection;
     }
 
     private bool AreAllPlayersReady()
@@ -946,7 +1027,7 @@ public class GameSession : MonoBehaviour
             {
                 return false;
             }
-            if (!player.HasStartWeaponSelection)
+            if (!player.HasStartCharacterSelection)
             {
                 return false;
             }
@@ -965,7 +1046,7 @@ public class GameSession : MonoBehaviour
         for (int i = 0; i < players.Count; i++)
         {
             var player = players[i];
-            if (player != null && player.HasStartWeaponSelection)
+            if (player != null && player.HasStartCharacterSelection)
             {
                 readyCount += 1;
             }
@@ -976,7 +1057,7 @@ public class GameSession : MonoBehaviour
     {
         if (!IsNetworkSession())
         {
-            return "캐릭터 스탯은 현재 동일합니다.";
+            return "캐릭터별 기본 무기/스탯이 적용됩니다.";
         }
 
         GetPlayerReadyCounts(out int ready, out int total);
@@ -1004,22 +1085,22 @@ public class GameSession : MonoBehaviour
         return $"{waiting}\n캐릭터를 선택하면 시작됩니다.";
     }
 
-    private void SubmitStartWeaponSelection(StartWeaponType weapon)
+    private void SubmitStartCharacterSelection(StartCharacterType weapon)
     {
         var owner = FindOwnerPlayer();
         if (owner == null)
         {
-            _hasPendingStartWeapon = true;
-            _pendingStartWeapon = weapon;
+            _hasPendingStartCharacter = true;
+            _pendingStartCharacter = weapon;
             return;
         }
 
-        owner.SetStartWeaponSelection(weapon);
+        owner.SetStartCharacterSelection(weapon);
     }
 
-    private void UpdatePendingStartWeaponSelection()
+    private void UpdatePendingStartCharacterSelection()
     {
-        if (!_hasPendingStartWeapon)
+        if (!_hasPendingStartCharacter)
         {
             return;
         }
@@ -1030,8 +1111,8 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        owner.SetStartWeaponSelection(_pendingStartWeapon);
-        _hasPendingStartWeapon = false;
+        owner.SetStartCharacterSelection(_pendingStartCharacter);
+        _hasPendingStartCharacter = false;
     }
 
     private void TryStartNetworkGameFromSelection()
@@ -1043,7 +1124,7 @@ public class GameSession : MonoBehaviour
 
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
         {
-            if (requireStartWeaponChoice && !AreAllPlayersReady())
+            if (requireStartCharacterChoice && !AreAllPlayersReady())
             {
                 return;
             }
@@ -1079,13 +1160,13 @@ public class GameSession : MonoBehaviour
             for (int i = 0; i < players.Count; i++)
             {
                 var player = players[i];
-                if (player == null || !player.HasStartWeaponSelection)
+                if (player == null || !player.HasStartCharacterSelection)
                 {
                     continue;
                 }
 
                 var state = GetOrCreateState(player);
-                ApplyStartWeaponSelection(state, player.StartWeaponSelection, !state.startWeaponApplied);
+                ApplyStartCharacterSelection(state, player.StartCharacterSelection, !state.startCharacterApplied);
             }
 
             SyncAllUpgradeIconStatesToClients();
@@ -1093,14 +1174,14 @@ public class GameSession : MonoBehaviour
         else
         {
             var owner = FindOwnerPlayer();
-            if (owner != null && owner.HasStartWeaponSelection)
+            if (owner != null && owner.HasStartCharacterSelection)
             {
                 var state = GetOrCreateState(owner);
-                ApplyStartWeaponSelection(state, owner.StartWeaponSelection, !state.startWeaponApplied);
+                ApplyStartCharacterSelection(state, owner.StartCharacterSelection, !state.startCharacterApplied);
             }
         }
 
-        _waitingStartWeaponChoice = false;
+        _waitingStartCharacterChoice = false;
         _gameStarted = true;
         StartCoroutine(WaitForOwnerPlayer());
     }
@@ -1148,31 +1229,28 @@ public class GameSession : MonoBehaviour
             DisableNetworkUI();
         }
 
-        if (gunStats != null)
+        if (singleShotStats != null)
         {
-            if (requireStartWeaponChoice)
+            if (requireStartCharacterChoice)
             {
-                gunStats.unlocked = false;
-                gunStats.level = 0;
+                singleShotStats.unlocked = false;
+                singleShotStats.level = 0;
             }
             else
             {
-                gunStats.unlocked = true;
-                gunStats.level = Mathf.Max(1, gunStats.level);
+                singleShotStats.unlocked = true;
+                singleShotStats.level = Mathf.Max(1, singleShotStats.level);
             }
         }
 
-        if (requireStartWeaponChoice)
+        if (requireStartCharacterChoice)
         {
-            ResetWeaponToLocked(shotgunStats);
-            ResetWeaponToLocked(laserStats);
-            ResetWeaponToLocked(chainStats);
-            ResetWeaponToLocked(droneStats);
-            ResetWeaponToLocked(shurikenStats);
-            ResetWeaponToLocked(frostStats);
-            ResetWeaponToLocked(lightningStats);
-            ResetWeaponToLocked(boomerangStats);
-            ResetWeaponToLocked(novaStats);
+            ResetWeaponToLocked(auraStats);
+            ResetWeaponToLocked(homingShotStats);
+            ResetWeaponToLocked(grenadeStats);
+            ResetWeaponToLocked(meleeStats);
+            ResetWeaponToLocked(multiShotStats);
+            ResetWeaponToLocked(piercingShotStats);
         }
 
         if (autoStartLocal)
@@ -1180,14 +1258,14 @@ public class GameSession : MonoBehaviour
             if (ShouldShowMapChoice())
             {
                 _waitingMapChoice = true;
-                _waitingStartWeaponChoice = false;
+                _waitingStartCharacterChoice = false;
             }
             else
             {
                 EnsureMapSelected();
-                if (requireStartWeaponChoice)
+                if (requireStartCharacterChoice)
                 {
-                    _waitingStartWeaponChoice = true;
+                    _waitingStartCharacterChoice = true;
                 }
                 else
                 {
@@ -1217,7 +1295,7 @@ public class GameSession : MonoBehaviour
 
         if (!_gameStarted)
         {
-            UpdatePendingStartWeaponSelection();
+            UpdatePendingStartCharacterSelection();
             TryStartNetworkGameFromSelection();
             return;
         }
@@ -1327,7 +1405,7 @@ public class GameSession : MonoBehaviour
         if (ShouldShowMapChoice() && !_mapChoiceApplied)
         {
             _waitingMapChoice = true;
-            _waitingStartWeaponChoice = false;
+            _waitingStartCharacterChoice = false;
             _gameStarted = false;
             EnsureSelectionUI();
             return;
@@ -1338,9 +1416,9 @@ public class GameSession : MonoBehaviour
             EnsureMapSelected();
         }
 
-        if (requireStartWeaponChoice)
+        if (requireStartCharacterChoice)
         {
-            _waitingStartWeaponChoice = true;
+            _waitingStartCharacterChoice = true;
             _gameStarted = false;
             EnsureSelectionUI();
             return;
@@ -1365,9 +1443,9 @@ public class GameSession : MonoBehaviour
             EnsureMapSelected();
         }
 
-        if (requireStartWeaponChoice && !_waitingStartWeaponChoice)
+        if (requireStartCharacterChoice && !_waitingStartCharacterChoice)
         {
-            _waitingStartWeaponChoice = true;
+            _waitingStartCharacterChoice = true;
             _gameStarted = false;
             return;
         }
@@ -1430,7 +1508,7 @@ public class GameSession : MonoBehaviour
         SetAutoPlayEnabled(_autoPlayEnabled);
         EnsureCameraFollow();
         var state = GetOrCreateState(player);
-        ApplyPlayerVisuals(player, state != null ? state.startWeapon : startWeapon);
+        ApplyPlayerVisuals(player, state != null ? state.startCharacter : startCharacter);
 
         PlayerHealth = player.GetComponent<Health>();
         if (PlayerHealth != null)
@@ -1457,7 +1535,7 @@ public class GameSession : MonoBehaviour
         ApplyAttackStats();
     }
 
-    private void ApplyPlayerVisuals(PlayerController player, StartWeaponType weapon)
+    private void ApplyPlayerVisuals(PlayerController player, StartCharacterType weapon)
     {
         if (player == null)
         {
@@ -1472,10 +1550,10 @@ public class GameSession : MonoBehaviour
 
         switch (weapon)
         {
-            case StartWeaponType.Boomerang:
+            case StartCharacterType.Melee:
                 visuals.SetVisual(PlayerVisuals.PlayerVisualType.Warrior);
                 break;
-            case StartWeaponType.Nova:
+            case StartCharacterType.Aura:
                 visuals.SetVisual(PlayerVisuals.PlayerVisualType.DemonLord);
                 break;
             default:
@@ -2116,16 +2194,13 @@ public class GameSession : MonoBehaviour
             options.Add(new UpgradeOption("관통 +1", () => BuildValueStatText("관통", state.projectilePierceBonus, state.projectilePierceBonus + 1), () => { state.projectilePierceBonus += 1; state.pierceLevel += 1; }));
         }
 
-        AddWeaponChoice(options, state, state.gunStats, upgradeLevel, () => BuildStraightUpgradeText(state), () => UnlockStraight(state), () => LevelUpStraightWeapon(state));
-        AddWeaponChoice(options, state, state.boomerangStats, upgradeLevel, () => BuildBoomerangUpgradeText(state), () => UnlockBoomerang(state), () => LevelUpBoomerangWeapon(state));
-        AddWeaponChoice(options, state, state.novaStats, upgradeLevel, () => BuildNovaUpgradeText(state), () => UnlockNova(state), () => LevelUpNovaWeapon(state));
-        AddWeaponChoice(options, state, state.shotgunStats, upgradeLevel, () => BuildShotgunUpgradeText(state), () => UnlockShotgun(state), () => LevelUpShotgunWeapon(state));
-        AddWeaponChoice(options, state, state.laserStats, upgradeLevel, () => BuildLaserUpgradeText(state), () => UnlockLaser(state), () => LevelUpLaserWeapon(state));
-        AddWeaponChoice(options, state, state.chainStats, upgradeLevel, () => BuildChainUpgradeText(state), () => UnlockChain(state), () => LevelUpChainWeapon(state));
-        AddWeaponChoice(options, state, state.droneStats, upgradeLevel, () => BuildDroneUpgradeText(state), () => UnlockDrone(state), () => LevelUpDroneWeapon(state));
-        AddWeaponChoice(options, state, state.shurikenStats, upgradeLevel, () => BuildShurikenUpgradeText(state), () => UnlockShuriken(state), () => LevelUpShurikenWeapon(state));
-        AddWeaponChoice(options, state, state.frostStats, upgradeLevel, () => BuildFrostUpgradeText(state), () => UnlockFrost(state), () => LevelUpFrostWeapon(state));
-        AddWeaponChoice(options, state, state.lightningStats, upgradeLevel, () => BuildLightningUpgradeText(state), () => UnlockLightning(state), () => LevelUpLightningWeapon(state));
+        AddWeaponChoice(options, state, state.singleShotStats, upgradeLevel, () => BuildSingleShotUpgradeText(state), () => UnlockSingleShot(state), () => LevelUpSingleShotWeapon(state));
+        AddWeaponChoice(options, state, state.multiShotStats, upgradeLevel, () => BuildMultiShotUpgradeText(state), () => UnlockMultiShot(state), () => LevelUpMultiShotWeapon(state));
+        AddWeaponChoice(options, state, state.piercingShotStats, upgradeLevel, () => BuildPiercingShotUpgradeText(state), () => UnlockPiercingShot(state), () => LevelUpPiercingShotWeapon(state));
+        AddWeaponChoice(options, state, state.auraStats, upgradeLevel, () => BuildAuraUpgradeText(state), () => UnlockAura(state), () => LevelUpAuraWeapon(state));
+        AddWeaponChoice(options, state, state.homingShotStats, upgradeLevel, () => BuildHomingShotUpgradeText(state), () => UnlockHomingShot(state), () => LevelUpHomingShotWeapon(state));
+        AddWeaponChoice(options, state, state.grenadeStats, upgradeLevel, () => BuildGrenadeUpgradeText(state), () => UnlockGrenade(state), () => LevelUpGrenadeWeapon(state));
+        AddWeaponChoice(options, state, state.meleeStats, upgradeLevel, () => BuildMeleeUpgradeText(state), () => UnlockMelee(state), () => LevelUpMeleeWeapon(state));
 
         if (options.Count == 0)
         {
@@ -2198,27 +2273,21 @@ public class GameSession : MonoBehaviour
         public int pierceLevel;
         public int projectileCountLevel;
 
-        public int gunLevel;
-        public int boomerangLevel;
-        public int novaLevel;
-        public int shotgunLevel;
-        public int laserLevel;
-        public int chainLevel;
-        public int droneLevel;
-        public int shurikenLevel;
-        public int frostLevel;
-        public int lightningLevel;
+        public int singleShotLevel;
+        public int multiShotLevel;
+        public int piercingShotLevel;
+        public int auraLevel;
+        public int homingShotLevel;
+        public int grenadeLevel;
+        public int meleeLevel;
 
-        public bool gunUnlocked;
-        public bool boomerangUnlocked;
-        public bool novaUnlocked;
-        public bool shotgunUnlocked;
-        public bool laserUnlocked;
-        public bool chainUnlocked;
-        public bool droneUnlocked;
-        public bool shurikenUnlocked;
-        public bool frostUnlocked;
-        public bool lightningUnlocked;
+        public bool singleShotUnlocked;
+        public bool multiShotUnlocked;
+        public bool piercingShotUnlocked;
+        public bool auraUnlocked;
+        public bool homingShotUnlocked;
+        public bool grenadeUnlocked;
+        public bool meleeUnlocked;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -2233,27 +2302,21 @@ public class GameSession : MonoBehaviour
             serializer.SerializeValue(ref pierceLevel);
             serializer.SerializeValue(ref projectileCountLevel);
 
-            serializer.SerializeValue(ref gunLevel);
-            serializer.SerializeValue(ref boomerangLevel);
-            serializer.SerializeValue(ref novaLevel);
-            serializer.SerializeValue(ref shotgunLevel);
-            serializer.SerializeValue(ref laserLevel);
-            serializer.SerializeValue(ref chainLevel);
-            serializer.SerializeValue(ref droneLevel);
-            serializer.SerializeValue(ref shurikenLevel);
-            serializer.SerializeValue(ref frostLevel);
-            serializer.SerializeValue(ref lightningLevel);
+            serializer.SerializeValue(ref singleShotLevel);
+            serializer.SerializeValue(ref multiShotLevel);
+            serializer.SerializeValue(ref piercingShotLevel);
+            serializer.SerializeValue(ref auraLevel);
+            serializer.SerializeValue(ref homingShotLevel);
+            serializer.SerializeValue(ref grenadeLevel);
+            serializer.SerializeValue(ref meleeLevel);
 
-            serializer.SerializeValue(ref gunUnlocked);
-            serializer.SerializeValue(ref boomerangUnlocked);
-            serializer.SerializeValue(ref novaUnlocked);
-            serializer.SerializeValue(ref shotgunUnlocked);
-            serializer.SerializeValue(ref laserUnlocked);
-            serializer.SerializeValue(ref chainUnlocked);
-            serializer.SerializeValue(ref droneUnlocked);
-            serializer.SerializeValue(ref shurikenUnlocked);
-            serializer.SerializeValue(ref frostUnlocked);
-            serializer.SerializeValue(ref lightningUnlocked);
+            serializer.SerializeValue(ref singleShotUnlocked);
+            serializer.SerializeValue(ref multiShotUnlocked);
+            serializer.SerializeValue(ref piercingShotUnlocked);
+            serializer.SerializeValue(ref auraUnlocked);
+            serializer.SerializeValue(ref homingShotUnlocked);
+            serializer.SerializeValue(ref grenadeUnlocked);
+            serializer.SerializeValue(ref meleeUnlocked);
         }
     }
 
@@ -2271,16 +2334,13 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        AddWeaponIcon(results, state.gunStats);
-        AddWeaponIcon(results, state.boomerangStats);
-        AddWeaponIcon(results, state.novaStats);
-        AddWeaponIcon(results, state.shotgunStats);
-        AddWeaponIcon(results, state.laserStats);
-        AddWeaponIcon(results, state.chainStats);
-        AddWeaponIcon(results, state.droneStats);
-        AddWeaponIcon(results, state.shurikenStats);
-        AddWeaponIcon(results, state.frostStats);
-        AddWeaponIcon(results, state.lightningStats);
+        AddWeaponIcon(results, state.singleShotStats);
+        AddWeaponIcon(results, state.multiShotStats);
+        AddWeaponIcon(results, state.piercingShotStats);
+        AddWeaponIcon(results, state.auraStats);
+        AddWeaponIcon(results, state.homingShotStats);
+        AddWeaponIcon(results, state.grenadeStats);
+        AddWeaponIcon(results, state.meleeStats);
 
         AddStatIcon(results, "공격력", state.damageLevel);
         AddStatIcon(results, "공격속도", state.fireRateLevel);
@@ -2313,16 +2373,13 @@ public class GameSession : MonoBehaviour
         state.pierceLevel = data.pierceLevel;
         state.projectileCountLevel = data.projectileCountLevel;
 
-        ApplyWeaponIconState(state.gunStats, data.gunLevel, data.gunUnlocked);
-        ApplyWeaponIconState(state.boomerangStats, data.boomerangLevel, data.boomerangUnlocked);
-        ApplyWeaponIconState(state.novaStats, data.novaLevel, data.novaUnlocked);
-        ApplyWeaponIconState(state.shotgunStats, data.shotgunLevel, data.shotgunUnlocked);
-        ApplyWeaponIconState(state.laserStats, data.laserLevel, data.laserUnlocked);
-        ApplyWeaponIconState(state.chainStats, data.chainLevel, data.chainUnlocked);
-        ApplyWeaponIconState(state.droneStats, data.droneLevel, data.droneUnlocked);
-        ApplyWeaponIconState(state.shurikenStats, data.shurikenLevel, data.shurikenUnlocked);
-        ApplyWeaponIconState(state.frostStats, data.frostLevel, data.frostUnlocked);
-        ApplyWeaponIconState(state.lightningStats, data.lightningLevel, data.lightningUnlocked);
+        ApplyWeaponIconState(state.singleShotStats, data.singleShotLevel, data.singleShotUnlocked);
+        ApplyWeaponIconState(state.multiShotStats, data.multiShotLevel, data.multiShotUnlocked);
+        ApplyWeaponIconState(state.piercingShotStats, data.piercingShotLevel, data.piercingShotUnlocked);
+        ApplyWeaponIconState(state.auraStats, data.auraLevel, data.auraUnlocked);
+        ApplyWeaponIconState(state.homingShotStats, data.homingShotLevel, data.homingShotUnlocked);
+        ApplyWeaponIconState(state.grenadeStats, data.grenadeLevel, data.grenadeUnlocked);
+        ApplyWeaponIconState(state.meleeStats, data.meleeLevel, data.meleeUnlocked);
     }
 
     private static void ApplyWeaponIconState(WeaponStatsData stats, int level, bool unlocked)
@@ -2350,26 +2407,20 @@ public class GameSession : MonoBehaviour
             magnetLevel = state.magnetLevel,
             pierceLevel = state.pierceLevel,
             projectileCountLevel = state.projectileCountLevel,
-            gunLevel = state.gunStats != null ? state.gunStats.level : 0,
-            boomerangLevel = state.boomerangStats != null ? state.boomerangStats.level : 0,
-            novaLevel = state.novaStats != null ? state.novaStats.level : 0,
-            shotgunLevel = state.shotgunStats != null ? state.shotgunStats.level : 0,
-            laserLevel = state.laserStats != null ? state.laserStats.level : 0,
-            chainLevel = state.chainStats != null ? state.chainStats.level : 0,
-            droneLevel = state.droneStats != null ? state.droneStats.level : 0,
-            shurikenLevel = state.shurikenStats != null ? state.shurikenStats.level : 0,
-            frostLevel = state.frostStats != null ? state.frostStats.level : 0,
-            lightningLevel = state.lightningStats != null ? state.lightningStats.level : 0,
-            gunUnlocked = state.gunStats != null && state.gunStats.unlocked,
-            boomerangUnlocked = state.boomerangStats != null && state.boomerangStats.unlocked,
-            novaUnlocked = state.novaStats != null && state.novaStats.unlocked,
-            shotgunUnlocked = state.shotgunStats != null && state.shotgunStats.unlocked,
-            laserUnlocked = state.laserStats != null && state.laserStats.unlocked,
-            chainUnlocked = state.chainStats != null && state.chainStats.unlocked,
-            droneUnlocked = state.droneStats != null && state.droneStats.unlocked,
-            shurikenUnlocked = state.shurikenStats != null && state.shurikenStats.unlocked,
-            frostUnlocked = state.frostStats != null && state.frostStats.unlocked,
-            lightningUnlocked = state.lightningStats != null && state.lightningStats.unlocked
+            singleShotLevel = state.singleShotStats != null ? state.singleShotStats.level : 0,
+            multiShotLevel = state.multiShotStats != null ? state.multiShotStats.level : 0,
+            piercingShotLevel = state.piercingShotStats != null ? state.piercingShotStats.level : 0,
+            auraLevel = state.auraStats != null ? state.auraStats.level : 0,
+            homingShotLevel = state.homingShotStats != null ? state.homingShotStats.level : 0,
+            grenadeLevel = state.grenadeStats != null ? state.grenadeStats.level : 0,
+            meleeLevel = state.meleeStats != null ? state.meleeStats.level : 0,
+            singleShotUnlocked = state.singleShotStats != null && state.singleShotStats.unlocked,
+            multiShotUnlocked = state.multiShotStats != null && state.multiShotStats.unlocked,
+            piercingShotUnlocked = state.piercingShotStats != null && state.piercingShotStats.unlocked,
+            auraUnlocked = state.auraStats != null && state.auraStats.unlocked,
+            homingShotUnlocked = state.homingShotStats != null && state.homingShotStats.unlocked,
+            grenadeUnlocked = state.grenadeStats != null && state.grenadeStats.unlocked,
+            meleeUnlocked = state.meleeStats != null && state.meleeStats.unlocked
         };
     }
 
@@ -2802,16 +2853,13 @@ public class GameSession : MonoBehaviour
         }
 
         int count = 0;
-        if (state.gunStats != null && state.gunStats.unlocked && state.gunStats.level > 0) count++;
-        if (state.boomerangStats != null && state.boomerangStats.unlocked && state.boomerangStats.level > 0) count++;
-        if (state.novaStats != null && state.novaStats.unlocked && state.novaStats.level > 0) count++;
-        if (state.shotgunStats != null && state.shotgunStats.unlocked && state.shotgunStats.level > 0) count++;
-        if (state.laserStats != null && state.laserStats.unlocked && state.laserStats.level > 0) count++;
-        if (state.chainStats != null && state.chainStats.unlocked && state.chainStats.level > 0) count++;
-        if (state.droneStats != null && state.droneStats.unlocked && state.droneStats.level > 0) count++;
-        if (state.shurikenStats != null && state.shurikenStats.unlocked && state.shurikenStats.level > 0) count++;
-        if (state.frostStats != null && state.frostStats.unlocked && state.frostStats.level > 0) count++;
-        if (state.lightningStats != null && state.lightningStats.unlocked && state.lightningStats.level > 0) count++;
+        if (state.singleShotStats != null && state.singleShotStats.unlocked && state.singleShotStats.level > 0) count++;
+        if (state.multiShotStats != null && state.multiShotStats.unlocked && state.multiShotStats.level > 0) count++;
+        if (state.piercingShotStats != null && state.piercingShotStats.unlocked && state.piercingShotStats.level > 0) count++;
+        if (state.auraStats != null && state.auraStats.unlocked && state.auraStats.level > 0) count++;
+        if (state.homingShotStats != null && state.homingShotStats.unlocked && state.homingShotStats.level > 0) count++;
+        if (state.grenadeStats != null && state.grenadeStats.unlocked && state.grenadeStats.level > 0) count++;
+        if (state.meleeStats != null && state.meleeStats.unlocked && state.meleeStats.level > 0) count++;
         return count;
     }
 
@@ -2879,16 +2927,13 @@ public class GameSession : MonoBehaviour
         }
 
         attack.ApplyStats(state.damageMult, state.fireRateMult, state.rangeMult, state.sizeMult, state.lifetimeMult, state.projectileCount, state.projectilePierceBonus, state.weaponDamageMult);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Straight, state.gunStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Boomerang, state.boomerangStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Nova, state.novaStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Shotgun, state.shotgunStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Laser, state.laserStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.ChainLightning, state.chainStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Drone, state.droneStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Shuriken, state.shurikenStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.FrostOrb, state.frostStats);
-        attack.SetWeaponStats(AutoAttack.WeaponType.Lightning, state.lightningStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.SingleShot, state.singleShotStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.MultiShot, state.multiShotStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.PiercingShot, state.piercingShotStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Aura, state.auraStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.HomingShot, state.homingShotStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Grenade, state.grenadeStats);
+        attack.SetWeaponStats(AutoAttack.WeaponType.Melee, state.meleeStats);
     }
 
     private void ApplyDifficultyScaling()
@@ -3090,404 +3135,264 @@ public class GameSession : MonoBehaviour
             position.z);
     }
 
-    private void LevelUpStraightWeapon(PlayerUpgradeState state)
+    private void LevelUpSingleShotWeapon(PlayerUpgradeState state)
     {
-        if (state == null || state.gunStats == null)
+        if (state == null || state.singleShotStats == null)
         {
             return;
         }
-        if (state.gunStats.level >= maxUpgradeLevel)
+        if (state.singleShotStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        state.gunStats.level += 1;
-        state.gunStats.damageMult += 0.20f;
-        state.gunStats.fireRateMult += 0.08f;
+        state.singleShotStats.level += 1;
+        state.singleShotStats.damageMult += 0.20f;
+        state.singleShotStats.fireRateMult += 0.12f;
 
-        if (state.gunStats.level % 3 == 0)
+        if (state.singleShotStats.level % 3 == 0)
         {
-            state.gunStats.bonusProjectiles += 1;
-        }
-
-        if (state.gunStats.level % 4 == 0)
-        {
-            state.projectilePierceBonus += 1;
+            state.singleShotStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpBoomerangWeapon(PlayerUpgradeState state)
+    private void LevelUpMultiShotWeapon(PlayerUpgradeState state)
     {
-        if (state == null || state.boomerangStats == null)
+        if (state == null || state.multiShotStats == null)
         {
             return;
         }
-        if (state.boomerangStats.level >= maxUpgradeLevel)
+        if (state.multiShotStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!state.boomerangStats.unlocked)
+        if (!state.multiShotStats.unlocked)
         {
-            UnlockBoomerang(state);
+            UnlockMultiShot(state);
         }
 
-        state.boomerangStats.level += 1;
-        state.boomerangStats.damageMult += 0.20f;
-        state.boomerangStats.fireRateMult += 0.10f;
+        state.multiShotStats.level += 1;
+        state.multiShotStats.damageMult += 0.10f;
+        state.multiShotStats.fireRateMult += 0.06f;
+        state.multiShotStats.bonusProjectiles += 1;
+    }
 
-        if (state.boomerangStats.level % 4 == 0)
+    private void LevelUpPiercingShotWeapon(PlayerUpgradeState state)
+    {
+        if (state == null || state.piercingShotStats == null)
         {
-            state.boomerangStats.bonusProjectiles += 1;
-            state.projectilePierceBonus += 1;
+            return;
+        }
+        if (state.piercingShotStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!state.piercingShotStats.unlocked)
+        {
+            UnlockPiercingShot(state);
+        }
+
+        state.piercingShotStats.level += 1;
+        state.piercingShotStats.damageMult += 0.50f;
+        state.piercingShotStats.fireRateMult += 0.048f;
+
+        if (state.piercingShotStats.level % 5 == 0)
+        {
+            state.piercingShotStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpNovaWeapon(PlayerUpgradeState state)
+    private void LevelUpAuraWeapon(PlayerUpgradeState state)
     {
-        if (state == null || state.novaStats == null)
+        if (state == null || state.auraStats == null)
         {
             return;
         }
-        if (state.novaStats.level >= maxUpgradeLevel)
+        if (state.auraStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!state.novaStats.unlocked)
+        if (!state.auraStats.unlocked)
         {
-            UnlockNova(state);
+            UnlockAura(state);
         }
 
-        state.novaStats.level += 1;
-        state.novaStats.damageMult += 0.20f;
-        state.novaStats.fireRateMult += 0.12f;
+        state.auraStats.level += 1;
+        state.auraStats.damageMult += 0.10f;
+        state.auraStats.fireRateMult += 0.18f;
+    }
 
-        if (state.novaStats.level % 3 == 0)
+    private void LevelUpHomingShotWeapon(PlayerUpgradeState state)
+    {
+        if (state == null || state.homingShotStats == null)
         {
-            state.novaStats.bonusProjectiles += 2;
+            return;
+        }
+        if (state.homingShotStats.level >= maxUpgradeLevel)
+        {
+            return;
+        }
+
+        if (!state.homingShotStats.unlocked)
+        {
+            UnlockHomingShot(state);
+        }
+
+        state.homingShotStats.level += 1;
+        state.homingShotStats.damageMult += 0.20f;
+        state.homingShotStats.fireRateMult += 0.06f;
+
+        if (state.homingShotStats.level % 4 == 0)
+        {
+            state.homingShotStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpShotgunWeapon(PlayerUpgradeState state)
+    private void LevelUpGrenadeWeapon(PlayerUpgradeState state)
     {
-        if (state == null || state.shotgunStats == null)
+        if (state == null || state.grenadeStats == null)
         {
             return;
         }
-        if (state.shotgunStats.level >= maxUpgradeLevel)
+        if (state.grenadeStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!state.shotgunStats.unlocked)
+        if (!state.grenadeStats.unlocked)
         {
-            UnlockShotgun(state);
+            UnlockGrenade(state);
         }
 
-        state.shotgunStats.level += 1;
-        state.shotgunStats.damageMult += 0.18f;
-        state.shotgunStats.fireRateMult += 0.05f;
+        state.grenadeStats.level += 1;
+        state.grenadeStats.damageMult += 0.30f;
+        state.grenadeStats.fireRateMult += 0.048f;
 
-        if (state.shotgunStats.level % 2 == 0)
+        if (state.grenadeStats.level % 4 == 0)
         {
-            state.shotgunStats.bonusProjectiles += 1;
+            state.grenadeStats.bonusProjectiles += 1;
         }
     }
 
-    private void LevelUpLaserWeapon(PlayerUpgradeState state)
+    private void LevelUpMeleeWeapon(PlayerUpgradeState state)
     {
-        if (state == null || state.laserStats == null)
+        if (state == null || state.meleeStats == null)
         {
             return;
         }
-        if (state.laserStats.level >= maxUpgradeLevel)
+        if (state.meleeStats.level >= maxUpgradeLevel)
         {
             return;
         }
 
-        if (!state.laserStats.unlocked)
+        if (!state.meleeStats.unlocked)
         {
-            UnlockLaser(state);
+            UnlockMelee(state);
         }
 
-        state.laserStats.level += 1;
-        state.laserStats.damageMult += 0.20f;
-        state.laserStats.fireRateMult += 0.04f;
+        state.meleeStats.level += 1;
+        state.meleeStats.damageMult += 0.30f;
+        state.meleeStats.fireRateMult += 0.09f;
+    }
 
-        if (state.laserStats.level % 3 == 0)
+    private void UnlockMultiShot(PlayerUpgradeState state)
+    {
+        if (state == null || state.multiShotStats == null)
         {
-            state.laserStats.bonusProjectiles += 1;
+            return;
+        }
+
+        state.multiShotStats.unlocked = true;
+        if (state.multiShotStats.level < 1)
+        {
+            state.multiShotStats.level = 1;
         }
     }
 
-    private void LevelUpChainWeapon(PlayerUpgradeState state)
+    private void UnlockPiercingShot(PlayerUpgradeState state)
     {
-        if (state == null || state.chainStats == null)
-        {
-            return;
-        }
-        if (state.chainStats.level >= maxUpgradeLevel)
+        if (state == null || state.piercingShotStats == null)
         {
             return;
         }
 
-        if (!state.chainStats.unlocked)
+        state.piercingShotStats.unlocked = true;
+        if (state.piercingShotStats.level < 1)
         {
-            UnlockChain(state);
-        }
-
-        state.chainStats.level += 1;
-        state.chainStats.damageMult += 0.18f;
-        state.chainStats.fireRateMult += 0.05f;
-
-        if (state.chainStats.level % 2 == 0)
-        {
-            state.chainStats.bonusProjectiles += 1;
+            state.piercingShotStats.level = 1;
         }
     }
 
-    private void LevelUpDroneWeapon(PlayerUpgradeState state)
+    private void UnlockAura(PlayerUpgradeState state)
     {
-        if (state == null || state.droneStats == null)
-        {
-            return;
-        }
-        if (state.droneStats.level >= maxUpgradeLevel)
+        if (state == null || state.auraStats == null)
         {
             return;
         }
 
-        if (!state.droneStats.unlocked)
+        state.auraStats.unlocked = true;
+        if (state.auraStats.level < 1)
         {
-            UnlockDrone(state);
-        }
-
-        state.droneStats.level += 1;
-        state.droneStats.damageMult += 0.15f;
-        state.droneStats.fireRateMult += 0.04f;
-
-        if (state.droneStats.level % 3 == 0)
-        {
-            state.droneStats.bonusProjectiles += 1;
+            state.auraStats.level = 1;
         }
     }
 
-    private void LevelUpShurikenWeapon(PlayerUpgradeState state)
+    private void UnlockHomingShot(PlayerUpgradeState state)
     {
-        if (state == null || state.shurikenStats == null)
-        {
-            return;
-        }
-        if (state.shurikenStats.level >= maxUpgradeLevel)
+        if (state == null || state.homingShotStats == null)
         {
             return;
         }
 
-        if (!state.shurikenStats.unlocked)
+        state.homingShotStats.unlocked = true;
+        if (state.homingShotStats.level < 1)
         {
-            UnlockShuriken(state);
-        }
-
-        state.shurikenStats.level += 1;
-        state.shurikenStats.damageMult += 0.18f;
-        state.shurikenStats.fireRateMult += 0.06f;
-
-        if (state.shurikenStats.level % 3 == 0)
-        {
-            state.shurikenStats.bonusProjectiles += 1;
+            state.homingShotStats.level = 1;
         }
     }
 
-    private void LevelUpFrostWeapon(PlayerUpgradeState state)
+    private void UnlockGrenade(PlayerUpgradeState state)
     {
-        if (state == null || state.frostStats == null)
-        {
-            return;
-        }
-        if (state.frostStats.level >= maxUpgradeLevel)
+        if (state == null || state.grenadeStats == null)
         {
             return;
         }
 
-        if (!state.frostStats.unlocked)
+        state.grenadeStats.unlocked = true;
+        if (state.grenadeStats.level < 1)
         {
-            UnlockFrost(state);
-        }
-
-        state.frostStats.level += 1;
-        state.frostStats.damageMult += 0.16f;
-        state.frostStats.fireRateMult += 0.05f;
-
-        if (state.frostStats.level % 3 == 0)
-        {
-            state.frostStats.bonusProjectiles += 1;
+            state.grenadeStats.level = 1;
         }
     }
 
-    private void LevelUpLightningWeapon(PlayerUpgradeState state)
+    private void UnlockMelee(PlayerUpgradeState state)
     {
-        if (state == null || state.lightningStats == null)
-        {
-            return;
-        }
-        if (state.lightningStats.level >= maxUpgradeLevel)
+        if (state == null || state.meleeStats == null)
         {
             return;
         }
 
-        if (!state.lightningStats.unlocked)
+        state.meleeStats.unlocked = true;
+        if (state.meleeStats.level < 1)
         {
-            UnlockLightning(state);
-        }
-
-        state.lightningStats.level += 1;
-        state.lightningStats.damageMult += 0.20f;
-        state.lightningStats.fireRateMult += 0.06f;
-
-        if (state.lightningStats.level % 2 == 0)
-        {
-            state.lightningStats.bonusProjectiles += 1;
+            state.meleeStats.level = 1;
         }
     }
 
-    private void UnlockBoomerang(PlayerUpgradeState state)
+    private void UnlockSingleShot(PlayerUpgradeState state)
     {
-        if (state == null || state.boomerangStats == null)
+        if (state == null || state.singleShotStats == null)
         {
             return;
         }
 
-        state.boomerangStats.unlocked = true;
-        if (state.boomerangStats.level < 1)
+        state.singleShotStats.unlocked = true;
+        if (state.singleShotStats.level < 1)
         {
-            state.boomerangStats.level = 1;
-        }
-    }
-
-    private void UnlockNova(PlayerUpgradeState state)
-    {
-        if (state == null || state.novaStats == null)
-        {
-            return;
-        }
-
-        state.novaStats.unlocked = true;
-        if (state.novaStats.level < 1)
-        {
-            state.novaStats.level = 1;
-        }
-    }
-
-    private void UnlockShotgun(PlayerUpgradeState state)
-    {
-        if (state == null || state.shotgunStats == null)
-        {
-            return;
-        }
-
-        state.shotgunStats.unlocked = true;
-        if (state.shotgunStats.level < 1)
-        {
-            state.shotgunStats.level = 1;
-        }
-    }
-
-    private void UnlockLaser(PlayerUpgradeState state)
-    {
-        if (state == null || state.laserStats == null)
-        {
-            return;
-        }
-
-        state.laserStats.unlocked = true;
-        if (state.laserStats.level < 1)
-        {
-            state.laserStats.level = 1;
-        }
-    }
-
-    private void UnlockChain(PlayerUpgradeState state)
-    {
-        if (state == null || state.chainStats == null)
-        {
-            return;
-        }
-
-        state.chainStats.unlocked = true;
-        if (state.chainStats.level < 1)
-        {
-            state.chainStats.level = 1;
-        }
-    }
-
-    private void UnlockDrone(PlayerUpgradeState state)
-    {
-        if (state == null || state.droneStats == null)
-        {
-            return;
-        }
-
-        state.droneStats.unlocked = true;
-        if (state.droneStats.level < 1)
-        {
-            state.droneStats.level = 1;
-        }
-    }
-
-    private void UnlockShuriken(PlayerUpgradeState state)
-    {
-        if (state == null || state.shurikenStats == null)
-        {
-            return;
-        }
-
-        state.shurikenStats.unlocked = true;
-        if (state.shurikenStats.level < 1)
-        {
-            state.shurikenStats.level = 1;
-        }
-    }
-
-    private void UnlockFrost(PlayerUpgradeState state)
-    {
-        if (state == null || state.frostStats == null)
-        {
-            return;
-        }
-
-        state.frostStats.unlocked = true;
-        if (state.frostStats.level < 1)
-        {
-            state.frostStats.level = 1;
-        }
-    }
-
-    private void UnlockLightning(PlayerUpgradeState state)
-    {
-        if (state == null || state.lightningStats == null)
-        {
-            return;
-        }
-
-        state.lightningStats.unlocked = true;
-        if (state.lightningStats.level < 1)
-        {
-            state.lightningStats.level = 1;
-        }
-    }
-
-    private void UnlockStraight(PlayerUpgradeState state)
-    {
-        if (state == null || state.gunStats == null)
-        {
-            return;
-        }
-
-        state.gunStats.unlocked = true;
-        if (state.gunStats.level < 1)
-        {
-            state.gunStats.level = 1;
+            state.singleShotStats.level = 1;
         }
     }
 
@@ -3506,156 +3411,111 @@ public class GameSession : MonoBehaviour
         return $"{stats.displayName}\n레벨 {currentLevel} -> {nextLevel}\n피해량 {dmg:0.##} -> {dmg:0.##}\n속도 {rate:0.##} -> {rate:0.##}\n투사체 {baseProjectiles} -> {baseProjectiles}\n관통 0 -> 0";
     }
 
-    private string BuildStraightUpgradeText(PlayerUpgradeState state)
+    private string BuildSingleShotUpgradeText(PlayerUpgradeState state)
     {
-        if (state == null || state.gunStats == null)
+        if (state == null || state.singleShotStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = state.gunStats.level + 1;
-        float nextDamage = state.gunStats.damageMult + 0.20f;
-        int currentProjectile = 1 + state.gunStats.bonusProjectiles;
+        int nextLevel = state.singleShotStats.level + 1;
+        float nextDamage = state.singleShotStats.damageMult + 0.20f;
+        int currentProjectile = 1 + state.singleShotStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        int nextPierce = state.projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = state.gunStats.fireRateMult + 0.08f;
-        return BuildWeaponUpgradeText(state.gunStats.displayName, state.gunStats.level, nextLevel, state.gunStats.damageMult, nextDamage, state.gunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
+        int nextPierce = state.projectilePierceBonus;
+        float nextRate = state.singleShotStats.fireRateMult + 0.12f;
+        return BuildWeaponUpgradeText(state.singleShotStats.displayName, state.singleShotStats.level, nextLevel, state.singleShotStats.damageMult, nextDamage, state.singleShotStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
     }
 
-    private string BuildBoomerangUpgradeText(PlayerUpgradeState state)
+    private string BuildMultiShotUpgradeText(PlayerUpgradeState state)
     {
-        if (state == null || state.boomerangStats == null)
+        if (state == null || state.multiShotStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = state.boomerangStats.level + 1;
-        float nextDamage = state.boomerangStats.damageMult + 0.20f;
-        int currentProjectile = 1 + state.boomerangStats.bonusProjectiles;
+        int nextLevel = state.multiShotStats.level + 1;
+        float nextDamage = state.multiShotStats.damageMult + 0.10f;
+        int currentProjectile = 1 + state.multiShotStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + 1;
+        int nextPierce = state.projectilePierceBonus;
+        float nextRate = state.multiShotStats.fireRateMult + 0.06f;
+        return BuildWeaponUpgradeText(state.multiShotStats.displayName, state.multiShotStats.level, nextLevel, state.multiShotStats.damageMult, nextDamage, state.multiShotStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
+    }
+
+    private string BuildPiercingShotUpgradeText(PlayerUpgradeState state)
+    {
+        if (state == null || state.piercingShotStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = state.piercingShotStats.level + 1;
+        float nextDamage = state.piercingShotStats.damageMult + 0.50f;
+        int currentCount = 1 + state.piercingShotStats.bonusProjectiles;
+        int nextCount = currentCount + (nextLevel % 5 == 0 ? 1 : 0);
+        float nextRate = state.piercingShotStats.fireRateMult + 0.048f;
+        return BuildWeaponUpgradeText(state.piercingShotStats.displayName, state.piercingShotStats.level, nextLevel, state.piercingShotStats.damageMult, nextDamage, state.piercingShotStats.fireRateMult, nextRate, currentCount, nextCount, state.projectilePierceBonus, state.projectilePierceBonus);
+    }
+
+    private string BuildAuraUpgradeText(PlayerUpgradeState state)
+    {
+        if (state == null || state.auraStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = state.auraStats.level + 1;
+        float nextDamage = state.auraStats.damageMult + 0.10f;
+        int currentProjectile = 0;
+        int nextProjectile = 0;
+        float nextRate = state.auraStats.fireRateMult + 0.18f;
+        return BuildWeaponUpgradeText(state.auraStats.displayName, state.auraStats.level, nextLevel, state.auraStats.damageMult, nextDamage, state.auraStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
+    }
+
+    private string BuildHomingShotUpgradeText(PlayerUpgradeState state)
+    {
+        if (state == null || state.homingShotStats == null)
+        {
+            return string.Empty;
+        }
+
+        int nextLevel = state.homingShotStats.level + 1;
+        float nextDamage = state.homingShotStats.damageMult + 0.20f;
+        int currentProjectile = 1 + state.homingShotStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 4 == 0 ? 1 : 0);
-        int nextPierce = state.projectilePierceBonus + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = state.boomerangStats.fireRateMult + 0.10f;
-        return BuildWeaponUpgradeText(state.boomerangStats.displayName, state.boomerangStats.level, nextLevel, state.boomerangStats.damageMult, nextDamage, state.boomerangStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
+        float nextRate = state.homingShotStats.fireRateMult + 0.06f;
+        return BuildWeaponUpgradeText(state.homingShotStats.displayName, state.homingShotStats.level, nextLevel, state.homingShotStats.damageMult, nextDamage, state.homingShotStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildNovaUpgradeText(PlayerUpgradeState state)
+    private string BuildGrenadeUpgradeText(PlayerUpgradeState state)
     {
-        if (state == null || state.novaStats == null)
+        if (state == null || state.grenadeStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = state.novaStats.level + 1;
-        float nextDamage = state.novaStats.damageMult + 0.20f;
-        int currentCount = 8 + state.novaStats.bonusProjectiles;
-        int nextCount = currentCount + (nextLevel % 3 == 0 ? 2 : 0);
-        float nextRate = state.novaStats.fireRateMult + 0.12f;
-        return BuildWeaponUpgradeText(state.novaStats.displayName, state.novaStats.level, nextLevel, state.novaStats.damageMult, nextDamage, state.novaStats.fireRateMult, nextRate, currentCount, nextCount, state.projectilePierceBonus, state.projectilePierceBonus);
+        int nextLevel = state.grenadeStats.level + 1;
+        float nextDamage = state.grenadeStats.damageMult + 0.30f;
+        int currentProjectile = 1 + state.grenadeStats.bonusProjectiles;
+        int nextProjectile = currentProjectile + (nextLevel % 4 == 0 ? 1 : 0);
+        float nextRate = state.grenadeStats.fireRateMult + 0.048f;
+        return BuildWeaponUpgradeText(state.grenadeStats.displayName, state.grenadeStats.level, nextLevel, state.grenadeStats.damageMult, nextDamage, state.grenadeStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
-    private string BuildShotgunUpgradeText(PlayerUpgradeState state)
+    private string BuildMeleeUpgradeText(PlayerUpgradeState state)
     {
-        if (state == null || state.shotgunStats == null)
+        if (state == null || state.meleeStats == null)
         {
             return string.Empty;
         }
 
-        int nextLevel = state.shotgunStats.level + 1;
-        float nextDamage = state.shotgunStats.damageMult + 0.18f;
-        int currentProjectile = 5 + state.shotgunStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
-        float nextRate = state.shotgunStats.fireRateMult + 0.05f;
-        return BuildWeaponUpgradeText(state.shotgunStats.displayName, state.shotgunStats.level, nextLevel, state.shotgunStats.damageMult, nextDamage, state.shotgunStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
-    }
-
-    private string BuildLaserUpgradeText(PlayerUpgradeState state)
-    {
-        if (state == null || state.laserStats == null)
-        {
-            return string.Empty;
-        }
-
-        int nextLevel = state.laserStats.level + 1;
-        float nextDamage = state.laserStats.damageMult + 0.20f;
-        int currentProjectile = 1 + state.laserStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = state.laserStats.fireRateMult + 0.04f;
-        return BuildWeaponUpgradeText(state.laserStats.displayName, state.laserStats.level, nextLevel, state.laserStats.damageMult, nextDamage, state.laserStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
-    }
-
-    private string BuildChainUpgradeText(PlayerUpgradeState state)
-    {
-        if (state == null || state.chainStats == null)
-        {
-            return string.Empty;
-        }
-
-        int nextLevel = state.chainStats.level + 1;
-        float nextDamage = state.chainStats.damageMult + 0.18f;
-        int currentProjectile = 3 + state.chainStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
-        float nextRate = state.chainStats.fireRateMult + 0.05f;
-        return BuildWeaponUpgradeText(state.chainStats.displayName, state.chainStats.level, nextLevel, state.chainStats.damageMult, nextDamage, state.chainStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
-    }
-
-    private string BuildDroneUpgradeText(PlayerUpgradeState state)
-    {
-        if (state == null || state.droneStats == null)
-        {
-            return string.Empty;
-        }
-
-        int nextLevel = state.droneStats.level + 1;
-        float nextDamage = state.droneStats.damageMult + 0.15f;
-        int currentProjectile = 1 + state.droneStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = state.droneStats.fireRateMult + 0.04f;
-        return BuildWeaponUpgradeText(state.droneStats.displayName, state.droneStats.level, nextLevel, state.droneStats.damageMult, nextDamage, state.droneStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
-    }
-
-    private string BuildShurikenUpgradeText(PlayerUpgradeState state)
-    {
-        if (state == null || state.shurikenStats == null)
-        {
-            return string.Empty;
-        }
-
-        int nextLevel = state.shurikenStats.level + 1;
-        float nextDamage = state.shurikenStats.damageMult + 0.18f;
-        int currentProjectile = 1 + state.shurikenStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = state.shurikenStats.fireRateMult + 0.06f;
-        return BuildWeaponUpgradeText(state.shurikenStats.displayName, state.shurikenStats.level, nextLevel, state.shurikenStats.damageMult, nextDamage, state.shurikenStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
-    }
-
-    private string BuildFrostUpgradeText(PlayerUpgradeState state)
-    {
-        if (state == null || state.frostStats == null)
-        {
-            return string.Empty;
-        }
-
-        int nextLevel = state.frostStats.level + 1;
-        float nextDamage = state.frostStats.damageMult + 0.16f;
-        int currentProjectile = 1 + state.frostStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
-        float nextRate = state.frostStats.fireRateMult + 0.05f;
-        return BuildWeaponUpgradeText(state.frostStats.displayName, state.frostStats.level, nextLevel, state.frostStats.damageMult, nextDamage, state.frostStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
-    }
-
-    private string BuildLightningUpgradeText(PlayerUpgradeState state)
-    {
-        if (state == null || state.lightningStats == null)
-        {
-            return string.Empty;
-        }
-
-        int nextLevel = state.lightningStats.level + 1;
-        float nextDamage = state.lightningStats.damageMult + 0.20f;
-        int currentProjectile = 1 + state.lightningStats.bonusProjectiles;
-        int nextProjectile = currentProjectile + (nextLevel % 2 == 0 ? 1 : 0);
-        float nextRate = state.lightningStats.fireRateMult + 0.06f;
-        return BuildWeaponUpgradeText(state.lightningStats.displayName, state.lightningStats.level, nextLevel, state.lightningStats.damageMult, nextDamage, state.lightningStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
+        int nextLevel = state.meleeStats.level + 1;
+        float nextDamage = state.meleeStats.damageMult + 0.30f;
+        int currentProjectile = 1 + state.meleeStats.bonusProjectiles;
+        int nextProjectile = currentProjectile;
+        float nextRate = state.meleeStats.fireRateMult + 0.09f;
+        return BuildWeaponUpgradeText(state.meleeStats.displayName, state.meleeStats.level, nextLevel, state.meleeStats.damageMult, nextDamage, state.meleeStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
     private int GetBaseProjectileCount(PlayerUpgradeState state, WeaponStatsData stats)
@@ -3665,31 +3525,32 @@ public class GameSession : MonoBehaviour
             return 1;
         }
 
-        if (state != null && stats == state.novaStats)
+        if (state != null && stats == state.piercingShotStats)
         {
-            return 8;
+            return 1;
         }
-        if (state != null && stats == state.shotgunStats)
-        {
-            return 5;
-        }
-        if (state != null && stats == state.chainStats)
+        if (state != null && stats == state.multiShotStats)
         {
             return 3;
         }
-        if (state != null && stats == state.droneStats)
+        if (state != null && stats == state.auraStats)
+        {
+            return 0;
+        }
+        if (state != null && stats == state.grenadeStats)
         {
             return 1;
         }
-        if (state != null && stats == state.shurikenStats)
         {
             return 1;
         }
-        if (state != null && stats == state.frostStats)
         {
             return 1;
         }
-        if (state != null && stats == state.lightningStats)
+        {
+            return 1;
+        }
+        if (state != null && stats == state.meleeStats)
         {
             return 1;
         }
@@ -3841,10 +3702,10 @@ public class GameSession : MonoBehaviour
         }
 
         bool showMap = _waitingMapChoice && !IsGameOver;
-        bool showStart = _waitingStartWeaponChoice && !showMap && !IsGameOver;
+        bool showStart = _waitingStartCharacterChoice && !showMap && !IsGameOver;
         bool showGameOver = IsGameOver;
         bool showUpgrade = _choosingUpgrade && !showStart && !IsGameOver;
-        bool showAuto = _showAutoButton && _player != null && _gameStarted && !_waitingStartWeaponChoice && !_waitingMapChoice && !IsGameOver;
+        bool showAuto = _showAutoButton && _player != null && _gameStarted && !_waitingStartCharacterChoice && !_waitingMapChoice && !IsGameOver;
 
         if (_mapPanel != null)
         {
@@ -3896,7 +3757,7 @@ public class GameSession : MonoBehaviour
 
         if (showMap && _mapSubtitleText != null)
         {
-            _mapSubtitleText.text = requireStartWeaponChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.";
+            _mapSubtitleText.text = requireStartCharacterChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.";
         }
 
         if (showStart && _startSubtitleText != null)
@@ -3981,14 +3842,14 @@ public class GameSession : MonoBehaviour
         }
     }
 
-    private void SelectStartWeaponWithFeedback(StartWeaponType weapon, Button button)
+    private void SelectStartCharacterWithFeedback(StartCharacterType weapon, Button button)
     {
         if (_selectionLocked)
         {
             return;
         }
 
-        BeginSelectionFeedback(button, startButtonClickColor, () => SelectStartWeapon(weapon));
+        BeginSelectionFeedback(button, startButtonClickColor, () => SelectStartCharacter(weapon));
     }
 
     private void SelectMapWithFeedback(MapChoiceEntry choice, Button button)
@@ -4037,9 +3898,9 @@ public class GameSession : MonoBehaviour
 
         ApplyMapChoice(choice);
         _waitingMapChoice = false;
-        if (requireStartWeaponChoice)
+        if (requireStartCharacterChoice)
         {
-            _waitingStartWeaponChoice = true;
+            _waitingStartCharacterChoice = true;
         }
         else
         {
@@ -4274,7 +4135,7 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        bool shouldShow = _gameStarted && !_waitingMapChoice && !_waitingStartWeaponChoice && !IsGameOver;
+        bool shouldShow = _gameStarted && !_waitingMapChoice && !_waitingStartCharacterChoice && !IsGameOver;
         SetMapSceneRootActive(shouldShow);
         UpdateMapBackgroundVisibility();
     }
@@ -4946,9 +4807,9 @@ public class GameSession : MonoBehaviour
     {
         float panelWidth = 560f;
         float panelHeight = 240f;
-        _startPanel = CreatePanel(_uiRoot, "StartWeaponPanel", new Vector2(panelWidth, panelHeight), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
+        _startPanel = CreatePanel(_uiRoot, "StartCharacterPanel", new Vector2(panelWidth, panelHeight), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
 
-        _startTitleText = CreateText(_uiRoot, "StartWeaponTitle", fontToUse, 18, TextAnchor.MiddleCenter, Color.white);
+        _startTitleText = CreateText(_uiRoot, "StartCharacterTitle", fontToUse, 18, TextAnchor.MiddleCenter, Color.white);
         var titleRect = _startTitleText.rectTransform;
         titleRect.anchorMin = new Vector2(0.5f, 0.5f);
         titleRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -4988,10 +4849,10 @@ public class GameSession : MonoBehaviour
         mageLabelRect.pivot = new Vector2(0.5f, 0f);
         mageLabelRect.anchoredPosition = new Vector2(0f, labelPadding);
         mageLabelRect.sizeDelta = new Vector2(buttonWidth - 8f, labelHeight);
-        mageLabel.text = "마법사\n기본 무기: 총";
+        mageLabel.text = "마법사\n기본 무기: SingleShot";
         _startMagePreviewRect = CreateRect(_startMageRect, "MagePreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var mageButton = _startMageRect.GetComponent<Button>();
-        mageButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeaponType.Gun, mageButton));
+        mageButton.onClick.AddListener(() => SelectStartCharacterWithFeedback(StartCharacterType.SingleShot, mageButton));
         AddStartHoverTrigger(mageButton, 0);
         ApplyButtonColors(mageButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -5003,10 +4864,10 @@ public class GameSession : MonoBehaviour
         warriorLabelRect.pivot = new Vector2(0.5f, 0f);
         warriorLabelRect.anchoredPosition = new Vector2(0f, labelPadding);
         warriorLabelRect.sizeDelta = new Vector2(buttonWidth - 8f, labelHeight);
-        warriorLabel.text = "전사\n기본 무기: 부메랑";
+        warriorLabel.text = "전사\n기본 무기: Melee";
         _startWarriorPreviewRect = CreateRect(_startWarriorRect, "WarriorPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var warriorButton = _startWarriorRect.GetComponent<Button>();
-        warriorButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeaponType.Boomerang, warriorButton));
+        warriorButton.onClick.AddListener(() => SelectStartCharacterWithFeedback(StartCharacterType.Melee, warriorButton));
         AddStartHoverTrigger(warriorButton, 1);
         ApplyButtonColors(warriorButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -5018,10 +4879,10 @@ public class GameSession : MonoBehaviour
         demonLabelRect.pivot = new Vector2(0.5f, 0f);
         demonLabelRect.anchoredPosition = new Vector2(0f, labelPadding);
         demonLabelRect.sizeDelta = new Vector2(buttonWidth - 8f, labelHeight);
-        demonLabel.text = "데몬로드\n기본 무기: 노바";
+        demonLabel.text = "데몬로드\n기본 무기: Aura";
         _startDemonPreviewRect = CreateRect(_startDemonRect, "DemonPreview", new Vector2(buttonWidth - 8f, previewHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -previewPadding));
         var demonButton = _startDemonRect.GetComponent<Button>();
-        demonButton.onClick.AddListener(() => SelectStartWeaponWithFeedback(StartWeaponType.Nova, demonButton));
+        demonButton.onClick.AddListener(() => SelectStartCharacterWithFeedback(StartCharacterType.Aura, demonButton));
         AddStartHoverTrigger(demonButton, 2);
         ApplyButtonColors(demonButton, startButtonNormalColor, startButtonHoverColor);
 
@@ -5361,9 +5222,9 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        if (_waitingStartWeaponChoice)
+        if (_waitingStartCharacterChoice)
         {
-            DrawStartWeaponChoice();
+            DrawStartCharacterChoice();
             return;
         }
 
@@ -5553,6 +5414,12 @@ public class GameSession : MonoBehaviour
         public float magnetSpeedStep;
         public float regenPerSecond;
 
+        public float baseDamageMult;
+        public float baseFireRateMult;
+        public float baseRangeMult;
+        public float baseMoveSpeedMult;
+        public float baseWeaponDamageMult;
+
         public int damageLevel;
         public int fireRateLevel;
         public int moveSpeedLevel;
@@ -5564,19 +5431,16 @@ public class GameSession : MonoBehaviour
         public int pierceLevel;
         public int projectileCountLevel;
 
-        public WeaponStatsData gunStats;
-        public WeaponStatsData boomerangStats;
-        public WeaponStatsData novaStats;
-        public WeaponStatsData shotgunStats;
-        public WeaponStatsData laserStats;
-        public WeaponStatsData chainStats;
-        public WeaponStatsData droneStats;
-        public WeaponStatsData shurikenStats;
-        public WeaponStatsData frostStats;
-        public WeaponStatsData lightningStats;
+        public WeaponStatsData singleShotStats;
+        public WeaponStatsData multiShotStats;
+        public WeaponStatsData piercingShotStats;
+        public WeaponStatsData auraStats;
+        public WeaponStatsData homingShotStats;
+        public WeaponStatsData grenadeStats;
+        public WeaponStatsData meleeStats;
 
-        public StartWeaponType startWeapon;
-        public bool startWeaponApplied;
+        public StartCharacterType startCharacter;
+        public bool startCharacterApplied;
     }
 
     private class UpgradeOption
@@ -5609,7 +5473,7 @@ public class GameSession : MonoBehaviour
         float y = (Screen.height - boxHeight) * 0.5f;
 
         GUI.Box(new Rect(x, y, boxWidth, boxHeight), "1. 맵 선택");
-        GUI.Label(new Rect(x + 20f, y + 32f, boxWidth - 40f, 20f), requireStartWeaponChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.");
+        GUI.Label(new Rect(x + 20f, y + 32f, boxWidth - 40f, 20f), requireStartCharacterChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.");
 
         int count = Mathf.Min(3, choices.Length);
         float buttonWidth = 140f;
@@ -5631,7 +5495,7 @@ public class GameSession : MonoBehaviour
         }
     }
 
-    private void DrawStartWeaponChoice()
+    private void DrawStartCharacterChoice()
     {
         const float boxWidth = 560f;
         const float boxHeight = 220f;
@@ -5654,88 +5518,161 @@ public class GameSession : MonoBehaviour
         EnsureStartCharacterPreviews();
         UpdateStartCharacterPreviews(rectMage, rectWarrior, rectDemon);
 
-        if (GUI.Button(rectMage, "마법사\n기본 무기: 총"))
+        if (GUI.Button(rectMage, "마법사\n기본 무기: SingleShot"))
         {
-            SelectStartWeapon(StartWeaponType.Gun);
+            SelectStartCharacter(StartCharacterType.SingleShot);
         }
-        if (GUI.Button(rectWarrior, "전사\n기본 무기: 부메랑"))
+        if (GUI.Button(rectWarrior, "전사\n기본 무기: Melee"))
         {
-            SelectStartWeapon(StartWeaponType.Boomerang);
+            SelectStartCharacter(StartCharacterType.Melee);
         }
-        if (GUI.Button(rectDemon, "데몬로드\n기본 무기: 노바"))
+        if (GUI.Button(rectDemon, "데몬로드\n기본 무기: Aura"))
         {
-            SelectStartWeapon(StartWeaponType.Nova);
+            SelectStartCharacter(StartCharacterType.Aura);
         }
     }
 
-    private void SelectStartWeapon(StartWeaponType weapon)
+    private void SelectStartCharacter(StartCharacterType weapon)
     {
         var state = GetLocalState();
-        ApplyStartWeaponSelection(state, weapon, true);
+        ApplyStartCharacterSelection(state, weapon, true);
 
         if (IsNetworkSession())
         {
-            SubmitStartWeaponSelection(weapon);
+            SubmitStartCharacterSelection(weapon);
             return;
         }
 
-        _waitingStartWeaponChoice = false;
+        _waitingStartCharacterChoice = false;
         ClearStartCharacterPreviews();
         EnsureMapSelected();
         StartLocalGame();
     }
 
-    private void ApplyStartWeaponSelection(PlayerUpgradeState state, StartWeaponType weapon, bool trackUpgrade)
+    private void ApplyStartCharacterSelection(PlayerUpgradeState state, StartCharacterType weapon, bool trackUpgrade)
     {
         if (state == null)
         {
             return;
         }
 
-        state.startWeapon = weapon;
-        if (state.gunStats != null)
-        {
-            state.gunStats.unlocked = weapon == StartWeaponType.Gun;
-            state.gunStats.level = weapon == StartWeaponType.Gun ? 1 : 0;
-        }
+        state.startCharacter = weapon;
+        var tuning = GetStartCharacterTuning(weapon);
+        ApplyCharacterBaseMultipliers(state, tuning);
+        ResetAllWeaponsToLocked(state);
+        UnlockStartCharacterWeapon(state, tuning.defaultWeapon);
 
-        if (state.boomerangStats != null)
+        if (trackUpgrade && !state.startCharacterApplied)
         {
-            state.boomerangStats.unlocked = weapon == StartWeaponType.Boomerang;
-            state.boomerangStats.level = weapon == StartWeaponType.Boomerang ? 1 : 0;
-        }
-
-        if (state.novaStats != null)
-        {
-            state.novaStats.unlocked = weapon == StartWeaponType.Nova;
-            state.novaStats.level = weapon == StartWeaponType.Nova ? 1 : 0;
-        }
-
-        ResetWeaponToLocked(state.shotgunStats);
-        ResetWeaponToLocked(state.laserStats);
-        ResetWeaponToLocked(state.chainStats);
-        ResetWeaponToLocked(state.droneStats);
-        ResetWeaponToLocked(state.shurikenStats);
-        ResetWeaponToLocked(state.frostStats);
-        ResetWeaponToLocked(state.lightningStats);
-
-        if (trackUpgrade && !state.startWeaponApplied)
-        {
-            if (weapon == StartWeaponType.Gun && state.gunStats != null)
+            var startStats = GetWeaponStatsByType(state, tuning.defaultWeapon);
+            if (startStats != null)
             {
-                TrackUpgrade($"무기: {state.gunStats.displayName}");
-            }
-            else if (weapon == StartWeaponType.Boomerang && state.boomerangStats != null)
-            {
-                TrackUpgrade($"무기: {state.boomerangStats.displayName}");
-            }
-            else if (weapon == StartWeaponType.Nova && state.novaStats != null)
-            {
-                TrackUpgrade($"무기: {state.novaStats.displayName}");
+                TrackUpgrade($"무기: {startStats.displayName}");
             }
         }
 
-        state.startWeaponApplied = true;
+        state.startCharacterApplied = true;
+    }
+
+    private StartCharacterTuning GetStartCharacterTuning(StartCharacterType character)
+    {
+        if (startCharacterTunings != null)
+        {
+            for (int i = 0; i < startCharacterTunings.Length; i++)
+            {
+                if (startCharacterTunings[i].character == character)
+                {
+                    return startCharacterTunings[i];
+                }
+            }
+        }
+
+        return new StartCharacterTuning
+        {
+            character = StartCharacterType.SingleShot,
+            defaultWeapon = AutoAttack.WeaponType.SingleShot,
+            damageMult = 1f,
+            fireRateMult = 1f,
+            rangeMult = 1f,
+            moveSpeedMult = 1f,
+            weaponDamageMult = 1f
+        };
+    }
+
+    private static void ApplyCharacterBaseMultipliers(PlayerUpgradeState state, StartCharacterTuning tuning)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        if (state.baseDamageMult <= 0f) state.baseDamageMult = 1f;
+        if (state.baseFireRateMult <= 0f) state.baseFireRateMult = 1f;
+        if (state.baseRangeMult <= 0f) state.baseRangeMult = 1f;
+        if (state.baseMoveSpeedMult <= 0f) state.baseMoveSpeedMult = 1f;
+        if (state.baseWeaponDamageMult <= 0f) state.baseWeaponDamageMult = 1f;
+
+        state.damageMult = state.baseDamageMult * Mathf.Max(0.1f, tuning.damageMult);
+        state.fireRateMult = state.baseFireRateMult * Mathf.Max(0.1f, tuning.fireRateMult);
+        state.rangeMult = state.baseRangeMult * Mathf.Max(0.1f, tuning.rangeMult);
+        state.moveSpeedMult = state.baseMoveSpeedMult * Mathf.Max(0.1f, tuning.moveSpeedMult);
+        state.weaponDamageMult = state.baseWeaponDamageMult * Mathf.Max(0.1f, tuning.weaponDamageMult);
+    }
+
+    private static void ResetAllWeaponsToLocked(PlayerUpgradeState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        ResetWeaponToLocked(state.singleShotStats);
+        ResetWeaponToLocked(state.multiShotStats);
+        ResetWeaponToLocked(state.piercingShotStats);
+        ResetWeaponToLocked(state.auraStats);
+        ResetWeaponToLocked(state.homingShotStats);
+        ResetWeaponToLocked(state.grenadeStats);
+        ResetWeaponToLocked(state.meleeStats);
+    }
+
+    private static void UnlockStartCharacterWeapon(PlayerUpgradeState state, AutoAttack.WeaponType weaponType)
+    {
+        var stats = GetWeaponStatsByType(state, weaponType);
+        if (stats == null)
+        {
+            return;
+        }
+
+        stats.unlocked = true;
+        stats.level = 1;
+    }
+
+    private static WeaponStatsData GetWeaponStatsByType(PlayerUpgradeState state, AutoAttack.WeaponType weaponType)
+    {
+        if (state == null)
+        {
+            return null;
+        }
+
+        switch (weaponType)
+        {
+            case AutoAttack.WeaponType.SingleShot:
+                return state.singleShotStats;
+            case AutoAttack.WeaponType.MultiShot:
+                return state.multiShotStats;
+            case AutoAttack.WeaponType.PiercingShot:
+                return state.piercingShotStats;
+            case AutoAttack.WeaponType.Aura:
+                return state.auraStats;
+            case AutoAttack.WeaponType.HomingShot:
+                return state.homingShotStats;
+            case AutoAttack.WeaponType.Grenade:
+                return state.grenadeStats;
+            case AutoAttack.WeaponType.Melee:
+                return state.meleeStats;
+            default:
+                return state.singleShotStats;
+        }
     }
 
     private void EnsureStartCharacterPreviews()
@@ -5825,5 +5762,7 @@ public class GameSession : MonoBehaviour
     }
 
 }
+
+
 
 
