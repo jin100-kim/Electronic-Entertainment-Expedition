@@ -106,6 +106,8 @@ public class GameSession : MonoBehaviour
 
     private float sizeMult = 1f;
 
+    private float attackAreaMult = 1f;
+
     private float lifetimeMult = 1f;
 
     private int projectileCount = 1;
@@ -122,6 +124,7 @@ public class GameSession : MonoBehaviour
         damageMult = 1f,
         fireRateMult = 1.2f,
         rangeMult = 1.3333f,
+        areaMult = 0f,
         bonusProjectiles = 0,
         hitStunDuration = 0.05f,
         knockbackDistance = 0.05f
@@ -135,6 +138,7 @@ public class GameSession : MonoBehaviour
         damageMult = 0.5f,
         fireRateMult = 0.6f,
         rangeMult = 0.8333f,
+        areaMult = 0f,
         bonusProjectiles = 2,
         hitStunDuration = 0.05f,
         knockbackDistance = 0.05f
@@ -148,6 +152,7 @@ public class GameSession : MonoBehaviour
         damageMult = 2.5f,
         fireRateMult = 0.48f,
         rangeMult = 3.3333f,
+        areaMult = 0f,
         bonusProjectiles = 0,
         hitStunDuration = 0.2f,
         knockbackDistance = 0.2f
@@ -160,7 +165,8 @@ public class GameSession : MonoBehaviour
         unlocked = false,
         damageMult = 0.5f,
         fireRateMult = 1.8f,
-        rangeMult = 0.5f,
+        rangeMult = 0f,
+        areaMult = 0.25f,
         bonusProjectiles = 0,
         hitStunDuration = 0.01f,
         knockbackDistance = 0f
@@ -174,6 +180,7 @@ public class GameSession : MonoBehaviour
         damageMult = 1.2f,
         fireRateMult = 0.72f,
         rangeMult = 1.6667f,
+        areaMult = 0f,
         bonusProjectiles = 0,
         hitStunDuration = 0.08f,
         knockbackDistance = 0.08f
@@ -187,6 +194,7 @@ public class GameSession : MonoBehaviour
         damageMult = 1.8f,
         fireRateMult = 0.66f,
         rangeMult = 2f,
+        areaMult = 1f,
         bonusProjectiles = 0,
         hitStunDuration = 0.1f,
         knockbackDistance = 0.12f
@@ -199,7 +207,8 @@ public class GameSession : MonoBehaviour
         unlocked = false,
         damageMult = 2f,
         fireRateMult = 1.5f,
-        rangeMult = 0.4167f,
+        rangeMult = 0f,
+        areaMult = 0.25f,
         bonusProjectiles = 0,
         hitStunDuration = 0.15f,
         knockbackDistance = 0.25f
@@ -356,6 +365,14 @@ public class GameSession : MonoBehaviour
 
     private float testSpawnSecretTimeout = 1.5f;
 
+    private bool allowLevelUpSecret = true;
+
+    private string levelUpSecret = "lvl";
+
+    private float levelUpSecretTimeout = 1.5f;
+
+    private bool showColliderGizmos = true;
+
     private Vector2[] testSpawnOffsets;
 
     public Vector2 MapHalfSize => mapHalfSize;
@@ -468,6 +485,8 @@ public class GameSession : MonoBehaviour
     private float _autoSecretLastTime = -1f;
     private string _testSecretBuffer = string.Empty;
     private float _testSecretLastTime = -1f;
+    private string _levelUpSecretBuffer = string.Empty;
+    private float _levelUpSecretLastTime = -1f;
     private bool _settingsApplied;
 
     private const string CoinPrefKey = "CoinCount";
@@ -601,27 +620,32 @@ public class GameSession : MonoBehaviour
         allowTestSpawnSecret = settings.allowTestSpawnSecret;
         testSpawnSecret = settings.testSpawnSecret;
         testSpawnSecretTimeout = settings.testSpawnSecretTimeout;
+        allowLevelUpSecret = settings.allowLevelUpSecret;
+        levelUpSecret = settings.levelUpSecret;
+        levelUpSecretTimeout = settings.levelUpSecretTimeout;
+        showColliderGizmos = settings.showColliderGizmos;
         testSpawnOffsets = ResolveTestSpawnOffsets(settings.testSpawnOffsets);
 
         ApplyStageOverrides(stage);
         CacheDifficultyBaseValues();
         _baseDifficultyConfig = difficulty;
         ApplyDifficultyOverrides(difficulty);
+        ApplyColliderGizmoSettings();
 
         _settingsApplied = true;
     }
 
     private void ApplySevenWeaponProfileDefaults()
     {
-        maxWeaponSlots = Mathf.Clamp(maxWeaponSlots, 1, 3);
+        maxWeaponSlots = Mathf.Max(1, maxWeaponSlots);
 
-        ApplyWeaponProfile(singleShotStats, "SingleShot", 1f, 1.2f, 1.3333f, 0, 0.05f, 0.05f, true);
-        ApplyWeaponProfile(multiShotStats, "MultiShot", 0.5f, 0.6f, 0.8333f, 2, 0.05f, 0.05f, false);
-        ApplyWeaponProfile(piercingShotStats, "PiercingShot", 2.5f, 0.48f, 3.3333f, 0, 0.2f, 0.2f, false);
-        ApplyWeaponProfile(auraStats, "Aura", 0.5f, 1.8f, 0.5f, 0, 0.01f, 0f, false);
-        ApplyWeaponProfile(homingShotStats, "HomingShot", 1.2f, 0.72f, 1.6667f, 0, 0.08f, 0.08f, false);
-        ApplyWeaponProfile(grenadeStats, "Grenade", 1.8f, 0.66f, 2f, 0, 0.1f, 0.12f, false);
-        ApplyWeaponProfile(meleeStats, "Melee", 2f, 1.5f, 0.4167f, 0, 0.15f, 0.25f, false);
+        ApplyWeaponProfile(singleShotStats, "SingleShot", 1f, 1.2f, 1.3333f, 0f, 0, 0.05f, 0.05f, true);
+        ApplyWeaponProfile(multiShotStats, "MultiShot", 0.5f, 0.6f, 0.8333f, 0f, 2, 0.05f, 0.05f, false);
+        ApplyWeaponProfile(piercingShotStats, "PiercingShot", 2.5f, 0.48f, 3.3333f, 0f, 0, 0.2f, 0.2f, false);
+        ApplyWeaponProfile(auraStats, "Aura", 0.5f, 1.8f, 0f, 0.25f, 0, 0.01f, 0f, false);
+        ApplyWeaponProfile(homingShotStats, "HomingShot", 1.2f, 0.72f, 1.6667f, 0f, 0, 0.08f, 0.08f, false);
+        ApplyWeaponProfile(grenadeStats, "Grenade", 1.8f, 0.66f, 2f, 1f, 0, 0.1f, 0.12f, false);
+        ApplyWeaponProfile(meleeStats, "Melee", 2f, 1.5f, 0f, 0.25f, 0, 0.15f, 0.25f, false);
 
     }
 
@@ -631,6 +655,7 @@ public class GameSession : MonoBehaviour
         float damageMultValue,
         float fireRateMultValue,
         float rangeMultValue,
+        float areaMultValue,
         int bonusProjectilesValue,
         float hitStunValue,
         float knockbackValue,
@@ -644,7 +669,8 @@ public class GameSession : MonoBehaviour
         stats.displayName = displayName;
         stats.damageMult = damageMultValue;
         stats.fireRateMult = fireRateMultValue;
-        stats.rangeMult = rangeMultValue;
+        stats.rangeMult = Mathf.Max(0f, rangeMultValue);
+        stats.areaMult = Mathf.Max(0f, areaMultValue);
         stats.bonusProjectiles = bonusProjectilesValue;
         stats.hitStunDuration = hitStunValue;
         stats.knockbackDistance = knockbackValue;
@@ -696,6 +722,12 @@ public class GameSession : MonoBehaviour
         _upgradeRoundId = 0;
         _networkUpgradeRoundId = -1;
         _localUpgradeSubmitted = false;
+        _autoSecretBuffer = string.Empty;
+        _autoSecretLastTime = -1f;
+        _testSecretBuffer = string.Empty;
+        _testSecretLastTime = -1f;
+        _levelUpSecretBuffer = string.Empty;
+        _levelUpSecretLastTime = -1f;
     }
 
     private static WeaponStatsData CloneWeaponStats(WeaponStatsData source)
@@ -713,6 +745,7 @@ public class GameSession : MonoBehaviour
             damageMult = source.damageMult,
             fireRateMult = source.fireRateMult,
             rangeMult = source.rangeMult,
+            areaMult = source.areaMult,
             bonusProjectiles = source.bonusProjectiles,
             hitStunDuration = source.hitStunDuration,
             knockbackDistance = source.knockbackDistance
@@ -727,6 +760,7 @@ public class GameSession : MonoBehaviour
             fireRateMult = fireRateMult,
             rangeMult = rangeMult,
             sizeMult = sizeMult,
+            attackAreaMult = attackAreaMult,
             lifetimeMult = lifetimeMult,
             projectileCount = projectileCount,
             projectilePierceBonus = projectilePierceBonus,
@@ -1339,6 +1373,7 @@ public class GameSession : MonoBehaviour
 
         HandleAutoButtonSecret();
         HandleTestSpawnSecret();
+        HandleLevelUpSecret();
     }
 
     private void LateUpdate()
@@ -2176,7 +2211,7 @@ public class GameSession : MonoBehaviour
         }
         if (state.sizeLevel < maxUpgradeLevel && CanOfferNewStat(state, state.sizeLevel))
         {
-            options.Add(new UpgradeOption("투사체 크기 +25%", () => BuildPercentStatText("투사체 크기", state.sizeMult, state.sizeMult + 0.25f), () => { state.sizeMult += 0.25f; state.sizeLevel += 1; }));
+            options.Add(new UpgradeOption("공격범위 +15%", () => BuildPercentStatText("공격범위", state.attackAreaMult, state.attackAreaMult + 0.15f), () => { state.attackAreaMult += 0.15f; state.sizeLevel += 1; }));
         }
         if (state.projectileCountLevel < maxUpgradeLevel && CanOfferNewStat(state, state.projectileCountLevel))
         {
@@ -2349,7 +2384,7 @@ public class GameSession : MonoBehaviour
         AddStatIcon(results, "사거리", state.rangeLevel);
         AddStatIcon(results, "경험치", state.xpGainLevel);
         AddStatIcon(results, "자석", state.magnetLevel);
-        AddStatIcon(results, "투사체크기", state.sizeLevel);
+        AddStatIcon(results, "공격범위", state.sizeLevel);
         AddStatIcon(results, "투사체수", state.projectileCountLevel);
         AddStatIcon(results, "관통", state.pierceLevel);
     }
@@ -2926,7 +2961,7 @@ public class GameSession : MonoBehaviour
             attack = player.gameObject.AddComponent<AutoAttack>();
         }
 
-        attack.ApplyStats(state.damageMult, state.fireRateMult, state.rangeMult, state.sizeMult, state.lifetimeMult, state.projectileCount, state.projectilePierceBonus, state.weaponDamageMult);
+        attack.ApplyStats(state.damageMult, state.fireRateMult, state.rangeMult, state.sizeMult, state.attackAreaMult, state.lifetimeMult, state.projectileCount, state.projectilePierceBonus, state.weaponDamageMult);
         attack.SetWeaponStats(AutoAttack.WeaponType.SingleShot, state.singleShotStats);
         attack.SetWeaponStats(AutoAttack.WeaponType.MultiShot, state.multiShotStats);
         attack.SetWeaponStats(AutoAttack.WeaponType.PiercingShot, state.piercingShotStats);
@@ -3913,7 +3948,7 @@ public class GameSession : MonoBehaviour
         _selectedMapChoice = choice;
         _mapChoiceApplied = true;
         DisableLegacyMapRoots();
-        ApplyMapDifficulty(choice.difficulty);
+        ApplyMapDifficulty(ResolveMapDifficultyForChoice(choice));
 
         if (!string.IsNullOrWhiteSpace(choice.sceneName))
         {
@@ -4001,11 +4036,43 @@ public class GameSession : MonoBehaviour
         }
 
         string name = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
-        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
-        var fallback = _baseDifficultyConfig != null ? _baseDifficultyConfig : ResolveDifficultyConfig(config);
-        var difficulty = choice.difficulty != null ? choice.difficulty : fallback;
+        var difficulty = ResolveMapDifficultyForChoice(choice);
         string difficultyName = ResolveDifficultyName(difficulty);
         return string.IsNullOrWhiteSpace(difficultyName) ? name : $"{name}\n{difficultyName}";
+    }
+
+    private DifficultyConfig ResolveMapDifficultyForChoice(MapChoiceEntry choice)
+    {
+        if (choice != null && choice.difficulty != null)
+        {
+            return choice.difficulty;
+        }
+
+        string resourcePath = "DifficultyConfig_Default";
+        if (choice != null)
+        {
+            switch (choice.theme)
+            {
+                case MapTheme.Forest:
+                    resourcePath = "DifficultyConfig_Easy";
+                    break;
+                case MapTheme.Desert:
+                    resourcePath = "DifficultyConfig_Default";
+                    break;
+                case MapTheme.Snow:
+                    resourcePath = "DifficultyConfig_Hard";
+                    break;
+            }
+        }
+
+        var byTheme = Resources.Load<DifficultyConfig>(resourcePath);
+        if (byTheme != null)
+        {
+            return byTheme;
+        }
+
+        var config = gameConfig != null ? gameConfig : GameConfig.LoadOrCreate();
+        return _baseDifficultyConfig != null ? _baseDifficultyConfig : ResolveDifficultyConfig(config);
     }
 
     private static string ResolveDifficultyName(DifficultyConfig difficulty)
@@ -4500,6 +4567,8 @@ public class GameSession : MonoBehaviour
                 return keyboard.aKey.wasPressedThisFrame;
             case 'e':
                 return keyboard.eKey.wasPressedThisFrame;
+            case 'l':
+                return keyboard.lKey.wasPressedThisFrame;
             case 's':
                 return keyboard.sKey.wasPressedThisFrame;
             case 'u':
@@ -4508,6 +4577,8 @@ public class GameSession : MonoBehaviour
                 return keyboard.tKey.wasPressedThisFrame;
             case 'o':
                 return keyboard.oKey.wasPressedThisFrame;
+            case 'v':
+                return keyboard.vKey.wasPressedThisFrame;
             default:
                 return false;
         }
@@ -4599,6 +4670,145 @@ public class GameSession : MonoBehaviour
             _testSecretBuffer = string.Empty;
             _testSecretLastTime = -1f;
         }
+    }
+
+    private void HandleLevelUpSecret()
+    {
+        if (!allowLevelUpSecret || string.IsNullOrEmpty(levelUpSecret) || !IsGameplayActive)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        if (_levelUpSecretLastTime > 0f && Time.unscaledTime - _levelUpSecretLastTime > levelUpSecretTimeout)
+        {
+            _levelUpSecretBuffer = string.Empty;
+            _levelUpSecretLastTime = -1f;
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        bool appended = false;
+        foreach (char c in levelUpSecret)
+        {
+            if (WasSecretCharPressed(keyboard, c))
+            {
+                AppendLevelUpSecretChar(c);
+                appended = true;
+                break;
+            }
+        }
+
+        if (!appended)
+        {
+            return;
+        }
+#else
+        string input = Input.inputString;
+        if (string.IsNullOrEmpty(input))
+        {
+            return;
+        }
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            AppendLevelUpSecretChar(char.ToLowerInvariant(input[i]));
+        }
+#endif
+    }
+
+    private void AppendLevelUpSecretChar(char c)
+    {
+        _levelUpSecretLastTime = Time.unscaledTime;
+        _levelUpSecretBuffer += char.ToLowerInvariant(c);
+        if (_levelUpSecretBuffer.Length > levelUpSecret.Length)
+        {
+            _levelUpSecretBuffer = _levelUpSecretBuffer.Substring(_levelUpSecretBuffer.Length - levelUpSecret.Length);
+        }
+
+        if (_levelUpSecretBuffer == levelUpSecret.ToLowerInvariant())
+        {
+            LevelUpByOne();
+            _levelUpSecretBuffer = string.Empty;
+            _levelUpSecretLastTime = -1f;
+        }
+    }
+
+    private void LevelUpByOne()
+    {
+        if (_choosingUpgrade)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        var list = Experience.Active;
+        Experience source = PlayerExperience;
+        if (source == null)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] != null)
+                {
+                    source = list[i];
+                    break;
+                }
+            }
+        }
+
+        if (source == null)
+        {
+            return;
+        }
+
+        float growth = 4f;
+        if (gameConfig != null && gameConfig.experience != null)
+        {
+            growth = Mathf.Max(0.1f, gameConfig.experience.xpGrowth);
+        }
+        else
+        {
+            var config = GameConfig.LoadOrCreate();
+            if (config != null && config.experience != null)
+            {
+                growth = Mathf.Max(0.1f, config.experience.xpGrowth);
+            }
+        }
+
+        int nextLevel = Mathf.Max(1, source.Level + 1);
+        float nextXpThreshold = Mathf.Max(0.1f, source.XpToNext + growth);
+
+        source.SetSharedState(nextLevel, 0f, nextXpThreshold);
+        for (int i = 0; i < list.Count; i++)
+        {
+            var xp = list[i];
+            if (xp == null || xp == source)
+            {
+                continue;
+            }
+
+            xp.SetSharedState(nextLevel, 0f, nextXpThreshold);
+        }
+
+        if (NetworkSession.IsActive)
+        {
+            SyncSharedXpToClients(nextLevel, 0f, nextXpThreshold);
+        }
+
+        OnLevelUp(nextLevel);
     }
 
     private void SpawnTestEnemies()
@@ -5368,12 +5578,17 @@ public class GameSession : MonoBehaviour
     {
         _autoPlayEnabled = enabled;
         _player?.SetAutoPlay(_autoPlayEnabled);
-        ColliderGizmos.SetGlobalEnabled(_autoPlayEnabled);
-        if (_autoPlayEnabled)
+
+    }
+
+    private void ApplyColliderGizmoSettings()
+    {
+        ColliderGizmos.SetGlobalEnabled(showColliderGizmos);
+        if (showColliderGizmos)
         {
             if (_colliderGizmoRoutine == null)
             {
-                _colliderGizmoRoutine = StartCoroutine(EnsureColliderGizmosWhileAuto());
+                _colliderGizmoRoutine = StartCoroutine(EnsureColliderGizmosWhileEnabled());
             }
         }
         else
@@ -5386,9 +5601,9 @@ public class GameSession : MonoBehaviour
         }
     }
 
-    private IEnumerator EnsureColliderGizmosWhileAuto()
+    private IEnumerator EnsureColliderGizmosWhileEnabled()
     {
-        while (_autoPlayEnabled)
+        while (showColliderGizmos)
         {
             ColliderGizmos.EnsureAllCollidersTracked();
             yield return new WaitForSeconds(1f);
@@ -5401,6 +5616,7 @@ public class GameSession : MonoBehaviour
         public float fireRateMult;
         public float rangeMult;
         public float sizeMult;
+        public float attackAreaMult;
         public float lifetimeMult;
         public int projectileCount;
         public int projectilePierceBonus;
@@ -5762,7 +5978,3 @@ public class GameSession : MonoBehaviour
     }
 
 }
-
-
-
-

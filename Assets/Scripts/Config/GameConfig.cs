@@ -88,7 +88,7 @@ public class GameSessionSettings
 
     [Header("Upgrades")]
     public int maxUpgradeLevel = 10;
-    public int maxWeaponSlots = 5;
+    public int maxWeaponSlots = 3;
     public int maxStatSlots = 5;
 
     [Header("Base Multipliers")]
@@ -110,10 +110,11 @@ public class GameSessionSettings
         unlocked = true,
         damageMult = 1f,
         fireRateMult = 1.2f,
-        rangeMult = 1f,
+        rangeMult = 1.3333f,
+        areaMult = 0f,
         bonusProjectiles = 0,
-        hitStunDuration = 0.06f,
-        knockbackDistance = 0.2f
+        hitStunDuration = 0.05f,
+        knockbackDistance = 0.05f
     };
 
     [FormerlySerializedAs("boomerangStats")]
@@ -122,12 +123,13 @@ public class GameSessionSettings
         displayName = "MultiShot",
         level = 0,
         unlocked = false,
-        damageMult = 1f,
-        fireRateMult = 0.8f,
-        rangeMult = 0.7f,
-        bonusProjectiles = 0,
-        hitStunDuration = 0.08f,
-        knockbackDistance = 0.35f
+        damageMult = 0.5f,
+        fireRateMult = 0.6f,
+        rangeMult = 0.8333f,
+        areaMult = 0f,
+        bonusProjectiles = 2,
+        hitStunDuration = 0.05f,
+        knockbackDistance = 0.05f
     };
 
     [FormerlySerializedAs("novaStats")]
@@ -136,12 +138,13 @@ public class GameSessionSettings
         displayName = "PiercingShot",
         level = 0,
         unlocked = false,
-        damageMult = 1f,
-        fireRateMult = 0.6f,
-        rangeMult = 0.5f,
+        damageMult = 2.5f,
+        fireRateMult = 0.48f,
+        rangeMult = 3.3333f,
+        areaMult = 0f,
         bonusProjectiles = 0,
-        hitStunDuration = 0.05f,
-        knockbackDistance = 0.18f
+        hitStunDuration = 0.2f,
+        knockbackDistance = 0.2f
     };
 
     [FormerlySerializedAs("shotgunStats")]
@@ -150,12 +153,13 @@ public class GameSessionSettings
         displayName = "Aura",
         level = 0,
         unlocked = false,
-        damageMult = 0.9f,
-        fireRateMult = 0.7f,
-        rangeMult = 0.75f,
+        damageMult = 0.5f,
+        fireRateMult = 1.8f,
+        rangeMult = 0f,
+        areaMult = 0.25f,
         bonusProjectiles = 0,
-        hitStunDuration = 0.1f,
-        knockbackDistance = 0.45f
+        hitStunDuration = 0.01f,
+        knockbackDistance = 0f
     };
 
     [FormerlySerializedAs("laserStats")]
@@ -164,12 +168,13 @@ public class GameSessionSettings
         displayName = "HomingShot",
         level = 0,
         unlocked = false,
-        damageMult = 1.1f,
-        fireRateMult = 0.8f,
-        rangeMult = 1.4f,
+        damageMult = 1.2f,
+        fireRateMult = 0.72f,
+        rangeMult = 1.6667f,
+        areaMult = 0f,
         bonusProjectiles = 0,
-        hitStunDuration = 0.04f,
-        knockbackDistance = 0.12f
+        hitStunDuration = 0.08f,
+        knockbackDistance = 0.08f
     };
 
     [FormerlySerializedAs("chainStats")]
@@ -178,12 +183,13 @@ public class GameSessionSettings
         displayName = "Grenade",
         level = 0,
         unlocked = false,
-        damageMult = 0.9f,
-        fireRateMult = 0.75f,
-        rangeMult = 1.1f,
+        damageMult = 1.8f,
+        fireRateMult = 0.66f,
+        rangeMult = 2f,
+        areaMult = 1f,
         bonusProjectiles = 0,
-        hitStunDuration = 0.06f,
-        knockbackDistance = 0.2f
+        hitStunDuration = 0.1f,
+        knockbackDistance = 0.12f
     };
 
     [FormerlySerializedAs("lightningStats")]
@@ -192,12 +198,13 @@ public class GameSessionSettings
         displayName = "Melee",
         level = 0,
         unlocked = false,
-        damageMult = 1.0f,
-        fireRateMult = 0.7f,
-        rangeMult = 1.0f,
+        damageMult = 2f,
+        fireRateMult = 1.5f,
+        rangeMult = 0f,
+        areaMult = 0.25f,
         bonusProjectiles = 0,
-        hitStunDuration = 0.06f,
-        knockbackDistance = 0.22f
+        hitStunDuration = 0.15f,
+        knockbackDistance = 0.25f
     };
 
     [Header("Stat Multipliers")]
@@ -259,6 +266,9 @@ public class GameSessionSettings
     public bool allowTestSpawnSecret = true;
     public string testSpawnSecret = "test";
     public float testSpawnSecretTimeout = 1.5f;
+    public bool allowLevelUpSecret = true;
+    public string levelUpSecret = "lvl";
+    public float levelUpSecretTimeout = 1.5f;
     public Vector2[] testSpawnOffsets = new[]
     {
         new Vector2(2f, 0f),

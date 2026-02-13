@@ -87,8 +87,8 @@ public class PlayerController : NetworkBehaviour
     private Transform _visualRoot;
     private SpriteRenderer _visualRenderer;
     private SpriteRenderer _shadowRenderer;
-    private Vector3 _lastPosition;
     private bool _settingsApplied;
+    private Vector2 _facingDirection = Vector2.right;
     private static readonly Vector2[] AutoSampleDirections = new[]
     {
         Vector2.right,
@@ -105,7 +105,6 @@ public class PlayerController : NetworkBehaviour
     {
         ApplySettings();
         EnsureNetworkTransform();
-        _lastPosition = transform.position;
         EnsureVisual();
         EnsureShadow();
         EnsurePhysics();
@@ -282,6 +281,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     public bool IsAutoPlayEnabled => autoPlayEnabled;
+    public Vector2 FacingDirection => _facingDirection;
 
     public bool HasStartCharacterSelection => _startCharacterIndex.Value >= 0;
     public bool GameStartedSignal => _gameStartedSignal.Value;
@@ -822,35 +822,34 @@ public class PlayerController : NetworkBehaviour
         _shadowRenderer.sortingOrder = -1;
     }
 
-    private void LateUpdate()
-    {
-        Vector3 current = transform.position;
-        Vector3 delta = current - _lastPosition;
-        if (Mathf.Abs(delta.x) > 0.001f)
-        {
-            SetFacing(delta.x < 0f);
-        }
-        _lastPosition = current;
-    }
-
     private void UpdateFacingFromInput(Vector2 input)
     {
-        if (Mathf.Abs(input.x) < 0.001f)
+        if (input.sqrMagnitude < 0.0001f)
         {
             return;
         }
 
-        SetFacing(input.x < 0f);
+        SetFacing(input.normalized);
     }
 
-    private void SetFacing(bool faceLeft)
+    private void SetFacing(Vector2 direction)
     {
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        _facingDirection = direction.normalized;
+
         if (_visualRenderer == null)
         {
             return;
         }
 
-        _visualRenderer.flipX = faceLeft;
+        if (Mathf.Abs(_facingDirection.x) > 0.001f)
+        {
+            _visualRenderer.flipX = _facingDirection.x < 0f;
+        }
     }
 
     private void ApplyPlayerColor()

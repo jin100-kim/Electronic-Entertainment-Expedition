@@ -182,10 +182,12 @@ public class AutoAttack : MonoBehaviour
     private int _projectilePierce;
     private int _projectilePierceBonus;
     private float _weaponDamageMult = 1f;
+    private float _attackAreaMult = 1f;
     private float _nextTargetScanTime;
     private Transform _cachedTarget;
     private Vector2 _cachedDir;
     private ElementLoadout _elementLoadout;
+    private PlayerController _ownerPlayer;
 
     private static readonly System.Collections.Generic.Stack<GameObject> _circleProjectilePool = new System.Collections.Generic.Stack<GameObject>();
     private static readonly System.Collections.Generic.Stack<GameObject> _homingShotProjectilePool = new System.Collections.Generic.Stack<GameObject>();
@@ -202,6 +204,7 @@ public class AutoAttack : MonoBehaviour
         public float DamageMult;
         public float FireRateMult;
         public float RangeMult;
+        public float AreaMult;
         public int BonusCount;
         public float HitStunDuration;
         public float KnockbackDistance;
@@ -229,8 +232,9 @@ public class AutoAttack : MonoBehaviour
     private void Awake()
     {
         ApplySettings();
-        ApplyStats(1f, 1f, 1f, 1f, 1f, 1, 0, 1f);
+        ApplyStats(1f, 1f, 1f, 1f, 1f, 1f, 1, 0, 1f);
         _elementLoadout = GetComponent<ElementLoadout>();
+        _ownerPlayer = GetComponent<PlayerController>();
         _singleShot = CreateDefaultConfig(true);
         _multiShot = CreateDefaultConfig(false);
         _piercingShot = CreateDefaultConfig(false);
@@ -402,7 +406,7 @@ public class AutoAttack : MonoBehaviour
         }
     }
 
-    public void ApplyStats(float damageMult, float fireRateMult, float rangeMult, float sizeMult, float lifetimeMult, int projectileCount, int pierceBonus, float weaponDamageMult)
+    public void ApplyStats(float damageMult, float fireRateMult, float rangeMult, float sizeMult, float attackAreaMult, float lifetimeMult, int projectileCount, int pierceBonus, float weaponDamageMult)
     {
         _weaponDamageMult = Mathf.Max(0.1f, weaponDamageMult);
         _projectileDamage = baseProjectileDamage * Mathf.Max(0.1f, damageMult) * _weaponDamageMult;
@@ -411,6 +415,7 @@ public class AutoAttack : MonoBehaviour
         _range = baseRange * Mathf.Max(0.1f, rangeMult);
         _projectileSpeed = baseProjectileSpeed;
         _projectileSize = Mathf.Max(2, Mathf.RoundToInt(baseProjectileSize * Mathf.Max(0.2f, sizeMult)));
+        _attackAreaMult = Mathf.Max(0.1f, attackAreaMult);
         _projectileLifetime = baseProjectileLifetime * Mathf.Max(0.1f, lifetimeMult);
         _projectileCount = Mathf.Max(1, projectileCount);
         _projectilePierceBonus = Mathf.Max(0, pierceBonus);
@@ -554,8 +559,9 @@ public class AutoAttack : MonoBehaviour
     private void FireSingleShot(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _singleShot.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
+        float weaponRange = _range * Mathf.Max(0.1f, _singleShot.RangeMult);
+        _range = weaponRange;
+        float lifetime = CalculateLifetimeForRange(weaponRange);
         byte weaponId = ToWeaponId(WeaponType.SingleShot);
         float damage = _projectileDamage * _singleShot.DamageMult;
 
@@ -596,8 +602,9 @@ public class AutoAttack : MonoBehaviour
     private void FireMultiShot(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _multiShot.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
+        float weaponRange = _range * Mathf.Max(0.1f, _multiShot.RangeMult);
+        _range = weaponRange;
+        float lifetime = CalculateLifetimeForRange(weaponRange);
         byte weaponId = ToWeaponId(WeaponType.MultiShot);
         float damage = _projectileDamage * _multiShot.DamageMult;
 
@@ -624,8 +631,9 @@ public class AutoAttack : MonoBehaviour
         }
 
         float savedRange = _range;
-        _range *= _piercingShot.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
+        float weaponRange = _range * Mathf.Max(0.1f, _piercingShot.RangeMult);
+        _range = weaponRange;
+        float lifetime = CalculateLifetimeForRange(weaponRange);
         byte weaponId = ToWeaponId(WeaponType.PiercingShot);
         float damage = _projectileDamage * _piercingShot.DamageMult;
         int count = GetWeaponCount(_piercingShot);
@@ -664,13 +672,15 @@ public class AutoAttack : MonoBehaviour
 
     private void FireAura()
     {
-        float savedRange = _range;
-        _range *= _aura.RangeMult;
-        float radius = Mathf.Max(0.5f, _range);
+        float radius = Mathf.Max(0.1f, _range * Mathf.Max(0f, _aura.AreaMult) * _attackAreaMult);
+        if (radius <= 0.1001f)
+        {
+            return;
+        }
         float damage = _projectileDamage * _aura.DamageMult * auraDamageTickMult;
         int elementCount = GetWeaponElements(WeaponType.Aura, out var e0, out var e1, out var e2);
-        float sqrRadius = radius * radius;
         var enemies = EnemyController.Active;
+        Vector2 origin = transform.position;
 
         for (int i = 0; i < enemies.Count; i++)
         {
@@ -680,8 +690,7 @@ public class AutoAttack : MonoBehaviour
                 continue;
             }
 
-            Vector3 delta = enemy.transform.position - transform.position;
-            if (delta.sqrMagnitude > sqrRadius)
+            if (!TryGetContactPointWithinRadius(enemy, origin, radius, out _))
             {
                 continue;
             }
@@ -695,7 +704,6 @@ public class AutoAttack : MonoBehaviour
             }
         }
 
-        _range = savedRange;
     }
 
     private void UpdateAuraIndicator(bool forceHide)
@@ -716,7 +724,12 @@ public class AutoAttack : MonoBehaviour
             return;
         }
 
-        float radius = Mathf.Max(0.5f, _range * _aura.RangeMult);
+        float radius = Mathf.Max(0.1f, _range * Mathf.Max(0f, _aura.AreaMult) * _attackAreaMult);
+        if (radius <= 0.1001f)
+        {
+            _auraIndicator.SetActive(false);
+            return;
+        }
         float diameter = radius * 2f;
         _auraIndicator.transform.position = transform.position;
         _auraIndicator.transform.localScale = new Vector3(diameter, diameter, 1f);
@@ -740,12 +753,13 @@ public class AutoAttack : MonoBehaviour
     private void FireHomingShot(Vector2 direction)
     {
         float savedRange = _range;
-        _range *= _homingShot.RangeMult;
-        float lifetime = CalculateLifetimeForRange(_range);
+        float weaponRange = _range * Mathf.Max(0.1f, _homingShot.RangeMult);
+        _range = weaponRange;
+        float lifetime = CalculateLifetimeForRange(weaponRange);
         byte weaponId = ToWeaponId(WeaponType.HomingShot);
         float damage = _projectileDamage * _homingShot.DamageMult;
         float speed = _projectileSpeed * Mathf.Max(0.1f, homingShotSpeedMult);
-        float retargetRange = Mathf.Max(1f, _range * homingRetargetRangeMult);
+        float retargetRange = Mathf.Max(1f, weaponRange * homingRetargetRangeMult);
 
         int count = GetWeaponCount(_homingShot);
         Vector2 baseDir = direction.sqrMagnitude > 0.0001f ? direction.normalized : ResolveFacingDirection();
@@ -769,15 +783,18 @@ public class AutoAttack : MonoBehaviour
 
     private void FireGrenade()
     {
-        float savedRange = _range;
-        _range *= _grenade.RangeMult;
+        float throwRange = _range * Mathf.Max(0.1f, _grenade.RangeMult);
         int count = GetWeaponCount(_grenade);
         float damage = _projectileDamage * _grenade.DamageMult;
-        float radius = Mathf.Max(0.5f, thrownExplosionRadius * _grenade.RangeMult);
+        float radius = Mathf.Max(0.1f, thrownExplosionRadius * Mathf.Max(0f, _grenade.AreaMult) * _attackAreaMult);
+        if (radius <= 0.1001f)
+        {
+            return;
+        }
         float speed = Mathf.Max(0.1f, thrownTravelSpeed);
         for (int i = 0; i < count; i++)
         {
-            Transform target = FindRandomEnemy(_range);
+            Transform target = FindRandomEnemy(throwRange);
             if (target == null)
             {
                 continue;
@@ -789,7 +806,6 @@ public class AutoAttack : MonoBehaviour
             StartCoroutine(ThrownProjectileAndExplode(targetPos, travelTime, damage, radius));
         }
 
-        _range = savedRange;
     }
 
     private System.Collections.IEnumerator ThrownProjectileAndExplode(Vector3 targetPos, float delay, float damage, float radius)
@@ -797,7 +813,6 @@ public class AutoAttack : MonoBehaviour
         Vector3 startPos = transform.position;
         float travelTime = Mathf.Max(0.02f, delay);
         var projectile = CreateGrenadeVisual(startPos);
-        var indicator = CreateAreaIndicator("GrenadeTargetIndicator", targetPos, radius, grenadeTargetIndicatorColor, grenadeIndicatorSortingOrder);
 
         float elapsed = 0f;
         while (elapsed < travelTime)
@@ -820,9 +835,9 @@ public class AutoAttack : MonoBehaviour
             Destroy(projectile);
         }
 
-        float sqrRadius = radius * radius;
         int elementCount = GetWeaponElements(WeaponType.Grenade, out var e0, out var e1, out var e2);
         var enemies = EnemyController.Active;
+        Vector2 explosionCenter = targetPos;
         for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i];
@@ -831,8 +846,7 @@ public class AutoAttack : MonoBehaviour
                 continue;
             }
 
-            Vector3 delta = enemy.transform.position - targetPos;
-            if (delta.sqrMagnitude > sqrRadius)
+            if (!TryGetContactPointWithinRadius(enemy, explosionCenter, radius, out _))
             {
                 continue;
             }
@@ -848,9 +862,10 @@ public class AutoAttack : MonoBehaviour
             ApplyHitReactionToTarget(enemy.transform, WeaponType.Grenade);
         }
 
+        var indicator = CreateAreaIndicator("GrenadeExplosionIndicator", targetPos, radius, grenadeTargetIndicatorColor, grenadeIndicatorSortingOrder);
         if (indicator != null)
         {
-            Destroy(indicator);
+            Destroy(indicator, Mathf.Max(0.05f, grenadeEffectDuration));
         }
 
         SpawnLightningEffect(targetPos);
@@ -884,20 +899,22 @@ public class AutoAttack : MonoBehaviour
 
     private void FireMelee()
     {
-        float savedRange = _range;
-        _range *= _melee.RangeMult;
-        float range = Mathf.Max(0.5f, _range);
-        float sqrRange = range * range;
+        float range = Mathf.Max(0.1f, _range * Mathf.Max(0f, _melee.AreaMult) * _attackAreaMult);
+        if (range <= 0.1001f)
+        {
+            return;
+        }
         float halfAngle = Mathf.Clamp(meleeConeAngle, 10f, 180f) * 0.5f;
         float dotThreshold = Mathf.Cos(halfAngle * Mathf.Deg2Rad);
-        Vector2 facing = ResolveFacingDirection();
+        Vector2 facing = ResolveMeleeFacingDirection();
+        SpawnMeleeRangeIndicator(facing, range, halfAngle);
         float damage = _projectileDamage * _melee.DamageMult;
         int elementCount = GetWeaponElements(WeaponType.Melee, out var e0, out var e1, out var e2);
+        Vector2 origin = transform.position;
 
         var enemies = EnemyController.Active;
         if (enemies == null || enemies.Count == 0)
         {
-            _range = savedRange;
             return;
         }
 
@@ -909,17 +926,19 @@ public class AutoAttack : MonoBehaviour
                 continue;
             }
 
-            Vector2 toEnemy = enemy.transform.position - transform.position;
-            float sqr = toEnemy.sqrMagnitude;
-            if (sqr > sqrRange || sqr < 0.0001f)
+            if (!TryGetContactPointWithinRadius(enemy, origin, range, out var contactPoint))
             {
                 continue;
             }
 
-            Vector2 dir = toEnemy.normalized;
-            if (Vector2.Dot(facing, dir) < dotThreshold)
+            Vector2 toEnemy = contactPoint - origin;
+            if (toEnemy.sqrMagnitude > 0.0001f)
             {
-                continue;
+                Vector2 dir = toEnemy.normalized;
+                if (Vector2.Dot(facing, dir) < dotThreshold)
+                {
+                    continue;
+                }
             }
 
             var health = enemy.GetComponent<Health>();
@@ -932,7 +951,59 @@ public class AutoAttack : MonoBehaviour
             }
         }
 
-        _range = savedRange;
+    }
+
+    private void SpawnMeleeRangeIndicator(Vector2 facing, float range, float halfAngle)
+    {
+        if (range <= 0.001f)
+        {
+            return;
+        }
+
+        Vector2 forward = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
+        const int arcSegments = 18;
+
+        var go = new GameObject("MeleeRangeIndicator");
+        var line = go.AddComponent<LineRenderer>();
+        line.useWorldSpace = true;
+        line.loop = false;
+        line.material = GetChainMaterial();
+        line.startWidth = meleeLineWidth * 0.75f;
+        line.endWidth = meleeLineWidth * 0.75f;
+        line.startColor = meleeColor;
+        line.endColor = meleeColor;
+        line.sortingOrder = 2190;
+
+        int pointCount = arcSegments + 3;
+        line.positionCount = pointCount;
+        Vector3 origin = transform.position;
+        line.SetPosition(0, origin);
+
+        for (int i = 0; i <= arcSegments; i++)
+        {
+            float t = i / (float)arcSegments;
+            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
+            Vector2 dir = Rotate(forward, angle);
+            line.SetPosition(i + 1, origin + (Vector3)(dir * range));
+        }
+
+        line.SetPosition(pointCount - 1, origin);
+        Destroy(go, Mathf.Max(0.03f, meleeEffectDuration));
+    }
+
+    private Vector2 ResolveMeleeFacingDirection()
+    {
+        if (_ownerPlayer == null)
+        {
+            _ownerPlayer = GetComponent<PlayerController>();
+        }
+
+        if (_ownerPlayer != null)
+        {
+            return _ownerPlayer.FacingDirection;
+        }
+
+        return ResolveFacingDirection();
     }
 
                 private void SpawnProjectile(Vector2 direction, float damageOverride, float spinSpeed, float lifetimeOverride, string spritePath, byte weaponId, WeaponType weaponType, int pierceOverride = -1)
@@ -1390,6 +1461,7 @@ public class AutoAttack : MonoBehaviour
             DamageMult = 1f,
             FireRateMult = 1f,
             RangeMult = 1f,
+            AreaMult = 0f,
             BonusCount = 0,
             HitStunDuration = 0f,
             KnockbackDistance = 0f
@@ -1408,7 +1480,8 @@ public class AutoAttack : MonoBehaviour
             Enabled = stats.unlocked && stats.level > 0,
             DamageMult = Mathf.Max(0.1f, stats.damageMult),
             FireRateMult = Mathf.Max(0.1f, stats.fireRateMult),
-            RangeMult = Mathf.Max(0.1f, stats.rangeMult),
+            RangeMult = Mathf.Max(0f, stats.rangeMult),
+            AreaMult = Mathf.Max(0f, stats.areaMult),
             BonusCount = Mathf.Max(0, stats.bonusProjectiles),
             HitStunDuration = Mathf.Max(0f, stats.hitStunDuration),
             KnockbackDistance = Mathf.Max(0f, stats.knockbackDistance)
@@ -1734,12 +1807,70 @@ public class AutoAttack : MonoBehaviour
 
     private Vector2 ResolveFacingDirection()
     {
+        if (_ownerPlayer == null)
+        {
+            _ownerPlayer = GetComponent<PlayerController>();
+        }
+
+        if (_ownerPlayer != null)
+        {
+            Vector2 facing = _ownerPlayer.FacingDirection;
+            if (facing.sqrMagnitude > 0.0001f)
+            {
+                return facing.normalized;
+            }
+        }
+
         if (_cachedDir.sqrMagnitude > 0.0001f)
         {
             return _cachedDir.normalized;
         }
 
         return transform.localScale.x < 0f ? Vector2.left : Vector2.right;
+    }
+
+    private static bool TryGetContactPointWithinRadius(EnemyController enemy, Vector2 center, float radius, out Vector2 contactPoint)
+    {
+        contactPoint = center;
+        if (enemy == null || enemy.IsDead)
+        {
+            return false;
+        }
+
+        float sqrRadius = radius * radius;
+        var col = enemy.GetComponent<Collider2D>();
+        if (col != null && col.enabled)
+        {
+            Vector2 closest = col.ClosestPoint(center);
+            Vector2 delta = closest - center;
+            if (delta.sqrMagnitude > sqrRadius)
+            {
+                return false;
+            }
+
+            // ClosestPoint can equal center when origin is inside the collider.
+            contactPoint = delta.sqrMagnitude > 0.0001f ? closest : (Vector2)enemy.transform.position;
+            return true;
+        }
+
+        Vector2 enemyCenter = enemy.transform.position;
+        if ((enemyCenter - center).sqrMagnitude > sqrRadius)
+        {
+            return false;
+        }
+
+        contactPoint = enemyCenter;
+        return true;
+    }
+
+    private static Vector2 Rotate(Vector2 direction, float degrees)
+    {
+        float rad = degrees * Mathf.Deg2Rad;
+        float c = Mathf.Cos(rad);
+        float s = Mathf.Sin(rad);
+        return new Vector2(
+            (direction.x * c) - (direction.y * s),
+            (direction.x * s) + (direction.y * c));
     }
 
     private void SpawnChainEffect(System.Collections.Generic.List<Vector3> points)
