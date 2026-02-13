@@ -13,18 +13,18 @@ MonoBehaviour:
   m_Name: DifficultyConfig_Default
   m_EditorClassIdentifier: Assembly-CSharp::DifficultyConfig
   difficultyName: Normal
-  spawnIntervalMultiplier: 0.9
-  minSpawnIntervalMultiplier: 0.9
-  spawnIntervalDecayMultiplier: 1.15
-  maxEnemiesMultiplier: 1.2
-  maxEnemiesPerMinuteMultiplier: 1.2
-  enemyHealthMultiplier: 1.15
-  enemyDamageMultiplier: 1.1
-  enemySpeedMultiplier: 1.05
+  spawnIntervalMultiplier: 1
+  minSpawnIntervalMultiplier: 1
+  spawnIntervalDecayMultiplier: 1
+  maxEnemiesMultiplier: 1
+  maxEnemiesPerMinuteMultiplier: 1
+  enemyHealthMultiplier: 1
+  enemyDamageMultiplier: 1
+  enemySpeedMultiplier: 1
   enemyXpMultiplier: 1
-  enemyHealthPerLevelMultiplier: 1.15
-  enemyDamagePerLevelMultiplier: 1.1
-  enemySpeedPerLevelMultiplier: 1.05
+  enemyHealthPerLevelMultiplier: 1
+  enemyDamagePerLevelMultiplier: 1
+  enemySpeedPerLevelMultiplier: 1
   enemyXpPerLevelMultiplier: 1
   coinDropChanceMultiplier: 1
-  xpGainMultiplier: 0.95
+  xpGainMultiplier: 1

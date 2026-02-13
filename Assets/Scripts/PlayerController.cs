@@ -79,7 +79,7 @@ public class PlayerController : NetworkBehaviour
     private bool _showColliderGizmos;
 
     private const int SpriteSize = 50;
-    private NetworkVariable<int> _startWeaponIndex = new NetworkVariable<int>(-1);
+    private NetworkVariable<int> _startCharacterIndex = new NetworkVariable<int>(-1);
     private NetworkVariable<bool> _gameStartedSignal = new NetworkVariable<bool>(false);
     private readonly NetworkVariable<float> _moveSpeedMultNet = new NetworkVariable<float>(1f);
     private float _moveSpeedMult = 1f;
@@ -205,22 +205,22 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        _startWeaponIndex.OnValueChanged += OnStartWeaponChanged;
+        _startCharacterIndex.OnValueChanged += OnStartCharacterChanged;
         _moveSpeedMultNet.OnValueChanged += OnMoveSpeedChanged;
         if (IsServer)
         {
             _moveSpeedMultNet.Value = _moveSpeedMult;
         }
         ApplyPlayerColor();
-        if (_startWeaponIndex.Value >= 0)
+        if (_startCharacterIndex.Value >= 0)
         {
-            ApplyStartWeaponVisuals((StartWeaponType)_startWeaponIndex.Value);
+            ApplyStartCharacterVisuals((StartCharacterType)_startCharacterIndex.Value);
         }
     }
 
     public override void OnNetworkDespawn()
     {
-        _startWeaponIndex.OnValueChanged -= OnStartWeaponChanged;
+        _startCharacterIndex.OnValueChanged -= OnStartCharacterChanged;
         _moveSpeedMultNet.OnValueChanged -= OnMoveSpeedChanged;
         base.OnNetworkDespawn();
     }
@@ -283,34 +283,34 @@ public class PlayerController : NetworkBehaviour
 
     public bool IsAutoPlayEnabled => autoPlayEnabled;
 
-    public bool HasStartWeaponSelection => _startWeaponIndex.Value >= 0;
+    public bool HasStartCharacterSelection => _startCharacterIndex.Value >= 0;
     public bool GameStartedSignal => _gameStartedSignal.Value;
 
-    public StartWeaponType StartWeaponSelection
+    public StartCharacterType StartCharacterSelection
     {
         get
         {
-            if (_startWeaponIndex.Value < 0)
+            if (_startCharacterIndex.Value < 0)
             {
-                return StartWeaponType.Gun;
+                return StartCharacterType.SingleShot;
             }
-            return (StartWeaponType)_startWeaponIndex.Value;
+            return (StartCharacterType)_startCharacterIndex.Value;
         }
     }
 
-    public void SetStartWeaponSelection(StartWeaponType weapon)
+    public void SetStartCharacterSelection(StartCharacterType weapon)
     {
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
         {
             if (IsOwner)
             {
-                SubmitStartWeaponSelectionServerRpc((int)weapon);
+                SubmitStartCharacterSelectionServerRpc((int)weapon);
             }
         }
         else
         {
-            _startWeaponIndex.Value = (int)weapon;
-            ApplyStartWeaponVisuals(weapon);
+            _startCharacterIndex.Value = (int)weapon;
+            ApplyStartCharacterVisuals(weapon);
         }
     }
 
@@ -325,9 +325,9 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void SubmitStartWeaponSelectionServerRpc(int weaponIndex)
+    private void SubmitStartCharacterSelectionServerRpc(int weaponIndex)
     {
-        _startWeaponIndex.Value = weaponIndex;
+        _startCharacterIndex.Value = weaponIndex;
     }
 
     [ClientRpc]
@@ -400,17 +400,17 @@ public class PlayerController : NetworkBehaviour
         return result;
     }
 
-    private void OnStartWeaponChanged(int previous, int next)
+    private void OnStartCharacterChanged(int previous, int next)
     {
         if (next < 0)
         {
             return;
         }
 
-        ApplyStartWeaponVisuals((StartWeaponType)next);
+        ApplyStartCharacterVisuals((StartCharacterType)next);
     }
 
-    private void ApplyStartWeaponVisuals(StartWeaponType weapon)
+    private void ApplyStartCharacterVisuals(StartCharacterType weapon)
     {
         var visuals = GetComponent<PlayerVisuals>();
         if (visuals == null)
@@ -420,10 +420,10 @@ public class PlayerController : NetworkBehaviour
 
         switch (weapon)
         {
-            case StartWeaponType.Boomerang:
+            case StartCharacterType.Melee:
                 visuals.SetVisual(PlayerVisuals.PlayerVisualType.Warrior);
                 break;
-            case StartWeaponType.Nova:
+            case StartCharacterType.Aura:
                 visuals.SetVisual(PlayerVisuals.PlayerVisualType.DemonLord);
                 break;
             default:
@@ -1040,3 +1040,5 @@ public class PlayerController : NetworkBehaviour
         return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 }
+
+

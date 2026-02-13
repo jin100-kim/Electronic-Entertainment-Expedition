@@ -28,7 +28,7 @@ public static class PixelArtAnimationSetup
         public AnimDef Death;
     }
 
-    [MenuItem("Tools/PixelArt/Setup Animations")]
+    [MenuItem("Tools/Dev/PixelArt/Setup Animations")]
     public static void SetupAnimations()
     {
         EnsureFolder("Assets/Resources");

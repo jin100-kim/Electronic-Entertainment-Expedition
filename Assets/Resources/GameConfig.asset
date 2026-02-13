@@ -172,15 +172,15 @@ MonoBehaviour:
     - theme: 0
       displayName: "\uC232"
       sceneName: ForestOpenWorld
-      difficulty: {fileID: 11400000, guid: 0e0f7960861d4ce98e3285b9ad72875e, type: 2}
+      difficulty: {fileID: 0}
     - theme: 1
       displayName: "\uC0AC\uB9C9"
       sceneName: DesertOpenWorld
-      difficulty: {fileID: 11400000, guid: 301b1b4504d8787408b656854d46e998, type: 2}
+      difficulty: {fileID: 0}
     - theme: 2
       displayName: "\uC124\uC6D0"
       sceneName: SnowOpenWorld
-      difficulty: {fileID: 11400000, guid: a2f441bcdbbb4d30a21456060e7fd75e, type: 2}
+      difficulty: {fileID: 0}
     startPreviewScale: 2
     startPreviewDimAlpha: 0.5
     startPreviewHoverAlpha: 1

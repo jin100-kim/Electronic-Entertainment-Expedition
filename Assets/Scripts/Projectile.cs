@@ -32,6 +32,10 @@ public class Projectile : MonoBehaviour
     private float _orbitRadius;
     private float _orbitAngularSpeed;
     private float _orbitRadialSpeed;
+    private bool _useHoming;
+    private Transform _homingTarget;
+    private float _homingTurnSpeedDeg;
+    private float _homingRetargetRange;
     private bool _applySlow;
     private float _slowMultiplier = 1f;
     private float _slowDuration;
@@ -89,6 +93,14 @@ public class Projectile : MonoBehaviour
         _hitStunDuration = Mathf.Max(0f, hitStunDuration);
     }
 
+    public void SetHoming(Transform target, float turnSpeedDeg, float retargetRange)
+    {
+        _useHoming = true;
+        _homingTarget = target;
+        _homingTurnSpeedDeg = Mathf.Max(0f, turnSpeedDeg);
+        _homingRetargetRange = Mathf.Max(0.1f, retargetRange);
+    }
+
     public void SetElements(ElementType first, ElementType second, ElementType third, int count)
     {
         _elementCount = Mathf.Clamp(count, 0, 3);
@@ -138,6 +150,11 @@ public class Projectile : MonoBehaviour
         }
         else
         {
+            if (_useHoming)
+            {
+                UpdateHomingDirection();
+            }
+
             transform.position += (Vector3)(_direction * speed * Time.deltaTime);
         }
         if (Mathf.Abs(_spinSpeed) > 0.01f)
@@ -251,6 +268,10 @@ public class Projectile : MonoBehaviour
     private void ResetState()
     {
         _useOrbit = false;
+        _useHoming = false;
+        _homingTarget = null;
+        _homingTurnSpeedDeg = 0f;
+        _homingRetargetRange = 0f;
         _applySlow = false;
         _hitTargets.Clear();
         _pierceHitCount = 0;
@@ -262,6 +283,100 @@ public class Projectile : MonoBehaviour
         {
             _collider.enabled = true;
         }
+    }
+
+    private void UpdateHomingDirection()
+    {
+        if (_homingTarget == null || !IsValidHomingTarget(_homingTarget))
+        {
+            _homingTarget = FindClosestHomingTarget(_homingRetargetRange);
+        }
+
+        if (_homingTarget == null)
+        {
+            return;
+        }
+
+        Vector2 toTarget = _homingTarget.position - transform.position;
+        if (toTarget.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        Vector2 desiredDir = toTarget.normalized;
+        if (_direction.sqrMagnitude < 0.0001f)
+        {
+            _direction = desiredDir;
+            return;
+        }
+
+        float currentAngle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
+        float targetAngle = Mathf.Atan2(desiredDir.y, desiredDir.x) * Mathf.Rad2Deg;
+        float nextAngle = Mathf.MoveTowardsAngle(currentAngle, targetAngle, _homingTurnSpeedDeg * Time.deltaTime);
+        float nextRad = nextAngle * Mathf.Deg2Rad;
+        _direction = new Vector2(Mathf.Cos(nextRad), Mathf.Sin(nextRad)).normalized;
+    }
+
+    private Transform FindClosestHomingTarget(float range)
+    {
+        var enemies = EnemyController.Active;
+        if (enemies == null || enemies.Count == 0)
+        {
+            return null;
+        }
+
+        float rangeSqr = range * range;
+        float bestDist = rangeSqr;
+        Transform bestTarget = null;
+
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            var health = enemy.GetComponent<Health>();
+            if (health == null || health.IsDead)
+            {
+                continue;
+            }
+
+            float dist = (enemy.transform.position - transform.position).sqrMagnitude;
+            if (dist > rangeSqr || dist >= bestDist)
+            {
+                continue;
+            }
+
+            bestDist = dist;
+            bestTarget = enemy.transform;
+        }
+
+        return bestTarget;
+    }
+
+    private bool IsValidHomingTarget(Transform target)
+    {
+        if (target == null)
+        {
+            return false;
+        }
+
+        Vector2 toTarget = target.position - transform.position;
+        if (toTarget.sqrMagnitude > _homingRetargetRange * _homingRetargetRange)
+        {
+            return false;
+        }
+
+        var enemy = target.GetComponent<EnemyController>();
+        if (enemy == null || enemy.IsDead)
+        {
+            return false;
+        }
+
+        var health = target.GetComponent<Health>();
+        return health != null && !health.IsDead;
     }
 
     private float GetPierceScaledDamage()

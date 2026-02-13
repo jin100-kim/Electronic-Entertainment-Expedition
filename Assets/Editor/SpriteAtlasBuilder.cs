@@ -45,7 +45,7 @@ public static class SpriteAtlasBuilder
             filterMode: FilterMode.Point);
     }
 
-    [MenuItem("Tools/Build Sprite Atlases")]
+    [MenuItem("Tools/Dev/Art/Build Sprite Atlases")]
     private static void BuildAtlasesMenu()
     {
         AutoCreateAtlases();

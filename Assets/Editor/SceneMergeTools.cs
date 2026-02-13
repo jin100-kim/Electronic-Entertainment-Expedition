@@ -12,7 +12,7 @@ public static class SceneMergeTools
     private const int ObstacleOrder = -3;
     private const int CollisionOrder = -2;
 
-    [MenuItem("Tools/Map/Inject Forest Map Into SampleScene")]
+    [MenuItem("Tools/Legacy/Map/Inject Forest Map Into SampleScene")]
     private static void InjectForestMapIntoSampleScene()
     {
         var sample = EditorSceneManager.OpenScene(SampleScenePath, OpenSceneMode.Single);
@@ -42,7 +42,7 @@ public static class SceneMergeTools
         Debug.Log("Forest map injected into SampleScene.");
     }
 
-    [MenuItem("Tools/Map/Fix Forest Tilemap Sorting (Active Scene)")]
+    [MenuItem("Tools/Legacy/Map/Fix Forest Tilemap Sorting (Active Scene)")]
     private static void FixForestTilemapSorting()
     {
         var active = SceneManager.GetActiveScene();

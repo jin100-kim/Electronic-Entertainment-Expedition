@@ -6,7 +6,7 @@ public static class PixelArtImportSettings
 {
     private const int CharacterPpu = 32;
 
-    [MenuItem("Tools/PixelArt/Set Character PPU 32")]
+    [MenuItem("Tools/Dev/PixelArt/Set Character PPU 32")]
     public static void SetCharacterPpu()
     {
         ApplyPpu("Assets/Art/characters/Characters", CharacterPpu);
