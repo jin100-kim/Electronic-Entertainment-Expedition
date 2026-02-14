@@ -1334,6 +1334,7 @@ public class AutoAttack : MonoBehaviour
         const float fallbackScale = 0.4f;
         bool hasSprite = TryResolveProjectileSprite(spritePath, _projectileSize, out var projectileSprite);
         renderer.sprite = projectileSprite;
+        renderer.sortingOrder = combatFxSortingOrder + 1;
         float spriteScale = Mathf.Max(0.01f, projectileSpriteScale);
         if (weaponType == WeaponType.PiercingShot)
         {
@@ -1373,13 +1374,12 @@ public class AutoAttack : MonoBehaviour
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
-
-        ApplyNetworkVisual(renderer, netColor, projectileTint, spritePath, weaponId);
-        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, baseColor, spritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, projectileTint, spritePath, weaponId);
+        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, baseColor, spritePath);
     }
 
     private bool ShouldAlignDirectionalProjectile(WeaponType weaponType)
@@ -1431,6 +1431,7 @@ public class AutoAttack : MonoBehaviour
         const float fallbackScale = 0.4f;
         bool hasSprite = TryResolveProjectileSprite(piercingShotSpritePath, _projectileSize, out var novaSprite);
         renderer.sprite = novaSprite;
+        renderer.sortingOrder = combatFxSortingOrder + 1;
         float spriteScale = Mathf.Max(0.01f, projectileSpriteScale) * Mathf.Max(0.1f, piercingShotVisualScaleMult);
         go.transform.localScale = Vector3.one * (hasSprite ? spriteScale : fallbackScale);
         var novaColor = new Color(0.6f, 0.8f, 1f, 1f);
@@ -1465,12 +1466,12 @@ public class AutoAttack : MonoBehaviour
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
-        ApplyNetworkVisual(renderer, netColor, projectileTint, piercingShotSpritePath, weaponId);
-        SpawnProjectileMuzzleEffect(transform.position, direction, novaColor, piercingShotSpritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, projectileTint, piercingShotSpritePath, weaponId);
+        SpawnProjectileMuzzleEffect(transform.position, direction, novaColor, piercingShotSpritePath);
     }
 
     private void SpawnLaserProjectile(Vector2 direction, float damageOverride, float lifetime, Vector2 spawnOffset, float speedOverride, byte weaponId, WeaponType weaponType)
@@ -1508,6 +1509,7 @@ public class AutoAttack : MonoBehaviour
             renderer = go.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = CreateSolidSprite();
+        renderer.sortingOrder = combatFxSortingOrder + 1;
         var netColor = go.GetComponent<NetworkColor>();
 
         var rb = go.GetComponent<Rigidbody2D>();
@@ -1535,12 +1537,12 @@ public class AutoAttack : MonoBehaviour
         proj.SetRelease(p => ReleaseProjectile(p, _homingShotProjectilePool));
         ApplyElementsToProjectile(proj, weaponType);
         ApplyHitReactionToProjectile(proj, weaponType);
-        ApplyNetworkVisual(renderer, netColor, homingShotColor, null, weaponId);
-        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, homingShotColor, homingShotSpritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, homingShotColor, null, weaponId);
+        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, homingShotColor, homingShotSpritePath);
     }
 
     private Projectile SpawnColoredProjectile(Vector2 direction, float damageOverride, Color color, float spinSpeed, float lifetime, float speedOverride, string spritePath, byte weaponId)
@@ -1583,6 +1585,7 @@ public class AutoAttack : MonoBehaviour
         const float fallbackScale = 0.4f;
         bool hasSprite = TryResolveProjectileSprite(spritePath, _projectileSize, out var coloredSprite);
         renderer.sprite = coloredSprite;
+        renderer.sortingOrder = combatFxSortingOrder + 1;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var projectileTint = ResolveSpriteTint(color, hasSprite);
         var netColor = go.GetComponent<NetworkColor>();
@@ -1611,12 +1614,12 @@ public class AutoAttack : MonoBehaviour
         int resolvedPierce = pierceOverride >= 0 ? pierceOverride : _projectilePierce;
         proj.Initialize(direction, speedOverride, damageOverride, lifetime, resolvedPierce, spinSpeed);
         proj.SetRelease(p => ReleaseProjectile(p, _circleProjectilePool));
-        ApplyNetworkVisual(renderer, netColor, projectileTint, spritePath, weaponId);
-        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, color, spritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, projectileTint, spritePath, weaponId);
+        SpawnProjectileMuzzleEffect((Vector2)transform.position + spawnOffset, direction, color, spritePath);
         return proj;
     }
 
@@ -1655,6 +1658,7 @@ public class AutoAttack : MonoBehaviour
         const float fallbackScale = 0.45f;
         bool hasSprite = TryResolveProjectileSprite(multiShotSpritePath, _projectileSize, out var boomerangSprite);
         renderer.sprite = boomerangSprite;
+        renderer.sortingOrder = combatFxSortingOrder + 1;
         go.transform.localScale = Vector3.one * (hasSprite ? projectileSpriteScale : fallbackScale);
         var boomColor = new Color(0.2f, 0.9f, 0.9f, 1f);
         var projectileTint = ResolveSpriteTint(boomColor, hasSprite);
@@ -1685,12 +1689,12 @@ public class AutoAttack : MonoBehaviour
         boom.SetRelease(b => ReleaseBoomerang(b));
         ApplyElementsToBoomerang(boom, WeaponType.MultiShot);
         ApplyHitReactionToBoomerang(boom, WeaponType.MultiShot);
-        ApplyNetworkVisual(renderer, netColor, projectileTint, multiShotSpritePath, weaponId);
-        SpawnProjectileMuzzleEffect(transform.position, direction, boomColor, multiShotSpritePath);
         if (networked)
         {
             SpawnNetworkObject(go);
         }
+        ApplyNetworkVisual(renderer, netColor, projectileTint, multiShotSpritePath, weaponId);
+        SpawnProjectileMuzzleEffect(transform.position, direction, boomColor, multiShotSpritePath);
     }
 
     private int GetWeaponElements(WeaponType type, out ElementType first, out ElementType second, out ElementType third)

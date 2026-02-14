@@ -13,9 +13,21 @@ public static class ForestMapBuilder
     private const int SimpleTopdownCols = 30;
     private const string SimpleTopdownTilesetPath = "Assets/SimpleTopdownTileset/Tileset.png";
     private const string SimpleTopdownGeneratedRoot = "Assets/SimpleTopdownTileset/GeneratedTiles";
+    private const string SimpleTopdownIndexedTileFolder = SimpleTopdownGeneratedRoot + "/Indexed";
     private const string SimpleTopdownSpritePrefix = "SimpleTopdown";
+    private const int MapRulePathWidth = 2;
+    private const int MapRuleMinStampDistance = 4;
+    private const int MapRuleNoSpawnRadius = 6;
+    private const float MapRuleForestStampDensity = 0.15f;
+    private const float MapRuleDesertStampDensity = 0.15f;
+    private const float MapRuleSnowStampDensity = 0.15f;
+    private const float StampDensityScale = 0.08f;
+    private const int NaturalFeatureNoSpawnRadius = 8;
+    private const int NaturalFeaturePathBuffer = 1;
     private const string BasicSolidTexturePath = SimpleTopdownGeneratedRoot + "/Basic/BasicSolid.png";
     private const string BasicSolidTilePath = SimpleTopdownGeneratedRoot + "/Basic/BasicSolid.asset";
+    private const string SolidColliderTexturePath = SimpleTopdownGeneratedRoot + "/Basic/SolidCollider.png";
+    private const string SolidColliderTilePath = SimpleTopdownGeneratedRoot + "/Basic/SolidCollider.asset";
     private static readonly Color BasicSolidColor = new Color(0.18f, 0.22f, 0.2f, 1f);
     private const int PreviewCaptureSize = 2048;
     private static readonly string[] PreviewScenePaths =
@@ -149,8 +161,7 @@ public static class ForestMapBuilder
         }
 
         var selection = SelectTiles(config.Theme, config.TilesetTexturePath, sprites);
-        if (selection.GroundTiles == null || selection.GroundTiles.Length == 0
-            || selection.ObstacleTiles == null || selection.ObstacleTiles.Length == 0)
+        if (selection.GroundTiles == null || selection.GroundTiles.Length == 0)
         {
             Debug.LogError("Failed to select tile palettes from the tileset.");
             return;
@@ -162,31 +173,24 @@ public static class ForestMapBuilder
         var gridGo = new GameObject("Grid", typeof(Grid));
         gridGo.transform.position = Vector3.zero;
 
-        var groundMap = CreateTilemap(gridGo, "Ground", -5, true);
-        var detailMap = CreateTilemap(gridGo, "Details", -4, true);
-        var propsMap = CreateTilemap(gridGo, "Props", -3, true);
-        var obstacleMap = CreateTilemap(gridGo, "Obstacles", -2, true);
-        var collisionMap = CreateTilemap(gridGo, "Collision", -2, false);
-
-        SetupCollision(collisionMap);
+        var groundMap = CreateTilemap(gridGo, "Ground", -3, true);
+        var detailMap = CreateTilemap(gridGo, "Details", -2, true);
+        var propsMap = CreateTilemap(gridGo, "Props", -1, true);
 
         string prefix = config.Theme.ToString();
         var groundTiles = EnsureTileAssets($"{prefix}_Ground", selection.GroundTiles, Tile.ColliderType.None, config.TilesFolder);
         var detailTiles = EnsureTileAssets($"{prefix}_Detail", selection.DetailTiles, Tile.ColliderType.None, config.TilesFolder);
         var propsTiles = EnsureTileAssets($"{prefix}_Props", selection.PropsTiles, Tile.ColliderType.None, config.TilesFolder);
-        var obstacleTiles = EnsureTileAssets($"{prefix}_Obstacle", selection.ObstacleTiles, Tile.ColliderType.Sprite, config.TilesFolder);
 
         var size = ResolveMapSize();
         int seedBase = ((int)config.Theme + 1) * 7331;
         var richness = ResolveRichness(config.Theme);
-        int obstacleCount = Mathf.Max(12, Mathf.RoundToInt((size.Width + size.Height) * richness.ObstaclePerimeterFactor));
         FillGroundPattern(groundMap, groundTiles, size.Width, size.Height, seedBase, config.Theme);
         ScatterDetails(detailMap, detailTiles, size.Width, size.Height, density: richness.DetailDensity, seed: seedBase + 101);
-        var propsPalette = propsTiles.Length > 0 ? propsTiles : detailTiles.Concat(obstacleTiles).Distinct().ToArray();
+        var propsPalette = propsTiles.Length > 0 ? propsTiles : detailTiles;
         ScatterProps(propsMap, propsPalette, size.Width, size.Height, density: richness.PropsDensity, seed: seedBase + 151);
-        PlaceObstacles(obstacleMap, collisionMap, obstacleTiles, size.Width, size.Height, obstacleCount, seedBase + 211);
-        CarveMainPaths(groundMap, detailMap, propsMap, obstacleMap, collisionMap, groundTiles, size.Width, size.Height, seedBase + 307);
-        ClearSpawnArea(detailMap, propsMap, obstacleMap, collisionMap, radius: 4);
+        PlaceSimpleTreeClusters(groundMap, propsMap, size.Width, size.Height, config.Theme, seedBase + 211);
+        ClearSpawnArea(detailMap, propsMap, null, null, radius: 4);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, config.ScenePath);
@@ -330,6 +334,54 @@ public static class ForestMapBuilder
         tile.sprite = sprite;
         tile.color = Color.white;
         tile.colliderType = Tile.ColliderType.None;
+        EditorUtility.SetDirty(tile);
+        AssetDatabase.SaveAssets();
+        return tile;
+    }
+
+    private static TileBase GetOrCreateSolidColliderTile()
+    {
+        string folder = Path.GetDirectoryName(SolidColliderTexturePath)?.Replace("\\", "/");
+        if (!string.IsNullOrEmpty(folder) && !AssetDatabase.IsValidFolder(folder))
+        {
+            Directory.CreateDirectory(Path.Combine(Application.dataPath, folder.Replace("Assets/", string.Empty)));
+            AssetDatabase.Refresh();
+        }
+
+        if (!File.Exists(SolidColliderTexturePath))
+        {
+            var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            tex.SetPixel(0, 0, Color.white);
+            tex.Apply();
+            File.WriteAllBytes(SolidColliderTexturePath, tex.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(SolidColliderTexturePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+        }
+
+        var importer = AssetImporter.GetAtPath(SolidColliderTexturePath) as TextureImporter;
+        if (importer != null)
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = 1f;
+            importer.filterMode = FilterMode.Point;
+            importer.mipmapEnabled = false;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.alphaIsTransparency = true;
+            importer.SaveAndReimport();
+        }
+
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SolidColliderTexturePath);
+        var tile = AssetDatabase.LoadAssetAtPath<Tile>(SolidColliderTilePath);
+        if (tile == null)
+        {
+            tile = ScriptableObject.CreateInstance<Tile>();
+            AssetDatabase.CreateAsset(tile, SolidColliderTilePath);
+        }
+
+        tile.sprite = sprite;
+        tile.color = Color.white;
+        tile.colliderType = Tile.ColliderType.Grid;
         EditorUtility.SetDirty(tile);
         AssetDatabase.SaveAssets();
         return tile;
@@ -692,23 +744,30 @@ public static class ForestMapBuilder
 
     private static int[] GetSimpleTopdownDetailIndices(MapTheme theme)
     {
-        int colOffset = 0;
         switch (theme)
         {
             case MapTheme.Desert:
-                colOffset = 10;
-                break;
+                return new[]
+                {
+                    163,
+                    164,
+                    165
+                };
             case MapTheme.Snow:
-                colOffset = 20;
-                break;
+                return new[]
+                {
+                    173,
+                    174,
+                    175
+                };
+            default:
+                return new[]
+                {
+                    153,
+                    154,
+                    155
+                };
         }
-
-        // Small doodads only; avoid edge/corner transition tiles for scatter details.
-        return new[]
-        {
-            154 + colOffset,
-            155 + colOffset
-        };
     }
 
     private static int[] GetSimpleTopdownPropsIndices(MapTheme theme)
@@ -718,30 +777,23 @@ public static class ForestMapBuilder
             case MapTheme.Desert:
                 return new[]
                 {
-                    163, 164, 165,
-                    128, 129,
-                    410, 411, 414, 415,
-                    443, 444, 447,
-                    457, 458
+                    128,
+                    129,
+                    163
                 };
             case MapTheme.Snow:
                 return new[]
                 {
-                    173, 174, 175,
-                    128, 129,
-                    412, 413,
-                    476, 477,
-                    536, 537,
-                    566, 567
+                    128,
+                    129,
+                    173
                 };
             default:
                 return new[]
                 {
-                    153, 154, 155,
-                    128, 129,
-                    410, 411, 414, 415,
-                    443, 444, 447,
-                    475, 535, 565
+                    128,
+                    129,
+                    153
                 };
         }
     }
@@ -992,23 +1044,23 @@ public static class ForestMapBuilder
             case MapTheme.Desert:
                 return new MapRichness
                 {
-                    DetailDensity = 0.034f,
-                    PropsDensity = 0.062f,
-                    ObstaclePerimeterFactor = 0.28f
+                    DetailDensity = 0.0085f,
+                    PropsDensity = 0.0038f,
+                    ObstaclePerimeterFactor = 0f
                 };
             case MapTheme.Snow:
                 return new MapRichness
                 {
-                    DetailDensity = 0.032f,
-                    PropsDensity = 0.058f,
-                    ObstaclePerimeterFactor = 0.26f
+                    DetailDensity = 0.009f,
+                    PropsDensity = 0.0036f,
+                    ObstaclePerimeterFactor = 0f
                 };
             default:
                 return new MapRichness
                 {
-                    DetailDensity = 0.040f,
-                    PropsDensity = 0.068f,
-                    ObstaclePerimeterFactor = 0.32f
+                    DetailDensity = 0.010f,
+                    PropsDensity = 0.0042f,
+                    ObstaclePerimeterFactor = 0f
                 };
         }
     }
@@ -1028,82 +1080,20 @@ public static class ForestMapBuilder
 
     private static void FillGroundPattern(Tilemap map, TileBase[] palette, int width, int height, int seed, MapTheme theme)
     {
-        if (palette == null || palette.Length == 0)
+        if (map == null)
         {
             return;
         }
 
-        FillGround(map, palette[0], width, height);
-
-        int halfX = width / 2;
-        int halfY = height / 2;
-        float sx = seed * 0.0013f;
-        float sy = seed * 0.0017f;
-        const float warpFreq = 0.031f;
-        const float coarseFreq = 0.053f;
-        const float mediumFreq = 0.107f;
-        const float fineFreq = 0.217f;
-        const float macroFreq = 0.014f;
-        const float warpStrength = 9f;
-
-        for (int y = -halfY; y < halfY; y++)
+        var baseTile = ResolveGroundCenterTile(theme);
+        if (baseTile == null && palette != null && palette.Length > 0)
         {
-            for (int x = -halfX; x < halfX; x++)
-            {
-                float warpX = (Mathf.PerlinNoise((x + sx * 0.6f) * warpFreq, (y - sy * 0.5f) * warpFreq) - 0.5f) * warpStrength;
-                float warpY = (Mathf.PerlinNoise((x - sx * 0.4f) * warpFreq, (y + sy * 0.7f) * warpFreq) - 0.5f) * warpStrength;
-                float wx = x + warpX;
-                float wy = y + warpY;
+            baseTile = palette[0];
+        }
 
-                float coarse = Mathf.PerlinNoise((wx + sx) * coarseFreq, (wy + sy) * coarseFreq);
-                float medium = Mathf.PerlinNoise((wx - sy * 0.7f) * mediumFreq, (wy + sx * 0.5f) * mediumFreq);
-                float fine = Mathf.PerlinNoise((wx + sx * 0.3f) * fineFreq, (wy - sy * 0.3f) * fineFreq);
-                float macro = Mathf.PerlinNoise((x + sx * 1.2f) * macroFreq, (y + sy * 1.1f) * macroFreq);
-                float grain = Hash01(x, y, seed) * 0.18f - 0.09f;
-                float mixed = coarse * 0.45f + medium * 0.34f + fine * 0.15f + macro * 0.06f + grain;
-                mixed = Mathf.Clamp01(mixed);
-
-                int index = 0;
-                if (palette.Length <= 1)
-                {
-                    index = 0;
-                }
-                else if (palette.Length == 2)
-                {
-                    float t1 = Mathf.Lerp(0.68f, 0.77f, macro);
-                    index = mixed > t1 ? 1 : 0;
-                }
-                else if (palette.Length == 3)
-                {
-                    float t1 = Mathf.Lerp(0.58f, 0.69f, macro);
-                    float t2 = Mathf.Lerp(0.80f, 0.90f, macro);
-                    if (mixed > t2) index = 2;
-                    else if (mixed > t1) index = 1;
-                    else index = 0;
-                }
-                else
-                {
-                    float t1 = Mathf.Lerp(0.56f, 0.66f, macro);
-                    float t2 = Mathf.Lerp(0.76f, 0.86f, macro);
-                    float t3 = Mathf.Lerp(0.90f, 0.96f, macro);
-                    if (mixed > t3) index = 3;
-                    else if (mixed > t2) index = 2;
-                    else if (mixed > t1) index = 1;
-                    else index = 0;
-                }
-
-                // Rare local variation break-up to avoid visible contour lines.
-                if (palette.Length > 2 && Hash01(x + 19, y - 37, seed * 3 + 11) > 0.94f)
-                {
-                    index = Mathf.Min(palette.Length - 1, index + 1);
-                }
-
-                var pos = new Vector3Int(x, y, 0);
-                map.SetTile(pos, palette[index]);
-                map.SetTileFlags(pos, TileFlags.None);
-                map.SetTransformMatrix(pos, BuildGroundTransform(x, y, seed));
-                map.SetColor(pos, BuildGroundTint(x, y, seed, theme));
-            }
+        if (baseTile != null)
+        {
+            FillGround(map, baseTile, width, height);
         }
     }
 
@@ -1293,26 +1283,412 @@ public static class ForestMapBuilder
         }
     }
 
-    private static void CarveMainPaths(
-        Tilemap ground,
-        Tilemap details,
-        Tilemap props,
-        Tilemap obstacles,
-        Tilemap collision,
-        TileBase[] groundPalette,
-        int width,
-        int height,
-        int seed)
+    private static readonly Dictionary<int, TileBase> TilesetTileCache = new Dictionary<int, TileBase>();
+    private static readonly Dictionary<int, Sprite> TilesetSpriteCache = new Dictionary<int, Sprite>();
+    private static bool IsTilesetSpriteCacheBuilt;
+
+    private static int GridIndex(int col, int row)
     {
-        if (ground == null || groundPalette == null || groundPalette.Length == 0)
+        return row * SimpleTopdownCols + col;
+    }
+
+    private static void StampCompositeProps(Tilemap props, int width, int height, MapTheme theme, int seed)
+    {
+        if (props == null)
         {
             return;
         }
 
-        var baseGround = groundPalette[0];
+        var patterns = GetCompositePropPatterns(theme);
+        if (patterns == null || patterns.Count == 0)
+        {
+            return;
+        }
+
         int halfX = width / 2;
         int halfY = height / 2;
-        int pathRadius = Mathf.Clamp(Mathf.RoundToInt(Mathf.Min(width, height) * 0.045f), 2, 4);
+        int area = width * height;
+        float density = ResolveStampDensity(theme);
+        int target = Mathf.Clamp(Mathf.RoundToInt(area * density * StampDensityScale), 12, 220);
+        int attempts = Mathf.Max(80, target * 70);
+        var rng = new System.Random(seed);
+        var placedOrigins = new List<Vector2Int>(target);
+
+        int placed = 0;
+        for (int i = 0; i < attempts && placed < target; i++)
+        {
+            var pattern = patterns[rng.Next(patterns.Count)];
+            int x = rng.Next(-halfX + 4, halfX - 4);
+            int y = rng.Next(-halfY + 4, halfY - 4);
+
+            if (new Vector2(x, y).sqrMagnitude <= MapRuleNoSpawnRadius * MapRuleNoSpawnRadius)
+            {
+                continue;
+            }
+
+            if (!HasMinStampDistance(placedOrigins, x, y, MapRuleMinStampDistance))
+            {
+                continue;
+            }
+
+            if (!CanPlaceStamp(props, pattern, x, y, halfX, halfY))
+            {
+                continue;
+            }
+
+            PlaceStamp(props, pattern, x, y);
+            placedOrigins.Add(new Vector2Int(x, y));
+            placed++;
+        }
+    }
+
+    private static float ResolveStampDensity(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => MapRuleDesertStampDensity,
+            MapTheme.Snow => MapRuleSnowStampDensity,
+            _ => MapRuleForestStampDensity
+        };
+    }
+
+    private static bool HasMinStampDistance(IReadOnlyList<Vector2Int> placed, int x, int y, int minDistance)
+    {
+        if (placed == null || placed.Count == 0 || minDistance <= 0)
+        {
+            return true;
+        }
+
+        int minSqr = minDistance * minDistance;
+        var point = new Vector2Int(x, y);
+        for (int i = 0; i < placed.Count; i++)
+        {
+            if ((placed[i] - point).sqrMagnitude < minSqr)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool CanPlaceStamp(Tilemap map, IReadOnlyList<StampCell> cells, int originX, int originY, int halfX, int halfY)
+    {
+        if (map == null || cells == null || cells.Count == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            var c = cells[i];
+            int x = originX + c.X;
+            int y = originY + c.Y;
+            if (x <= -halfX + 1 || x >= halfX - 1 || y <= -halfY + 1 || y >= halfY - 1)
+            {
+                return false;
+            }
+
+            var tile = GetTilesetTileByIndex(c.TileIndex);
+            if (tile == null)
+            {
+                return false;
+            }
+
+            var pos = new Vector3Int(x, y, 0);
+            if (map.GetTile(pos) != null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void PlaceStamp(Tilemap map, IReadOnlyList<StampCell> cells, int originX, int originY)
+    {
+        for (int i = 0; i < cells.Count; i++)
+        {
+            var c = cells[i];
+            var tile = GetTilesetTileByIndex(c.TileIndex);
+            if (tile == null)
+            {
+                continue;
+            }
+
+            var pos = new Vector3Int(originX + c.X, originY + c.Y, 0);
+            map.SetTile(pos, tile);
+        }
+    }
+
+    private static void EnsureGroundUnderStamp(Tilemap ground, IReadOnlyList<StampCell> cells, int originX, int originY, MapTheme theme)
+    {
+        if (ground == null || cells == null || cells.Count == 0)
+        {
+            return;
+        }
+
+        var groundTile = ResolveGroundCenterTile(theme);
+        if (groundTile == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            var c = cells[i];
+            var pos = new Vector3Int(originX + c.X, originY + c.Y, 0);
+            ground.SetTile(pos, groundTile);
+            ground.SetTileFlags(pos, TileFlags.None);
+            ground.SetTransformMatrix(pos, Matrix4x4.identity);
+            ground.SetColor(pos, Color.white);
+        }
+    }
+
+    private static TileBase GetTilesetTileByIndex(int index)
+    {
+        if (index < 0)
+        {
+            return null;
+        }
+
+        if (TilesetTileCache.TryGetValue(index, out var cached))
+        {
+            return cached;
+        }
+
+        var sprite = GetTilesetSpriteByIndex(index);
+        if (sprite == null)
+        {
+            TilesetTileCache[index] = null;
+            return null;
+        }
+
+        if (!AssetDatabase.IsValidFolder(SimpleTopdownIndexedTileFolder))
+        {
+            Directory.CreateDirectory(Path.Combine(Application.dataPath, SimpleTopdownIndexedTileFolder.Replace("Assets/", string.Empty)));
+            AssetDatabase.Refresh();
+        }
+
+        string tilePath = $"{SimpleTopdownIndexedTileFolder}/Indexed_{index:D3}.asset";
+        var tile = AssetDatabase.LoadAssetAtPath<Tile>(tilePath);
+        bool isNew = false;
+        if (tile == null)
+        {
+            tile = ScriptableObject.CreateInstance<Tile>();
+            AssetDatabase.CreateAsset(tile, tilePath);
+            isNew = true;
+        }
+
+        bool changed = isNew;
+        if (tile.sprite != sprite)
+        {
+            tile.sprite = sprite;
+            changed = true;
+        }
+
+        if (tile.colliderType != Tile.ColliderType.None)
+        {
+            tile.colliderType = Tile.ColliderType.None;
+            changed = true;
+        }
+
+        if (tile.color != Color.white)
+        {
+            tile.color = Color.white;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            EditorUtility.SetDirty(tile);
+            AssetDatabase.SaveAssets();
+        }
+
+        TilesetTileCache[index] = tile;
+        return tile;
+    }
+
+    private static Sprite GetTilesetSpriteByIndex(int index)
+    {
+        if (index < 0)
+        {
+            return null;
+        }
+
+        if (!IsTilesetSpriteCacheBuilt)
+        {
+            TilesetSpriteCache.Clear();
+            var sprites = LoadSprites(SimpleTopdownTilesetPath);
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                var sprite = sprites[i];
+                int spriteIndex = ExtractSpriteIndex(sprite != null ? sprite.name : null);
+                if (sprite == null || spriteIndex < 0 || TilesetSpriteCache.ContainsKey(spriteIndex))
+                {
+                    continue;
+                }
+
+                TilesetSpriteCache[spriteIndex] = sprite;
+            }
+
+            IsTilesetSpriteCacheBuilt = true;
+        }
+
+        TilesetSpriteCache.TryGetValue(index, out var found);
+        return found;
+    }
+
+    private static List<StampCell[]> GetCompositePropPatterns(MapTheme theme)
+    {
+        // Mapping is based on 16x16 cells with 30 columns, top-left origin:
+        // index = row * 30 + col
+        var bridgeVertical = BuildRectStampFromGrid(3, 15, 2, 3);
+        var signPost = BuildSingleTileStampFromGrid(0, 15);
+        var caveEntrance = BuildSingleTileStampFromGrid(4, 2);
+        var forestRock = BuildSingleTileStampFromGrid(4, 1);
+        var desertBone = BuildSingleTileStampFromGrid(19, 1);
+        var snowRock = BuildSingleTileStampFromGrid(24, 1);
+        var deadTree = BuildSingleTileStampByIndex(410);
+        var deadSnowTree = BuildSingleTileStampByIndex(412);
+
+        switch (theme)
+        {
+            case MapTheme.Desert:
+                return new List<StampCell[]>
+                {
+                    desertBone,
+                    desertBone,
+                    desertBone,
+                    signPost,
+                    signPost,
+                    deadTree,
+                    desertBone,
+                    bridgeVertical,
+                    caveEntrance
+                };
+            case MapTheme.Snow:
+                return new List<StampCell[]>
+                {
+                    snowRock,
+                    snowRock,
+                    snowRock,
+                    deadSnowTree,
+                    deadSnowTree,
+                    signPost,
+                    bridgeVertical
+                };
+            default:
+                return new List<StampCell[]>
+                {
+                    forestRock,
+                    forestRock,
+                    forestRock,
+                    deadTree,
+                    deadTree,
+                    signPost,
+                    deadTree,
+                    bridgeVertical
+                };
+        }
+    }
+
+    private static StampCell[] BuildRectStampFromGrid(int startCol, int startRow, int width, int height)
+    {
+        var cells = new List<StampCell>(width * height);
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                int x = col;
+                int y = height - 1 - row;
+                cells.Add(new StampCell(x, y, GridIndex(startCol + col, startRow + row)));
+            }
+        }
+
+        return cells.ToArray();
+    }
+
+    private static StampCell[] BuildSingleTileStampFromGrid(int col, int row)
+    {
+        return new[] { new StampCell(0, 0, GridIndex(col, row)) };
+    }
+
+    private static StampCell[] BuildSingleTileStampByIndex(int index)
+    {
+        return new[] { new StampCell(0, 0, index) };
+    }
+
+    private readonly struct StampCell
+    {
+        public readonly int X;
+        public readonly int Y;
+        public readonly int TileIndex;
+
+        public StampCell(int x, int y, int tileIndex)
+        {
+            X = x;
+            Y = y;
+            TileIndex = tileIndex;
+        }
+    }
+
+    private readonly struct FeaturePreset
+    {
+        public readonly float NormX;
+        public readonly float NormY;
+        public readonly int Width;
+        public readonly int Height;
+        public readonly int Jitter;
+
+        public FeaturePreset(float normX, float normY, int width, int height, int jitter)
+        {
+            NormX = normX;
+            NormY = normY;
+            Width = width;
+            Height = height;
+            Jitter = jitter;
+        }
+    }
+
+    private readonly struct GrovePreset
+    {
+        public readonly float NormX;
+        public readonly float NormY;
+        public readonly int SpreadX;
+        public readonly int SpreadY;
+        public readonly int TargetCount;
+
+        public GrovePreset(float normX, float normY, int spreadX, int spreadY, int targetCount)
+        {
+            NormX = normX;
+            NormY = normY;
+            SpreadX = spreadX;
+            SpreadY = spreadY;
+            TargetCount = targetCount;
+        }
+    }
+
+    private static bool[,] CarveMainPaths(
+        Tilemap path,
+        Tilemap details,
+        Tilemap props,
+        Tilemap obstacles,
+        Tilemap collision,
+        int width,
+        int height,
+        int seed,
+        MapTheme theme)
+    {
+        var pathMask = new bool[Mathf.Max(1, width), Mathf.Max(1, height)];
+        if (path == null || width <= 0 || height <= 0)
+        {
+            return pathMask;
+        }
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+        int pathRadius = Mathf.Max(0, (MapRulePathWidth - 1) / 2);
         float sx = seed * 0.0017f;
         float sy = seed * 0.0023f;
 
@@ -1320,14 +1696,14 @@ public static class ForestMapBuilder
         {
             float wave = Mathf.PerlinNoise((x + sx) * 0.08f, sy * 0.11f);
             int yCenter = Mathf.RoundToInt(Mathf.Lerp(-2f, 2f, wave));
-            CarveCell(ground, details, props, obstacles, collision, baseGround, x, yCenter, pathRadius);
+            MarkPathMask(pathMask, width, height, x, yCenter, pathRadius);
         }
 
         for (int y = -halfY + 1; y < halfY; y++)
         {
             float wave = Mathf.PerlinNoise((y - sy) * 0.08f, sx * 0.13f);
             int xCenter = Mathf.RoundToInt(Mathf.Lerp(-2f, 2f, wave));
-            CarveCell(ground, details, props, obstacles, collision, baseGround, xCenter, y, pathRadius);
+            MarkPathMask(pathMask, width, height, xCenter, y, pathRadius);
         }
 
         // One diagonal connector improves movement flow between quadrants.
@@ -1336,22 +1712,27 @@ public static class ForestMapBuilder
         {
             int x = i;
             int y = Mathf.RoundToInt(i * 0.6f);
-            CarveCell(ground, details, props, obstacles, collision, baseGround, x, y, Mathf.Max(1, pathRadius - 1));
+            MarkPathMask(pathMask, width, height, x, y, Mathf.Max(0, pathRadius - 1));
         }
+
+        var pathTile = ResolvePathFillTile(theme);
+        PaintMaskWithTile(path, pathMask, width, height, pathTile);
+        ApplyCollisionAndCleanupFromMask(details, props, obstacles, collision, pathMask, width, height, null, clearAll: true);
+        return pathMask;
     }
 
-    private static void CarveCell(
-        Tilemap ground,
-        Tilemap details,
-        Tilemap props,
-        Tilemap obstacles,
-        Tilemap collision,
-        TileBase baseGround,
-        int cx,
-        int cy,
-        int radius)
+    private static void MarkPathMask(bool[,] mask, int width, int height, int worldX, int worldY, int radius)
     {
-        int r = Mathf.Max(1, radius);
+        if (mask == null)
+        {
+            return;
+        }
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+        int cx = worldX + halfX;
+        int cy = worldY + halfY;
+        int r = Mathf.Max(0, radius);
         for (int y = -r; y <= r; y++)
         {
             for (int x = -r; x <= r; x++)
@@ -1362,28 +1743,832 @@ public static class ForestMapBuilder
                     continue;
                 }
 
-                var pos = new Vector3Int(cx + x, cy + y, 0);
-                ground.SetTile(pos, baseGround);
-                if (details != null)
+                int tx = cx + x;
+                int ty = cy + y;
+                if (tx < 1 || ty < 1 || tx >= width - 1 || ty >= height - 1)
                 {
-                    details.SetTile(pos, null);
+                    continue;
                 }
 
-                if (props != null)
+                mask[tx, ty] = true;
+            }
+        }
+    }
+
+    private static void ApplyNaturalTerrainFeatures(
+        Tilemap ground,
+        Tilemap details,
+        Tilemap props,
+        Tilemap obstacles,
+        Tilemap collision,
+        int width,
+        int height,
+        MapTheme theme,
+        bool[,] pathMask,
+        int seed)
+    {
+        if (ground == null || width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        var blockerTile = GetOrCreateSolidColliderTile();
+        if (pathMask == null || pathMask.GetLength(0) != width || pathMask.GetLength(1) != height)
+        {
+            pathMask = new bool[width, height];
+        }
+        var waterMask = new bool[width, height];
+        var hillMask = new bool[width, height];
+
+        BuildStructuredFeatureMask(waterMask, width, height, theme, isWater: true, pathMask, null, seed + 7);
+        BuildStructuredFeatureMask(hillMask, width, height, theme, isWater: false, pathMask, waterMask, seed + 83);
+        SmoothMask(waterMask, width, height, passes: 2, fillThreshold: 5, pruneThreshold: 1);
+        SmoothMask(hillMask, width, height, passes: 2, fillThreshold: 5, pruneThreshold: 1);
+        RemoveSmallIslands(waterMask, width, height, minCells: 12);
+        RemoveSmallIslands(hillMask, width, height, minCells: 18);
+
+        var waterBase = ResolveWaterAutotileBase(theme);
+        var hillBase = ResolveHillAutotileBase(theme);
+        PaintAutotileMask(ground, waterMask, width, height, waterBase.Col, waterBase.Row, paintInterior: true);
+        PaintAutotileMask(ground, hillMask, width, height, hillBase.Col, hillBase.Row, paintInterior: true);
+
+        ApplyCollisionAndCleanupFromMask(details, props, obstacles, collision, waterMask, width, height, blockerTile, clearAll: true);
+        ApplyCollisionAndCleanupFromMask(details, props, obstacles, collision, hillMask, width, height, blockerTile, clearAll: true);
+
+        PlaceThemeTreeClusters(ground, props, collision, width, height, theme, seed + 131, pathMask, waterMask, hillMask, blockerTile);
+    }
+
+    private static void BuildStructuredFeatureMask(
+        bool[,] mask,
+        int width,
+        int height,
+        MapTheme theme,
+        bool isWater,
+        bool[,] pathMask,
+        bool[,] forbiddenMask,
+        int seed)
+    {
+        if (mask == null || width < 8 || height < 8)
+        {
+            return;
+        }
+
+        FeaturePreset[] presets = isWater
+            ? GetWaterFeaturePresets(theme)
+            : GetHillFeaturePresets(theme);
+
+        var rng = new System.Random(seed);
+        int halfX = width / 2;
+        int halfY = height / 2;
+
+        for (int i = 0; i < presets.Length; i++)
+        {
+            var p = presets[i];
+            int cx = halfX + Mathf.RoundToInt(p.NormX * (halfX - 6)) + rng.Next(-p.Jitter, p.Jitter + 1);
+            int cy = halfY + Mathf.RoundToInt(p.NormY * (halfY - 6)) + rng.Next(-p.Jitter, p.Jitter + 1);
+            StampFeaturePreset(mask, width, height, cx, cy, p.Width, p.Height, seed + i * 37, pathMask, forbiddenMask, isWater);
+        }
+    }
+
+    private static void StampFeaturePreset(
+        bool[,] mask,
+        int width,
+        int height,
+        int cx,
+        int cy,
+        int featureWidth,
+        int featureHeight,
+        int seed,
+        bool[,] pathMask,
+        bool[,] forbiddenMask,
+        bool isWater)
+    {
+        int rx = Mathf.Max(2, featureWidth / 2);
+        int ry = Mathf.Max(2, featureHeight / 2);
+        int halfX = width / 2;
+        int halfY = height / 2;
+
+        for (int y = cy - ry - 2; y <= cy + ry + 2; y++)
+        {
+            for (int x = cx - rx - 2; x <= cx + rx + 2; x++)
+            {
+                if (x < 1 || y < 1 || x >= width - 1 || y >= height - 1)
                 {
-                    props.SetTile(pos, null);
+                    continue;
                 }
 
-                if (obstacles != null)
+                float dx = (x - cx) / Mathf.Max(0.001f, rx);
+                float dy = (y - cy) / Mathf.Max(0.001f, ry);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                float noiseAmp = isWater ? 0.22f : 0.03f;
+                float edgeNoise = (Hash01(x + 17, y - 23, seed) - 0.5f) * noiseAmp;
+                if (dist > 1f + edgeNoise)
                 {
-                    obstacles.SetTile(pos, null);
+                    continue;
                 }
 
-                if (collision != null)
+                if (isWater && dist > 0.85f && Hash01(x - 11, y + 13, seed * 3 + 5) < 0.30f)
                 {
-                    collision.SetTile(pos, null);
+                    continue;
+                }
+
+                if (!isWater && dist > 0.96f && Hash01(x + 5, y + 31, seed * 5 + 7) < 0.04f)
+                {
+                    continue;
+                }
+
+                int worldX = x - halfX;
+                int worldY = y - halfY;
+                int pathBuffer = isWater ? NaturalFeaturePathBuffer : 0;
+                if (!CanUseMaskCell(x, y, worldX, worldY, width, height, pathMask, forbiddenMask, pathBuffer))
+                {
+                    continue;
+                }
+
+                mask[x, y] = true;
+            }
+        }
+    }
+
+    private static bool CanUseMaskCell(
+        int x,
+        int y,
+        int worldX,
+        int worldY,
+        int width,
+        int height,
+        bool[,] pathMask,
+        bool[,] forbiddenMask,
+        int pathBuffer)
+    {
+        if (worldX * worldX + worldY * worldY <= NaturalFeatureNoSpawnRadius * NaturalFeatureNoSpawnRadius)
+        {
+            return false;
+        }
+
+        if (forbiddenMask != null && IsInMask(forbiddenMask, x, y))
+        {
+            return false;
+        }
+
+        if (IsPathNearby(pathMask, x, y, pathBuffer))
+        {
+            return false;
+        }
+
+        return x > 1 && y > 1 && x < width - 2 && y < height - 2;
+    }
+
+    private static bool IsPathNearby(bool[,] pathMask, int x, int y, int buffer)
+    {
+        if (pathMask == null)
+        {
+            return false;
+        }
+
+        int w = pathMask.GetLength(0);
+        int h = pathMask.GetLength(1);
+        for (int oy = -buffer; oy <= buffer; oy++)
+        {
+            for (int ox = -buffer; ox <= buffer; ox++)
+            {
+                int nx = x + ox;
+                int ny = y + oy;
+                if (nx < 0 || ny < 0 || nx >= w || ny >= h)
+                {
+                    continue;
+                }
+
+                if (pathMask[nx, ny])
+                {
+                    return true;
                 }
             }
+        }
+
+        return false;
+    }
+
+    private static bool IsInMask(bool[,] mask, int x, int y)
+    {
+        if (mask == null)
+        {
+            return false;
+        }
+
+        if (x < 0 || y < 0 || x >= mask.GetLength(0) || y >= mask.GetLength(1))
+        {
+            return false;
+        }
+
+        return mask[x, y];
+    }
+
+    private static void SmoothMask(bool[,] mask, int width, int height, int passes, int fillThreshold, int pruneThreshold)
+    {
+        if (mask == null || width < 3 || height < 3 || passes <= 0)
+        {
+            return;
+        }
+
+        var next = new bool[width, height];
+        for (int pass = 0; pass < passes; pass++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    bool current = mask[x, y];
+                    int neighbors = 0;
+                    for (int oy = -1; oy <= 1; oy++)
+                    {
+                        for (int ox = -1; ox <= 1; ox++)
+                        {
+                            if (ox == 0 && oy == 0)
+                            {
+                                continue;
+                            }
+
+                            int nx = x + ox;
+                            int ny = y + oy;
+                            if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+                            {
+                                continue;
+                            }
+
+                            if (mask[nx, ny])
+                            {
+                                neighbors++;
+                            }
+                        }
+                    }
+
+                    if (current)
+                    {
+                        next[x, y] = neighbors > pruneThreshold;
+                    }
+                    else
+                    {
+                        next[x, y] = neighbors >= fillThreshold;
+                    }
+                }
+            }
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    mask[x, y] = next[x, y];
+                }
+            }
+        }
+    }
+
+    private static void RemoveSmallIslands(bool[,] mask, int width, int height, int minCells)
+    {
+        if (mask == null || width <= 0 || height <= 0 || minCells <= 1)
+        {
+            return;
+        }
+
+        var visited = new bool[width, height];
+        var queue = new Queue<Vector2Int>(64);
+        var component = new List<Vector2Int>(64);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (!mask[x, y] || visited[x, y])
+                {
+                    continue;
+                }
+
+                component.Clear();
+                visited[x, y] = true;
+                queue.Enqueue(new Vector2Int(x, y));
+                while (queue.Count > 0)
+                {
+                    var p = queue.Dequeue();
+                    component.Add(p);
+
+                    TryVisit(p.x - 1, p.y);
+                    TryVisit(p.x + 1, p.y);
+                    TryVisit(p.x, p.y - 1);
+                    TryVisit(p.x, p.y + 1);
+                }
+
+                if (component.Count < minCells)
+                {
+                    for (int i = 0; i < component.Count; i++)
+                    {
+                        var p = component[i];
+                        mask[p.x, p.y] = false;
+                    }
+                }
+            }
+        }
+
+        void TryVisit(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= width || y >= height)
+            {
+                return;
+            }
+
+            if (visited[x, y] || !mask[x, y])
+            {
+                return;
+            }
+
+            visited[x, y] = true;
+            queue.Enqueue(new Vector2Int(x, y));
+        }
+    }
+
+    private static bool[,] PaintAutotileMask(Tilemap ground, bool[,] mask, int width, int height, int startCol, int startRow, bool paintInterior)
+    {
+        var paintedMask = new bool[Mathf.Max(1, width), Mathf.Max(1, height)];
+        if (ground == null || mask == null)
+        {
+            return paintedMask;
+        }
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+
+        for (int y = 1; y < height - 1; y++)
+        {
+            for (int x = 1; x < width - 1; x++)
+            {
+                if (!mask[x, y])
+                {
+                    continue;
+                }
+
+                bool up = mask[x, y + 1];
+                bool down = mask[x, y - 1];
+                bool left = mask[x - 1, y];
+                bool right = mask[x + 1, y];
+
+                if (!paintInterior && up && down && left && right)
+                {
+                    continue;
+                }
+
+                int localX = 1;
+                int localY = 1;
+                if (!up)
+                {
+                    localY = 0;
+                }
+                else if (!down)
+                {
+                    localY = 2;
+                }
+
+                if (!left)
+                {
+                    localX = 0;
+                }
+                else if (!right)
+                {
+                    localX = 2;
+                }
+
+                int index = GridIndex(startCol + localX, startRow + localY);
+                var tile = GetTilesetTileByIndex(index);
+                if (tile == null)
+                {
+                    continue;
+                }
+
+                var pos = new Vector3Int(x - halfX, y - halfY, 0);
+                ground.SetTile(pos, tile);
+                ground.SetTileFlags(pos, TileFlags.None);
+                ground.SetTransformMatrix(pos, Matrix4x4.identity);
+                ground.SetColor(pos, Color.white);
+                paintedMask[x, y] = true;
+            }
+        }
+
+        return paintedMask;
+    }
+
+    private static void PaintMaskWithTile(Tilemap map, bool[,] mask, int width, int height, TileBase tile)
+    {
+        if (map == null || mask == null || tile == null || width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+        for (int y = 1; y < height - 1; y++)
+        {
+            for (int x = 1; x < width - 1; x++)
+            {
+                if (!mask[x, y])
+                {
+                    continue;
+                }
+
+                var pos = new Vector3Int(x - halfX, y - halfY, 0);
+                map.SetTile(pos, tile);
+                map.SetTileFlags(pos, TileFlags.None);
+                map.SetTransformMatrix(pos, Matrix4x4.identity);
+                map.SetColor(pos, Color.white);
+            }
+        }
+    }
+
+    private static void ApplyCollisionAndCleanupFromMask(
+        Tilemap details,
+        Tilemap props,
+        Tilemap obstacles,
+        Tilemap collision,
+        bool[,] mask,
+        int width,
+        int height,
+        TileBase collisionTile,
+        bool clearAll)
+    {
+        if (mask == null)
+        {
+            return;
+        }
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (!mask[x, y])
+                {
+                    continue;
+                }
+
+                var pos = new Vector3Int(x - halfX, y - halfY, 0);
+                if (clearAll)
+                {
+                    ClearAuxiliaryAt(details, props, obstacles, null, pos);
+                }
+                else
+                {
+                    if (details != null)
+                    {
+                        details.SetTile(pos, null);
+                    }
+
+                    if (props != null)
+                    {
+                        props.SetTile(pos, null);
+                    }
+                }
+
+                if (collision != null && collisionTile != null)
+                {
+                    collision.SetTile(pos, collisionTile);
+                }
+            }
+        }
+    }
+
+    private static void PlaceSimpleTreeClusters(
+        Tilemap ground,
+        Tilemap props,
+        int width,
+        int height,
+        MapTheme theme,
+        int seed)
+    {
+        if (ground == null || props == null || width <= 0 || height <= 0)
+        {
+            return;
+        }
+        // Reuse existing clustered tree placement logic, but disable all blockers/masks.
+        PlaceThemeTreeClusters(
+            ground,
+            props,
+            collision: null,
+            width,
+            height,
+            theme,
+            seed,
+            pathMask: null,
+            waterMask: null,
+            hillMask: null,
+            blockerTile: null);
+    }
+
+    private static void PlaceThemeTreeClusters(
+        Tilemap ground,
+        Tilemap props,
+        Tilemap collision,
+        int width,
+        int height,
+        MapTheme theme,
+        int seed,
+        bool[,] pathMask,
+        bool[,] waterMask,
+        bool[,] hillMask,
+        TileBase blockerTile)
+    {
+        if (props == null)
+        {
+            return;
+        }
+
+        if (theme == MapTheme.Desert)
+        {
+            PlaceSparseDesertTrees(ground, props, collision, width, height, seed, pathMask, waterMask, hillMask, blockerTile);
+            return;
+        }
+
+        var pattern = theme == MapTheme.Snow
+            ? BuildRectStampFromGrid(26, 13, 3, 4)
+            : BuildRectStampFromGrid(20, 13, 3, 4);
+        var groves = GetTreeGrovePresets(theme);
+        int halfX = width / 2;
+        int halfY = height / 2;
+        var rng = new System.Random(seed);
+
+        for (int i = 0; i < groves.Length; i++)
+        {
+            var g = groves[i];
+            int cx = Mathf.RoundToInt(g.NormX * (halfX - 8));
+            int cy = Mathf.RoundToInt(g.NormY * (halfY - 8));
+            int placed = 0;
+            int attempts = g.TargetCount * 18;
+
+            for (int a = 0; a < attempts && placed < g.TargetCount; a++)
+            {
+                int originX = cx + rng.Next(-g.SpreadX, g.SpreadX + 1);
+                int originY = cy + rng.Next(-g.SpreadY, g.SpreadY + 1);
+                if (!CanPlaceTreeStamp(props, pattern, originX, originY, width, height, pathMask, waterMask, hillMask))
+                {
+                    continue;
+                }
+
+                EnsureGroundUnderStamp(ground, pattern, originX, originY, theme);
+                PlaceStamp(props, pattern, originX, originY);
+                placed++;
+
+                if (collision != null && blockerTile != null)
+                {
+                    // Block around trunk to avoid passing through clustered trees.
+                    collision.SetTile(new Vector3Int(originX + 1, originY, 0), blockerTile);
+                    collision.SetTile(new Vector3Int(originX + 1, originY + 1, 0), blockerTile);
+                }
+            }
+        }
+    }
+
+    private static void PlaceSparseDesertTrees(
+        Tilemap ground,
+        Tilemap props,
+        Tilemap collision,
+        int width,
+        int height,
+        int seed,
+        bool[,] pathMask,
+        bool[,] waterMask,
+        bool[,] hillMask,
+        TileBase blockerTile)
+    {
+        if (props == null)
+        {
+            return;
+        }
+
+        var pattern = BuildSingleTileStampByIndex(410);
+        var groves = new[]
+        {
+            new GrovePreset(-0.34f, -0.30f, 9, 7, 7),
+            new GrovePreset(0.30f, -0.22f, 9, 7, 7),
+            new GrovePreset(0.24f, 0.30f, 8, 6, 6)
+        };
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+        var rng = new System.Random(seed);
+
+        for (int i = 0; i < groves.Length; i++)
+        {
+            var g = groves[i];
+            int cx = Mathf.RoundToInt(g.NormX * (halfX - 8));
+            int cy = Mathf.RoundToInt(g.NormY * (halfY - 8));
+            int placed = 0;
+            int attempts = g.TargetCount * 20;
+            for (int a = 0; a < attempts && placed < g.TargetCount; a++)
+            {
+                int originX = cx + rng.Next(-g.SpreadX, g.SpreadX + 1);
+                int originY = cy + rng.Next(-g.SpreadY, g.SpreadY + 1);
+                if (!CanPlaceTreeStamp(props, pattern, originX, originY, width, height, pathMask, waterMask, hillMask))
+                {
+                    continue;
+                }
+
+                EnsureGroundUnderStamp(ground, pattern, originX, originY, theme: MapTheme.Desert);
+                PlaceStamp(props, pattern, originX, originY);
+                placed++;
+                if (collision != null && blockerTile != null)
+                {
+                    collision.SetTile(new Vector3Int(originX, originY, 0), blockerTile);
+                }
+            }
+        }
+    }
+
+    private static bool CanPlaceTreeStamp(
+        Tilemap props,
+        IReadOnlyList<StampCell> cells,
+        int originX,
+        int originY,
+        int width,
+        int height,
+        bool[,] pathMask,
+        bool[,] waterMask,
+        bool[,] hillMask)
+    {
+        if (props == null || cells == null || cells.Count == 0)
+        {
+            return false;
+        }
+
+        int halfX = width / 2;
+        int halfY = height / 2;
+        for (int i = 0; i < cells.Count; i++)
+        {
+            int worldX = originX + cells[i].X;
+            int worldY = originY + cells[i].Y;
+            int x = worldX + halfX;
+            int y = worldY + halfY;
+            if (x <= 1 || y <= 1 || x >= width - 2 || y >= height - 2)
+            {
+                return false;
+            }
+
+            if (worldX * worldX + worldY * worldY <= (NaturalFeatureNoSpawnRadius + 1) * (NaturalFeatureNoSpawnRadius + 1))
+            {
+                return false;
+            }
+
+            if (IsInMask(waterMask, x, y) || IsInMask(hillMask, x, y) || IsPathNearby(pathMask, x, y, 1))
+            {
+                return false;
+            }
+
+            if (props.GetTile(new Vector3Int(worldX, worldY, 0)) != null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static FeaturePreset[] GetWaterFeaturePresets(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => new[]
+            {
+                new FeaturePreset(-0.24f, 0.24f, 10, 8, 1),
+                new FeaturePreset(0.24f, -0.16f, 9, 7, 1)
+            },
+            MapTheme.Snow => new[]
+            {
+                new FeaturePreset(-0.24f, 0.30f, 11, 9, 1),
+                new FeaturePreset(0.26f, -0.20f, 10, 8, 1),
+                new FeaturePreset(0.10f, 0.18f, 6, 5, 1)
+            },
+            _ => new[]
+            {
+                new FeaturePreset(-0.20f, 0.34f, 11, 8, 1),
+                new FeaturePreset(0.30f, 0.28f, 12, 9, 1),
+                new FeaturePreset(0.26f, -0.06f, 8, 6, 1)
+            }
+        };
+    }
+
+    private static FeaturePreset[] GetHillFeaturePresets(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => new[]
+            {
+                new FeaturePreset(-0.28f, 0.18f, 16, 12, 1),
+                new FeaturePreset(0.30f, 0.18f, 15, 11, 1),
+                new FeaturePreset(-0.14f, -0.22f, 13, 9, 1)
+            },
+            MapTheme.Snow => new[]
+            {
+                new FeaturePreset(-0.30f, 0.24f, 15, 11, 1),
+                new FeaturePreset(0.26f, -0.18f, 14, 10, 1),
+                new FeaturePreset(-0.10f, -0.26f, 12, 9, 1)
+            },
+            _ => new[]
+            {
+                new FeaturePreset(-0.26f, 0.22f, 16, 12, 1),
+                new FeaturePreset(0.30f, -0.20f, 15, 11, 1),
+                new FeaturePreset(-0.12f, -0.24f, 12, 9, 1)
+            }
+        };
+    }
+
+    private static GrovePreset[] GetTreeGrovePresets(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Snow => new[]
+            {
+                new GrovePreset(-0.36f, -0.36f, 8, 6, 12),
+                new GrovePreset(0.36f, -0.32f, 8, 6, 10),
+                new GrovePreset(0.36f, 0.32f, 7, 5, 8)
+            },
+            _ => new[]
+            {
+                new GrovePreset(-0.36f, -0.36f, 9, 7, 14),
+                new GrovePreset(0.36f, -0.34f, 9, 7, 14),
+                new GrovePreset(0.34f, 0.24f, 8, 6, 10)
+            }
+        };
+    }
+
+    private static int ResolveGroundCenterIndex(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => 221,
+            MapTheme.Snow => 231,
+            _ => 211
+        };
+    }
+
+    private static TileBase ResolveGroundCenterTile(MapTheme theme)
+    {
+        return GetTilesetTileByIndex(ResolveGroundCenterIndex(theme));
+    }
+
+    private static TileBase ResolvePathFillTile(MapTheme theme)
+    {
+        // Keep one consistent road color (forest road fill) across all biomes.
+        _ = theme;
+        return GetTilesetTileByIndex(31);
+    }
+
+    private static (int Col, int Row) ResolvePathAutotileBase(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => (13, 0),
+            MapTheme.Snow => (23, 0),
+            _ => (3, 0)
+        };
+    }
+
+    private static (int Col, int Row) ResolveWaterAutotileBase(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => (10, 3),
+            MapTheme.Snow => (20, 3),
+            _ => (0, 3)
+        };
+    }
+
+    private static (int Col, int Row) ResolveHillAutotileBase(MapTheme theme)
+    {
+        return theme switch
+        {
+            MapTheme.Desert => (10, 6),
+            MapTheme.Snow => (20, 6),
+            _ => (0, 6)
+        };
+    }
+
+    private static void ClearAuxiliaryAt(Tilemap details, Tilemap props, Tilemap obstacles, Tilemap collision, Vector3Int pos)
+    {
+        if (details != null)
+        {
+            details.SetTile(pos, null);
+        }
+
+        if (props != null)
+        {
+            props.SetTile(pos, null);
+        }
+
+        if (obstacles != null)
+        {
+            obstacles.SetTile(pos, null);
+        }
+
+        if (collision != null)
+        {
+            collision.SetTile(pos, null);
         }
     }
 

@@ -101,7 +101,7 @@ public class NetworkHealth : NetworkBehaviour
 
         float prev = _health.CurrentHealth;
         _health.SetMaxHealth(_max.Value, false);
-        bool invokeDamage = IsOwner && _current.Value < prev;
+        bool invokeDamage = _current.Value < prev;
         _health.SetCurrentHealth(_current.Value, true, invokeDamage);
     }
 }
