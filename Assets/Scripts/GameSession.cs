@@ -90,6 +90,7 @@ public class GameSession : MonoBehaviour
     private float stageTimeLimitSeconds = 0f;
 
     private int stageKillTarget = 0;
+    private float stageBossSpawnTimeSeconds = 600f;
 
     [Header("Upgrades")]
     private int maxUpgradeLevel = 10;
@@ -404,6 +405,10 @@ public class GameSession : MonoBehaviour
     private PlayerController _player;
     private bool _gameStarted;
     private bool _stageCompleted;
+    private bool _bossPhaseStarted;
+    private bool _stageBossSpawned;
+    private float _nextBossSpawnRetryTime;
+    private string _stageClearSummary = string.Empty;
     private DifficultyConfig _baseDifficultyConfig;
     private bool _difficultyBaseCached;
     private float _baseSpawnInterval;
@@ -461,7 +466,10 @@ public class GameSession : MonoBehaviour
     private RectTransform _gameOverPanel;
     private Text _gameOverTitleText;
     private Text _gameOverTimeText;
+    private Text _gameOverSummaryText;
     private Button _gameOverButton;
+    private RectTransform _bossAlertRect;
+    private Text _bossAlertText;
     private RectTransform _mapPanel;
     private Text _mapTitleText;
     private Text _mapSubtitleText;
@@ -492,9 +500,15 @@ public class GameSession : MonoBehaviour
     private string _adminWeaponUnlockSecretBuffer = string.Empty;
     private float _adminWeaponUnlockSecretLastTime = -1f;
     private bool _ignoreWeaponUnlockLevelLimit;
+    private float _bossAlertStartUnscaledTime = -1f;
+    private float _bossAlertEndUnscaledTime = -1f;
+    private string _bossAlertMessage = string.Empty;
     private bool _settingsApplied;
 
     private const string CoinPrefKey = "CoinCount";
+    private const string MapUnlockInitializedPrefKey = "MapUnlockInitialized_v1";
+    private const string MapUnlockPrefix = "MapUnlocked_";
+    private const float BossAlertDurationSeconds = 3f;
     private int _coinCount;
     private int _killCount;
 
@@ -597,6 +611,7 @@ public class GameSession : MonoBehaviour
         requireMapChoice = settings.requireMapChoice;
         allowMapChoiceInNetwork = settings.allowMapChoiceInNetwork;
         mapChoices = ResolveMapChoices(settings.mapChoices);
+        InitializeMapUnlockState();
 
         startPreviewScale = settings.startPreviewScale;
         startPreviewDimAlpha = settings.startPreviewDimAlpha;
@@ -700,6 +715,10 @@ public class GameSession : MonoBehaviour
         _cachedSpawnerBase = false;
         _spawnerDifficultyApplied = false;
         _stageCompleted = false;
+        _bossPhaseStarted = false;
+        _stageBossSpawned = false;
+        _nextBossSpawnRetryTime = 0f;
+        _stageClearSummary = string.Empty;
         _waitingMapChoice = false;
         _mapChoiceApplied = false;
         _selectedMapChoice = default;
@@ -724,6 +743,9 @@ public class GameSession : MonoBehaviour
         _adminWeaponUnlockSecretBuffer = string.Empty;
         _adminWeaponUnlockSecretLastTime = -1f;
         _ignoreWeaponUnlockLevelLimit = false;
+        _bossAlertStartUnscaledTime = -1f;
+        _bossAlertEndUnscaledTime = -1f;
+        _bossAlertMessage = string.Empty;
     }
 
     private static WeaponStatsData CloneWeaponStats(WeaponStatsData source)
@@ -878,6 +900,10 @@ public class GameSession : MonoBehaviour
 
         stageTimeLimitSeconds = Mathf.Max(0f, stage.timeLimitSeconds);
         stageKillTarget = Mathf.Max(0, stage.killTarget);
+        if (stageTimeLimitSeconds > 0f)
+        {
+            stageBossSpawnTimeSeconds = stageTimeLimitSeconds;
+        }
         mapHalfSize = stage.mapHalfSize;
         localSpawnPosition = stage.localSpawnPosition;
 
@@ -1418,6 +1444,11 @@ public class GameSession : MonoBehaviour
             if (!string.Equals(choice.sceneName, sceneName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
+            }
+
+            if (!IsMapChoiceUnlocked(choice, i))
+            {
+                return false;
             }
 
             ApplyMapChoice(choice);
@@ -2527,10 +2558,6 @@ public class GameSession : MonoBehaviour
     public void RegisterKill(Vector3 position)
     {
         _killCount += 1;
-        if (!_stageCompleted && stageKillTarget > 0 && _killCount >= stageKillTarget)
-        {
-            CompleteStage();
-        }
         TrySpawnCoin(position);
     }
 
@@ -3038,16 +3065,86 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        if (stageTimeLimitSeconds > 0f && ElapsedTime >= stageTimeLimitSeconds)
+        float bossSpawnTime = Mathf.Max(1f, stageBossSpawnTimeSeconds);
+        if (!_bossPhaseStarted && ElapsedTime >= bossSpawnTime)
         {
-            CompleteStage();
+            StartBossPhase();
+        }
+
+        if (!_bossPhaseStarted)
+        {
             return;
         }
 
-        if (stageKillTarget > 0 && _killCount >= stageKillTarget)
+        int aliveBossCount = CountAliveBosses();
+        if (aliveBossCount > 0)
+        {
+            _stageBossSpawned = true;
+            return;
+        }
+
+        bool canSpawnBoss = !NetworkSession.IsActive || NetworkSession.IsServer;
+        if (!_stageBossSpawned && canSpawnBoss && Time.time >= _nextBossSpawnRetryTime)
+        {
+            if (TrySpawnStageBoss())
+            {
+                _stageBossSpawned = true;
+                return;
+            }
+
+            _nextBossSpawnRetryTime = Time.time + 2f;
+            return;
+        }
+
+        if (_stageBossSpawned && aliveBossCount <= 0)
         {
             CompleteStage();
         }
+    }
+
+    private void StartBossPhase()
+    {
+        if (_bossPhaseStarted)
+        {
+            return;
+        }
+
+        _bossPhaseStarted = true;
+        _nextBossSpawnRetryTime = 0f;
+        ShowBossAlert("BOSS 등장!");
+    }
+
+    private bool TrySpawnStageBoss()
+    {
+        if (_spawner == null)
+        {
+            return false;
+        }
+
+        Transform spawnTarget = _player != null ? _player.transform : null;
+        return _spawner.SpawnBossNow(spawnTarget);
+    }
+
+    private int CountAliveBosses()
+    {
+        int count = 0;
+        var enemies = EnemyController.Active;
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            var enemy = enemies[i];
+            if (enemy == null || enemy.IsDead)
+            {
+                continue;
+            }
+
+            var tier = enemy.GetComponent<EnemyTier>();
+            if (tier != null && tier.CurrentTier == EnemyTier.Tier.Boss)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private void CompleteStage()
@@ -3058,6 +3155,7 @@ public class GameSession : MonoBehaviour
         }
 
         _stageCompleted = true;
+        _stageClearSummary = BuildStageClearSummary();
         IsGameOver = true;
         _choosingUpgrade = false;
         Time.timeScale = 1f;
@@ -3771,6 +3869,7 @@ public class GameSession : MonoBehaviour
         _uiRoot = canvasGo.GetComponent<RectTransform>();
 
         BuildGameOverUI(fontToUse);
+        BuildBossAlertUI(fontToUse);
         BuildMapChoiceUI(fontToUse);
         BuildStartChoiceUI(fontToUse);
         BuildUpgradeUI(fontToUse);
@@ -3840,6 +3939,11 @@ public class GameSession : MonoBehaviour
             _gameOverTimeText.text = $"{label} {ElapsedTime:0.0}s";
         }
 
+        if (showGameOver && _gameOverSummaryText != null)
+        {
+            _gameOverSummaryText.text = _stageCompleted ? _stageClearSummary : string.Empty;
+        }
+
         if (showMap && _mapSubtitleText != null)
         {
             _mapSubtitleText.text = requireStartCharacterChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.";
@@ -3883,6 +3987,70 @@ public class GameSession : MonoBehaviour
             _startPreviewHoverIndex = -1;
             ClearStartCharacterPreviews();
         }
+
+        UpdateBossAlertUI();
+    }
+
+    private void ShowBossAlert(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        _bossAlertMessage = message.Trim();
+        _bossAlertStartUnscaledTime = Time.unscaledTime;
+        _bossAlertEndUnscaledTime = _bossAlertStartUnscaledTime + BossAlertDurationSeconds;
+
+        if (_bossAlertText != null)
+        {
+            _bossAlertText.text = _bossAlertMessage;
+        }
+    }
+
+    private bool IsBossAlertActive()
+    {
+        return _bossAlertEndUnscaledTime > 0f && Time.unscaledTime <= _bossAlertEndUnscaledTime;
+    }
+
+    private void UpdateBossAlertUI()
+    {
+        if (_bossAlertRect == null || _bossAlertText == null)
+        {
+            return;
+        }
+
+        bool active = IsBossAlertActive() && !IsGameOver;
+        _bossAlertRect.gameObject.SetActive(active);
+        if (!active)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_bossAlertMessage))
+        {
+            _bossAlertText.text = _bossAlertMessage;
+        }
+
+        float elapsed = Mathf.Max(0f, Time.unscaledTime - _bossAlertStartUnscaledTime);
+        float duration = Mathf.Max(0.01f, _bossAlertEndUnscaledTime - _bossAlertStartUnscaledTime);
+        float t = Mathf.Clamp01(elapsed / duration);
+        float alpha = 1f;
+        if (t < 0.15f)
+        {
+            alpha = t / 0.15f;
+        }
+        else if (t > 0.8f)
+        {
+            alpha = (1f - t) / 0.2f;
+        }
+
+        float pulse = 1f + Mathf.Sin(elapsed * 10f) * 0.04f;
+        _bossAlertRect.localScale = new Vector3(pulse, pulse, 1f);
+
+        Color c = _bossAlertText.color;
+        c.a = Mathf.Clamp01(alpha);
+        _bossAlertText.color = c;
     }
 
     private void UpdateUpgradeUI()
@@ -4011,6 +4179,12 @@ public class GameSession : MonoBehaviour
             return;
         }
 
+        int choiceIndex = FindMapChoiceIndex(choice);
+        if (!IsMapChoiceUnlocked(choice, choiceIndex))
+        {
+            return;
+        }
+
         ApplyMapChoice(choice);
         _waitingMapChoice = false;
         if (requireStartCharacterChoice)
@@ -4049,6 +4223,22 @@ public class GameSession : MonoBehaviour
             return;
         }
 
+        int playableCount = Mathf.Min(3, choices.Length);
+        for (int i = 0; i < playableCount; i++)
+        {
+            var choice = choices[i];
+            if (!IsMapChoiceUnlocked(choice, i))
+            {
+                continue;
+            }
+
+            ApplyMapChoice(choice);
+            UpdateMapBackgroundVisibility();
+            return;
+        }
+
+        UnlockMapChoice(choices[0], 0);
+        PlayerPrefs.Save();
         ApplyMapChoice(choices[0]);
         UpdateMapBackgroundVisibility();
     }
@@ -4108,14 +4298,189 @@ public class GameSession : MonoBehaviour
         };
     }
 
-    private string GetMapChoiceLabel(MapChoiceEntry choice)
+    private void InitializeMapUnlockState()
+    {
+        var choices = ResolveMapChoices(mapChoices);
+        int playableCount = Mathf.Min(3, choices.Length);
+        if (playableCount <= 0)
+        {
+            return;
+        }
+
+        bool changed = false;
+        for (int i = 0; i < playableCount; i++)
+        {
+            string key = GetMapUnlockKey(choices[i], i);
+            if (PlayerPrefs.HasKey(key))
+            {
+                continue;
+            }
+
+            PlayerPrefs.SetInt(key, i == 0 ? 1 : 0);
+            changed = true;
+        }
+
+        if (PlayerPrefs.GetInt(MapUnlockInitializedPrefKey, 0) == 0)
+        {
+            PlayerPrefs.SetInt(MapUnlockInitializedPrefKey, 1);
+            changed = true;
+        }
+
+        if (!IsMapChoiceUnlocked(choices[0], 0))
+        {
+            UnlockMapChoice(choices[0], 0);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            PlayerPrefs.Save();
+        }
+    }
+
+    private static string GetMapUnlockKey(MapChoiceEntry choice, int index)
+    {
+        string id = choice != null && !string.IsNullOrWhiteSpace(choice.sceneName)
+            ? choice.sceneName.Trim()
+            : $"Index{index}";
+        return $"{MapUnlockPrefix}{id}";
+    }
+
+    private bool IsMapChoiceUnlocked(MapChoiceEntry choice, int index)
+    {
+        if (choice == null)
+        {
+            return false;
+        }
+
+        if (index < 0)
+        {
+            index = FindMapChoiceIndex(choice);
+        }
+
+        if (index < 0)
+        {
+            return true;
+        }
+
+        if (index >= 3)
+        {
+            return true;
+        }
+
+        string key = GetMapUnlockKey(choice, index);
+        int defaultValue = index == 0 ? 1 : 0;
+        if (!PlayerPrefs.HasKey(key))
+        {
+            return defaultValue == 1;
+        }
+
+        return PlayerPrefs.GetInt(key, defaultValue) == 1;
+    }
+
+    private void UnlockMapChoice(MapChoiceEntry choice, int index)
+    {
+        if (choice == null || index < 0)
+        {
+            return;
+        }
+
+        if (index >= 3)
+        {
+            return;
+        }
+
+        string key = GetMapUnlockKey(choice, index);
+        PlayerPrefs.SetInt(key, 1);
+    }
+
+    private int FindMapChoiceIndex(MapChoiceEntry choice)
+    {
+        if (choice == null)
+        {
+            return -1;
+        }
+
+        var choices = ResolveMapChoices(mapChoices);
+        for (int i = 0; i < choices.Length; i++)
+        {
+            var candidate = choices[i];
+            if (ReferenceEquals(candidate, choice))
+            {
+                return i;
+            }
+
+            if (!string.IsNullOrWhiteSpace(candidate.sceneName) &&
+                !string.IsNullOrWhiteSpace(choice.sceneName) &&
+                string.Equals(candidate.sceneName, choice.sceneName, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static string GetMapChoiceDisplayName(MapChoiceEntry choice)
     {
         if (choice == null)
         {
             return string.Empty;
         }
 
-        string name = string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+        return string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
+    }
+
+    private string UnlockNextMapFromCurrentChoice()
+    {
+        var choices = ResolveMapChoices(mapChoices);
+        int playableCount = Mathf.Min(3, choices.Length);
+        if (playableCount <= 0)
+        {
+            return "보스를 처치했습니다.";
+        }
+
+        int currentIndex = FindMapChoiceIndex(_selectedMapChoice);
+        if (currentIndex < 0 || currentIndex >= playableCount)
+        {
+            return "보스를 처치했습니다.";
+        }
+
+        int nextIndex = currentIndex + 1;
+        if (nextIndex >= playableCount)
+        {
+            return "최종 맵 클리어!";
+        }
+
+        var nextChoice = choices[nextIndex];
+        if (IsMapChoiceUnlocked(nextChoice, nextIndex))
+        {
+            return $"{GetMapChoiceDisplayName(nextChoice)} 맵 이용 가능";
+        }
+
+        UnlockMapChoice(nextChoice, nextIndex);
+        PlayerPrefs.Save();
+        return $"다음 맵 해금: {GetMapChoiceDisplayName(nextChoice)}";
+    }
+
+    private string BuildStageClearSummary()
+    {
+        return UnlockNextMapFromCurrentChoice();
+    }
+
+    private string GetMapChoiceLabel(MapChoiceEntry choice, int index = -1)
+    {
+        if (choice == null)
+        {
+            return string.Empty;
+        }
+
+        string name = GetMapChoiceDisplayName(choice);
+        if (!IsMapChoiceUnlocked(choice, index))
+        {
+            return $"{name}\n잠김";
+        }
+
         var difficulty = ResolveMapDifficultyForChoice(choice);
         string difficultyName = ResolveDifficultyName(difficulty);
         return string.IsNullOrWhiteSpace(difficultyName) ? name : $"{name}\n{difficultyName}";
@@ -5148,7 +5513,7 @@ public class GameSession : MonoBehaviour
 
     private void BuildGameOverUI(Font fontToUse)
     {
-        _gameOverPanel = CreatePanel(_uiRoot, "GameOverPanel", new Vector2(360f, 180f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
+        _gameOverPanel = CreatePanel(_uiRoot, "GameOverPanel", new Vector2(360f, 210f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
 
         var title = CreateText(_gameOverPanel, "Title", fontToUse, 20, TextAnchor.UpperCenter, Color.white);
         _gameOverTitleText = title;
@@ -5168,11 +5533,37 @@ public class GameSession : MonoBehaviour
         timeRect.anchoredPosition = new Vector2(0f, -50f);
         timeRect.sizeDelta = new Vector2(240f, 22f);
 
-        _gameOverButton = CreateButton(_gameOverPanel, "RestartButton", new Vector2(200f, 40f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Color(0.2f, 0.2f, 0.2f, 0.9f));
+        _gameOverSummaryText = CreateText(_gameOverPanel, "Summary", fontToUse, 14, TextAnchor.UpperCenter, new Color(1f, 1f, 1f, 0.92f));
+        var summaryRect = _gameOverSummaryText.rectTransform;
+        summaryRect.anchorMin = new Vector2(0.5f, 1f);
+        summaryRect.anchorMax = new Vector2(0.5f, 1f);
+        summaryRect.pivot = new Vector2(0.5f, 1f);
+        summaryRect.anchoredPosition = new Vector2(0f, -78f);
+        summaryRect.sizeDelta = new Vector2(300f, 38f);
+        _gameOverSummaryText.text = string.Empty;
+
+        _gameOverButton = CreateButton(_gameOverPanel, "RestartButton", new Vector2(200f, 40f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -58f), new Color(0.2f, 0.2f, 0.2f, 0.9f));
         var btnLabel = CreateText(_gameOverButton.transform, "Label", fontToUse, 14, TextAnchor.MiddleCenter, Color.white);
         StretchToFill(btnLabel.rectTransform, new Vector2(4f, 4f));
         btnLabel.text = "처음 화면으로";
         _gameOverButton.onClick.AddListener(ResetToStart);
+    }
+
+    private void BuildBossAlertUI(Font fontToUse)
+    {
+        _bossAlertRect = CreateRect(_uiRoot, "BossAlert", new Vector2(720f, 68f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -24f));
+        var bg = CreateImage(_bossAlertRect, "Backdrop", new Color(0f, 0f, 0f, 0.45f));
+        StretchToFill(bg.rectTransform, Vector2.zero);
+
+        _bossAlertText = CreateText(_bossAlertRect, "Label", fontToUse, 34, TextAnchor.MiddleCenter, new Color(1f, 0.28f, 0.2f, 1f));
+        StretchToFill(_bossAlertText.rectTransform, new Vector2(12f, 8f));
+        _bossAlertText.fontStyle = FontStyle.Bold;
+        _bossAlertText.text = string.Empty;
+        var outline = _bossAlertText.gameObject.AddComponent<Outline>();
+        outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+        outline.effectDistance = new Vector2(2f, -2f);
+
+        _bossAlertRect.gameObject.SetActive(false);
     }
 
     private void BuildMapChoiceUI(Font fontToUse)
@@ -5224,9 +5615,11 @@ public class GameSession : MonoBehaviour
             StretchToFill(label.rectTransform, new Vector2(6f, 6f));
             int index = i;
             var choice = choices[i];
-            label.text = GetMapChoiceLabel(choice);
+            bool unlocked = IsMapChoiceUnlocked(choice, index);
+            label.text = GetMapChoiceLabel(choice, index);
             button.onClick.AddListener(() => SelectMapWithFeedback(choice, button));
             ApplyButtonColors(button, startButtonNormalColor, startButtonHoverColor);
+            button.interactable = unlocked;
             _mapButtons[i] = button;
             _mapButtonTexts[i] = label;
         }
@@ -5697,12 +6090,14 @@ public class GameSession : MonoBehaviour
         {
             DrawAutoPlayToggle();
         }
+
+        DrawBossAlertFallback();
     }
 
     private void DrawGameOverPanel()
     {
         const float width = 360f;
-        const float height = 180f;
+        const float height = 210f;
         float x = (Screen.width - width) * 0.5f;
         float y = (Screen.height - height) * 0.5f;
 
@@ -5710,8 +6105,12 @@ public class GameSession : MonoBehaviour
         string timeLabel = _stageCompleted ? "클리어 시간" : "생존 시간";
         GUI.Box(new Rect(x, y, width, height), title);
         GUI.Label(new Rect(x + 20f, y + 40f, width - 40f, 24f), $"{timeLabel} {ElapsedTime:0.0}s");
+        if (_stageCompleted && !string.IsNullOrWhiteSpace(_stageClearSummary))
+        {
+            GUI.Label(new Rect(x + 20f, y + 68f, width - 40f, 38f), _stageClearSummary);
+        }
 
-        if (GUI.Button(new Rect(x + 80f, y + 100f, width - 160f, 40f), "처음 화면으로"))
+        if (GUI.Button(new Rect(x + 80f, y + 128f, width - 160f, 40f), "처음 화면으로"))
         {
             ResetToStart();
         }
@@ -5817,6 +6216,42 @@ public class GameSession : MonoBehaviour
         {
             SetAutoPlayEnabled(!_autoPlayEnabled);
         }
+    }
+
+    private void DrawBossAlertFallback()
+    {
+        if (!IsBossAlertActive() || IsGameOver || string.IsNullOrWhiteSpace(_bossAlertMessage))
+        {
+            return;
+        }
+
+        float elapsed = Mathf.Max(0f, Time.unscaledTime - _bossAlertStartUnscaledTime);
+        float duration = Mathf.Max(0.01f, _bossAlertEndUnscaledTime - _bossAlertStartUnscaledTime);
+        float t = Mathf.Clamp01(elapsed / duration);
+        float alpha = 1f;
+        if (t < 0.15f)
+        {
+            alpha = t / 0.15f;
+        }
+        else if (t > 0.8f)
+        {
+            alpha = (1f - t) / 0.2f;
+        }
+
+        float width = Mathf.Min(Screen.width - 32f, 740f);
+        float x = (Screen.width - width) * 0.5f;
+        float y = 24f;
+
+        Color old = GUI.color;
+        GUI.color = new Color(1f, 0.3f, 0.25f, Mathf.Clamp01(alpha));
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 36,
+            fontStyle = FontStyle.Bold
+        };
+        GUI.Label(new Rect(x, y, width, 56f), _bossAlertMessage, style);
+        GUI.color = old;
     }
 
     private void SetAutoPlayEnabled(bool enabled)
@@ -5948,11 +6383,14 @@ public class GameSession : MonoBehaviour
         {
             var rect = new Rect(bx + i * (buttonWidth + gap), by, buttonWidth, buttonHeight);
             var choice = choices[i];
-            string label = GetMapChoiceLabel(choice);
+            bool unlocked = IsMapChoiceUnlocked(choice, i);
+            string label = GetMapChoiceLabel(choice, i);
+            GUI.enabled = unlocked;
             if (GUI.Button(rect, label))
             {
                 SelectMapChoice(choice);
             }
+            GUI.enabled = true;
         }
     }
 

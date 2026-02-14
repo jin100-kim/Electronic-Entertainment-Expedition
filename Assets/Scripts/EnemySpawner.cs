@@ -346,6 +346,17 @@ public class EnemySpawner : MonoBehaviour
         SpawnEnemyInternal(tier, spawnTarget, null, false, null);
     }
 
+    public bool SpawnBossNow(Transform spawnTarget, Vector3? positionOverride = null)
+    {
+        var target = spawnTarget != null ? spawnTarget : ResolveSpawnTarget();
+        return SpawnEnemyInternal(EnemyTier.Tier.Boss, target, null, true, positionOverride);
+    }
+
+    public int GetAliveBossCount()
+    {
+        return CountAlive(EnemyTier.Tier.Boss);
+    }
+
     public bool SpawnManual(EnemyVisuals.EnemyVisualType visualType, Transform spawnTarget, Vector3? positionOverride = null)
     {
         return SpawnEnemyInternal(EnemyTier.Tier.Normal, spawnTarget, visualType, true, positionOverride);
