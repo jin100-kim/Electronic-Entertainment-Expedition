@@ -87,7 +87,7 @@ public class GameSessionSettings
     public Vector2 mapHalfSize = new Vector2(24f, 24f);
 
     [Header("Upgrades")]
-    public int maxUpgradeLevel = 10;
+    public int maxUpgradeLevel = 5;
     public int maxWeaponSlots = 3;
     public int maxStatSlots = 5;
 

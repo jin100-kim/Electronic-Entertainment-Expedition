@@ -93,7 +93,7 @@ public class GameSession : MonoBehaviour
     private float stageBossSpawnTimeSeconds = 600f;
 
     [Header("Upgrades")]
-    private int maxUpgradeLevel = 10;
+    private int maxUpgradeLevel = 5;
 
     private int maxWeaponSlots = 3;
 
@@ -2250,10 +2250,10 @@ public class GameSession : MonoBehaviour
         }
         if (state.projectileCountLevel < maxUpgradeLevel && CanOfferNewStat(state, state.projectileCountLevel))
         {
-            options.Add(new UpgradeOption("투사체 수", () => BuildProjectileCountText(state), () =>
+            options.Add(new UpgradeOption("추가 투사체 수", () => BuildProjectileCountText(state), () =>
             {
                 state.projectileCountLevel += 1;
-                if (state.projectileCountLevel % 2 == 0)
+                if (ShouldGainExtraCountAtLevel(state.projectileCountLevel))
                 {
                     state.projectileCount += 1;
                 }
@@ -2261,7 +2261,14 @@ public class GameSession : MonoBehaviour
         }
         if (state.pierceLevel < maxUpgradeLevel && CanOfferNewStat(state, state.pierceLevel))
         {
-            options.Add(new UpgradeOption("관통 +1", () => BuildValueStatText("관통", state.projectilePierceBonus, state.projectilePierceBonus + 1), () => { state.projectilePierceBonus += 1; state.pierceLevel += 1; }));
+            options.Add(new UpgradeOption("추가 관통 수", () => BuildPierceUpgradeText(state), () =>
+            {
+                state.pierceLevel += 1;
+                if (ShouldGainExtraCountAtLevel(state.pierceLevel))
+                {
+                    state.projectilePierceBonus += 1;
+                }
+            }));
         }
 
         AddWeaponChoice(options, state, state.singleShotStats, upgradeLevel, () => BuildSingleShotUpgradeText(state), () => UnlockSingleShot(state), () => LevelUpSingleShotWeapon(state));
@@ -2420,8 +2427,8 @@ public class GameSession : MonoBehaviour
         AddStatIcon(results, "경험치", state.xpGainLevel);
         AddStatIcon(results, "자석", state.magnetLevel);
         AddStatIcon(results, "공격범위", state.sizeLevel);
-        AddStatIcon(results, "투사체수", state.projectileCountLevel);
-        AddStatIcon(results, "관통", state.pierceLevel);
+        AddStatIcon(results, "추가 투사체 수", state.projectileCountLevel);
+        AddStatIcon(results, "추가 관통 수", state.pierceLevel);
     }
 
     public void ApplyUpgradeIconState(UpgradeIconState data)
@@ -3340,8 +3347,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.singleShotStats.level += 1;
-        state.singleShotStats.damageMult += 0.20f;
-        state.singleShotStats.fireRateMult += 0.12f;
+        state.singleShotStats.damageMult += 0.12f;
+        state.singleShotStats.fireRateMult += 0.07f;
 
         if (state.singleShotStats.level % 3 == 0)
         {
@@ -3366,8 +3373,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.multiShotStats.level += 1;
-        state.multiShotStats.damageMult += 0.10f;
-        state.multiShotStats.fireRateMult += 0.06f;
+        state.multiShotStats.damageMult += 0.06f;
+        state.multiShotStats.fireRateMult += 0.035f;
         state.multiShotStats.bonusProjectiles += 1;
     }
 
@@ -3388,8 +3395,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.piercingShotStats.level += 1;
-        state.piercingShotStats.damageMult += 0.50f;
-        state.piercingShotStats.fireRateMult += 0.048f;
+        state.piercingShotStats.damageMult += 0.30f;
+        state.piercingShotStats.fireRateMult += 0.03f;
 
         if (state.piercingShotStats.level % 5 == 0)
         {
@@ -3414,8 +3421,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.auraStats.level += 1;
-        state.auraStats.damageMult += 0.10f;
-        state.auraStats.fireRateMult += 0.18f;
+        state.auraStats.damageMult += 0.06f;
+        state.auraStats.fireRateMult += 0.12f;
     }
 
     private void LevelUpHomingShotWeapon(PlayerUpgradeState state)
@@ -3435,8 +3442,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.homingShotStats.level += 1;
-        state.homingShotStats.damageMult += 0.20f;
-        state.homingShotStats.fireRateMult += 0.06f;
+        state.homingShotStats.damageMult += 0.12f;
+        state.homingShotStats.fireRateMult += 0.035f;
 
         if (state.homingShotStats.level % 4 == 0)
         {
@@ -3461,8 +3468,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.grenadeStats.level += 1;
-        state.grenadeStats.damageMult += 0.30f;
-        state.grenadeStats.fireRateMult += 0.048f;
+        state.grenadeStats.damageMult += 0.18f;
+        state.grenadeStats.fireRateMult += 0.03f;
 
         if (state.grenadeStats.level % 4 == 0)
         {
@@ -3487,8 +3494,8 @@ public class GameSession : MonoBehaviour
         }
 
         state.meleeStats.level += 1;
-        state.meleeStats.damageMult += 0.30f;
-        state.meleeStats.fireRateMult += 0.09f;
+        state.meleeStats.damageMult += 0.18f;
+        state.meleeStats.fireRateMult += 0.055f;
     }
 
     private void UnlockMultiShot(PlayerUpgradeState state)
@@ -3612,11 +3619,11 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.singleShotStats.level + 1;
-        float nextDamage = state.singleShotStats.damageMult + 0.20f;
+        float nextDamage = state.singleShotStats.damageMult + 0.12f;
         int currentProjectile = 1 + state.singleShotStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 3 == 0 ? 1 : 0);
         int nextPierce = state.projectilePierceBonus;
-        float nextRate = state.singleShotStats.fireRateMult + 0.12f;
+        float nextRate = state.singleShotStats.fireRateMult + 0.07f;
         return BuildWeaponUpgradeText(state.singleShotStats.displayName, state.singleShotStats.level, nextLevel, state.singleShotStats.damageMult, nextDamage, state.singleShotStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
     }
 
@@ -3628,11 +3635,11 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.multiShotStats.level + 1;
-        float nextDamage = state.multiShotStats.damageMult + 0.10f;
+        float nextDamage = state.multiShotStats.damageMult + 0.06f;
         int currentProjectile = 1 + state.multiShotStats.bonusProjectiles;
         int nextProjectile = currentProjectile + 1;
         int nextPierce = state.projectilePierceBonus;
-        float nextRate = state.multiShotStats.fireRateMult + 0.06f;
+        float nextRate = state.multiShotStats.fireRateMult + 0.035f;
         return BuildWeaponUpgradeText(state.multiShotStats.displayName, state.multiShotStats.level, nextLevel, state.multiShotStats.damageMult, nextDamage, state.multiShotStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, nextPierce);
     }
 
@@ -3644,10 +3651,10 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.piercingShotStats.level + 1;
-        float nextDamage = state.piercingShotStats.damageMult + 0.50f;
+        float nextDamage = state.piercingShotStats.damageMult + 0.30f;
         int currentCount = 1 + state.piercingShotStats.bonusProjectiles;
         int nextCount = currentCount + (nextLevel % 5 == 0 ? 1 : 0);
-        float nextRate = state.piercingShotStats.fireRateMult + 0.048f;
+        float nextRate = state.piercingShotStats.fireRateMult + 0.03f;
         return BuildWeaponUpgradeText(state.piercingShotStats.displayName, state.piercingShotStats.level, nextLevel, state.piercingShotStats.damageMult, nextDamage, state.piercingShotStats.fireRateMult, nextRate, currentCount, nextCount, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
@@ -3659,10 +3666,10 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.auraStats.level + 1;
-        float nextDamage = state.auraStats.damageMult + 0.10f;
+        float nextDamage = state.auraStats.damageMult + 0.06f;
         int currentProjectile = 0;
         int nextProjectile = 0;
-        float nextRate = state.auraStats.fireRateMult + 0.18f;
+        float nextRate = state.auraStats.fireRateMult + 0.12f;
         return BuildWeaponUpgradeText(state.auraStats.displayName, state.auraStats.level, nextLevel, state.auraStats.damageMult, nextDamage, state.auraStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
@@ -3674,10 +3681,10 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.homingShotStats.level + 1;
-        float nextDamage = state.homingShotStats.damageMult + 0.20f;
+        float nextDamage = state.homingShotStats.damageMult + 0.12f;
         int currentProjectile = 1 + state.homingShotStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = state.homingShotStats.fireRateMult + 0.06f;
+        float nextRate = state.homingShotStats.fireRateMult + 0.035f;
         return BuildWeaponUpgradeText(state.homingShotStats.displayName, state.homingShotStats.level, nextLevel, state.homingShotStats.damageMult, nextDamage, state.homingShotStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
@@ -3689,10 +3696,10 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.grenadeStats.level + 1;
-        float nextDamage = state.grenadeStats.damageMult + 0.30f;
+        float nextDamage = state.grenadeStats.damageMult + 0.18f;
         int currentProjectile = 1 + state.grenadeStats.bonusProjectiles;
         int nextProjectile = currentProjectile + (nextLevel % 4 == 0 ? 1 : 0);
-        float nextRate = state.grenadeStats.fireRateMult + 0.048f;
+        float nextRate = state.grenadeStats.fireRateMult + 0.03f;
         return BuildWeaponUpgradeText(state.grenadeStats.displayName, state.grenadeStats.level, nextLevel, state.grenadeStats.damageMult, nextDamage, state.grenadeStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
@@ -3704,10 +3711,10 @@ public class GameSession : MonoBehaviour
         }
 
         int nextLevel = state.meleeStats.level + 1;
-        float nextDamage = state.meleeStats.damageMult + 0.30f;
+        float nextDamage = state.meleeStats.damageMult + 0.18f;
         int currentProjectile = 1 + state.meleeStats.bonusProjectiles;
         int nextProjectile = currentProjectile;
-        float nextRate = state.meleeStats.fireRateMult + 0.09f;
+        float nextRate = state.meleeStats.fireRateMult + 0.055f;
         return BuildWeaponUpgradeText(state.meleeStats.displayName, state.meleeStats.level, nextLevel, state.meleeStats.damageMult, nextDamage, state.meleeStats.fireRateMult, nextRate, currentProjectile, nextProjectile, state.projectilePierceBonus, state.projectilePierceBonus);
     }
 
@@ -3837,13 +3844,33 @@ public class GameSession : MonoBehaviour
     {
         int currentCount = state != null ? state.projectileCount : 0;
         int currentLevel = state != null ? state.projectileCountLevel : 0;
-        int nextCount = currentCount + ((currentLevel + 1) % 2 == 0 ? 1 : 0);
+        int nextLevel = currentLevel + 1;
+        int nextCount = currentCount + (ShouldGainExtraCountAtLevel(nextLevel) ? 1 : 0);
         var lines = new List<string>
         {
-            BuildValueStatText("투사체 수", currentCount, nextCount),
-            "2회 업그레이드마다 +1"
+            BuildValueStatText("추가 투사체 수", currentCount, nextCount),
+            "1/3/5 레벨에 +1"
         };
         return string.Join("\n", lines);
+    }
+
+    private string BuildPierceUpgradeText(PlayerUpgradeState state)
+    {
+        int currentCount = state != null ? state.projectilePierceBonus : 0;
+        int currentLevel = state != null ? state.pierceLevel : 0;
+        int nextLevel = currentLevel + 1;
+        int nextCount = currentCount + (ShouldGainExtraCountAtLevel(nextLevel) ? 1 : 0);
+        var lines = new List<string>
+        {
+            BuildValueStatText("추가 관통 수", currentCount, nextCount),
+            "1/3/5 레벨에 +1"
+        };
+        return string.Join("\n", lines);
+    }
+
+    private static bool ShouldGainExtraCountAtLevel(int level)
+    {
+        return level == 1 || level == 3 || level == 5;
     }
 
     private void BuildUGUI()

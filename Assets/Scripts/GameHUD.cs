@@ -1000,9 +1000,9 @@ public class GameHUD : MonoBehaviour
                 label = "자석범위";
                 color = new Color(0.5f, 0.85f, 1f, 0.95f);
             }
-            else if (key.Contains("투사체수"))
+            else if (key.Contains("추가 투사체 수") || key.Contains("추가투사체수") || key.Contains("투사체 수") || key.Contains("투사체수"))
             {
-                label = "투사체수";
+                label = "추가\n투사체수";
                 color = new Color(0.85f, 0.85f, 0.3f, 0.95f);
             }
             else if (key.Contains("공격범위") || key.Contains("투사체크기") || key.Contains("크기"))
@@ -1010,9 +1010,9 @@ public class GameHUD : MonoBehaviour
                 label = "공격범위";
                 color = new Color(0.7f, 0.75f, 0.8f, 0.95f);
             }
-            else if (key.Contains("관통"))
+            else if (key.Contains("추가 관통 수") || key.Contains("추가관통수") || key.Contains("관통"))
             {
-                label = "관통력";
+                label = "추가\n관통수";
                 color = new Color(0.9f, 0.55f, 0.2f, 0.95f);
             }
         }

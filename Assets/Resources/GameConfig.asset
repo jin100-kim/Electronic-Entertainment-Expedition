@@ -44,7 +44,7 @@ MonoBehaviour:
     enrageExtraEnemiesPerSecond: 0.05
     localSpawnPosition: {x: 0, y: 0, z: 0}
     mapHalfSize: {x: 24, y: 24}
-    maxUpgradeLevel: 10
+    maxUpgradeLevel: 5
     maxWeaponSlots: 3
     maxStatSlots: 5
     damageMult: 1
