@@ -85,7 +85,7 @@ public class EnemySpawner : MonoBehaviour
     private float eliteXpMult = 3f;
 
     [SerializeField]
-    private float bossHealthMult = 4f;
+    private float bossHealthMult = 20f;
 
     [SerializeField]
     private float bossDamageMult = 2f;

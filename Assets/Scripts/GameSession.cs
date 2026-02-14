@@ -484,8 +484,12 @@ public class GameSession : MonoBehaviour
     private RectTransform _startMagePreviewRect;
     private RectTransform _startWarriorPreviewRect;
     private RectTransform _startDemonPreviewRect;
+    private RectTransform _devButtonsPanelRect;
     private RectTransform _autoButtonRect;
     private Text _autoButtonText;
+    private RectTransform _testSpawnButtonRect;
+    private RectTransform _levelUpButtonRect;
+    private RectTransform _weaponUnlockButtonRect;
     private Coroutine _colliderGizmoRoutine;
     private bool _uiReady;
     private bool _selectionLocked;
@@ -1399,9 +1403,6 @@ public class GameSession : MonoBehaviour
             HandleUpgradeHotkeys();
         }
 
-        HandleAutoButtonSecret();
-        HandleTestSpawnSecret();
-        HandleLevelUpSecret();
         HandleAdminWeaponUnlockSecret();
     }
 
@@ -3889,7 +3890,7 @@ public class GameSession : MonoBehaviour
         bool showStart = _waitingStartCharacterChoice && !showMap && !IsGameOver;
         bool showGameOver = IsGameOver;
         bool showUpgrade = _choosingUpgrade && !showStart && !IsGameOver;
-        bool showAuto = _showAutoButton && _player != null && _gameStarted && !_waitingStartCharacterChoice && !_waitingMapChoice && !IsGameOver;
+        bool showDevButtons = _showAutoButton && _player != null && _gameStarted && !_waitingStartCharacterChoice && !_waitingMapChoice && !IsGameOver;
 
         if (_mapPanel != null)
         {
@@ -3923,9 +3924,9 @@ public class GameSession : MonoBehaviour
         {
             _upgradePanel.gameObject.SetActive(showUpgrade);
         }
-        if (_autoButtonRect != null)
+        if (_devButtonsPanelRect != null)
         {
-            _autoButtonRect.gameObject.SetActive(showAuto);
+            _devButtonsPanelRect.gameObject.SetActive(showDevButtons);
         }
 
         if (showGameOver && _gameOverTitleText != null)
@@ -3946,7 +3947,8 @@ public class GameSession : MonoBehaviour
 
         if (showMap && _mapSubtitleText != null)
         {
-            _mapSubtitleText.text = requireStartCharacterChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.";
+            _mapSubtitleText.text = BuildMapChoiceSubtitleText();
+            UpdateMapChoiceButtons();
         }
 
         if (showStart && _startSubtitleText != null)
@@ -3973,7 +3975,7 @@ public class GameSession : MonoBehaviour
 
         if (_autoButtonText != null)
         {
-            _autoButtonText.text = _autoPlayEnabled ? "자동\n켜짐" : "자동\n꺼짐";
+            _autoButtonText.text = _autoPlayEnabled ? "자동 꺼짐" : "자동 켜짐";
         }
 
         if (showStart)
@@ -4051,6 +4053,51 @@ public class GameSession : MonoBehaviour
         Color c = _bossAlertText.color;
         c.a = Mathf.Clamp01(alpha);
         _bossAlertText.color = c;
+    }
+
+    private void UpdateMapChoiceButtons()
+    {
+        if (_mapButtons == null || _mapButtonTexts == null)
+        {
+            return;
+        }
+
+        var choices = ResolveMapChoices(mapChoices);
+        int count = Mathf.Min(3, choices.Length);
+        int uiCount = Mathf.Min(_mapButtons.Length, _mapButtonTexts.Length);
+        for (int i = 0; i < uiCount; i++)
+        {
+            var button = _mapButtons[i];
+            var label = _mapButtonTexts[i];
+            bool active = i < count;
+
+            if (button != null)
+            {
+                button.gameObject.SetActive(active);
+            }
+
+            if (label != null)
+            {
+                label.gameObject.SetActive(active);
+            }
+
+            if (!active)
+            {
+                continue;
+            }
+
+            var choice = choices[i];
+            bool unlocked = IsMapChoiceUnlocked(choice, i);
+            if (label != null)
+            {
+                label.text = GetMapChoiceLabel(choice, i);
+            }
+
+            if (button != null)
+            {
+                button.interactable = unlocked;
+            }
+        }
     }
 
     private void UpdateUpgradeUI()
@@ -4431,6 +4478,65 @@ public class GameSession : MonoBehaviour
         return string.IsNullOrWhiteSpace(choice.displayName) ? choice.theme.ToString() : choice.displayName;
     }
 
+    private int GetUnlockedMapChoiceCount(MapChoiceEntry[] choices, int playableCount)
+    {
+        if (choices == null || playableCount <= 0)
+        {
+            return 0;
+        }
+
+        int unlocked = 0;
+        for (int i = 0; i < playableCount; i++)
+        {
+            if (IsMapChoiceUnlocked(choices[i], i))
+            {
+                unlocked++;
+            }
+        }
+
+        return unlocked;
+    }
+
+    private string GetMapUnlockProgressText(MapChoiceEntry[] sourceChoices = null)
+    {
+        var choices = sourceChoices ?? ResolveMapChoices(mapChoices);
+        int playableCount = Mathf.Min(3, choices.Length);
+        if (playableCount <= 0)
+        {
+            return "해금 진행도: 0/0";
+        }
+
+        int unlockedCount = GetUnlockedMapChoiceCount(choices, playableCount);
+        return $"해금 진행도: {unlockedCount}/{playableCount}";
+    }
+
+    private string GetMapUnlockConditionText(int index, MapChoiceEntry[] sourceChoices = null)
+    {
+        if (index <= 0)
+        {
+            return "조건: 기본 해금";
+        }
+
+        var choices = sourceChoices ?? ResolveMapChoices(mapChoices);
+        int playableCount = Mathf.Min(3, choices.Length);
+        if (playableCount <= 0)
+        {
+            return "조건: 이전 맵 클리어";
+        }
+
+        int previousIndex = Mathf.Clamp(index - 1, 0, playableCount - 1);
+        string previousName = GetMapChoiceDisplayName(choices[previousIndex]);
+        return $"조건: {previousName} 클리어";
+    }
+
+    private string BuildMapChoiceSubtitleText()
+    {
+        string flowText = requireStartCharacterChoice
+            ? "맵 선택 후 캐릭터 선택으로 진행됩니다."
+            : "맵 선택 후 바로 시작됩니다.";
+        return $"{flowText}\n{GetMapUnlockProgressText()}";
+    }
+
     private string UnlockNextMapFromCurrentChoice()
     {
         var choices = ResolveMapChoices(mapChoices);
@@ -4475,10 +4581,15 @@ public class GameSession : MonoBehaviour
             return string.Empty;
         }
 
+        if (index < 0)
+        {
+            index = FindMapChoiceIndex(choice);
+        }
+
         string name = GetMapChoiceDisplayName(choice);
         if (!IsMapChoiceUnlocked(choice, index))
         {
-            return $"{name}\n잠김";
+            return $"{name}\n잠김\n{GetMapUnlockConditionText(index)}";
         }
 
         var difficulty = ResolveMapDifficultyForChoice(choice);
@@ -5318,13 +5429,28 @@ public class GameSession : MonoBehaviour
 
         if (_adminWeaponUnlockSecretBuffer == adminWeaponUnlockSecret.ToLowerInvariant())
         {
-            _ignoreWeaponUnlockLevelLimit = !_ignoreWeaponUnlockLevelLimit;
+            _showAutoButton = !_showAutoButton;
             _adminWeaponUnlockSecretBuffer = string.Empty;
             _adminWeaponUnlockSecretLastTime = -1f;
-            Debug.Log(_ignoreWeaponUnlockLevelLimit
-                ? "[Admin Cheat] Weapon level lock disabled."
-                : "[Admin Cheat] Weapon level lock enabled.");
         }
+    }
+
+    private void ToggleAdminWeaponUnlockCheat()
+    {
+        if (!IsGameplayActive)
+        {
+            return;
+        }
+
+        if (NetworkSession.IsActive && !NetworkSession.IsServer)
+        {
+            return;
+        }
+
+        _ignoreWeaponUnlockLevelLimit = !_ignoreWeaponUnlockLevelLimit;
+        Debug.Log(_ignoreWeaponUnlockLevelLimit
+            ? "[Admin Cheat] Weapon level lock disabled."
+            : "[Admin Cheat] Weapon level lock enabled.");
     }
 
     private void LevelUpByOne()
@@ -5575,7 +5701,7 @@ public class GameSession : MonoBehaviour
         }
 
         float panelWidth = 520f;
-        float panelHeight = 200f;
+        float panelHeight = 220f;
         _mapPanel = CreatePanel(_uiRoot, "MapChoicePanel", new Vector2(panelWidth, panelHeight), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Color(0f, 0f, 0f, 0.6f));
 
         _mapTitleText = CreateText(_uiRoot, "MapChoiceTitle", fontToUse, 18, TextAnchor.MiddleCenter, Color.white);
@@ -5593,25 +5719,25 @@ public class GameSession : MonoBehaviour
         subtitleRect.anchorMax = new Vector2(0.5f, 1f);
         subtitleRect.pivot = new Vector2(0.5f, 1f);
         subtitleRect.anchoredPosition = new Vector2(0f, -10f);
-        subtitleRect.sizeDelta = new Vector2(360f, 32f);
-        _mapSubtitleText.text = "맵을 선택하세요.";
+        subtitleRect.sizeDelta = new Vector2(420f, 44f);
+        _mapSubtitleText.text = BuildMapChoiceSubtitleText();
 
         int count = Mathf.Min(3, choices.Length);
         _mapButtons = new Button[count];
         _mapButtonTexts = new Text[count];
 
         float buttonWidth = 140f;
-        float buttonHeight = 80f;
+        float buttonHeight = 90f;
         float gap = 20f;
         float totalWidth = buttonWidth * count + gap * (count - 1);
         float leftX = -totalWidth * 0.5f + buttonWidth * 0.5f;
-        float buttonY = -70f;
+        float buttonY = -90f;
 
         for (int i = 0; i < count; i++)
         {
             float x = leftX + i * (buttonWidth + gap);
             var button = CreateButton(_mapPanel, $"MapButton_{i}", new Vector2(buttonWidth, buttonHeight), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, buttonY), startButtonNormalColor);
-            var label = CreateText(button.transform, "Label", fontToUse, 13, TextAnchor.MiddleCenter, Color.white);
+            var label = CreateText(button.transform, "Label", fontToUse, 12, TextAnchor.MiddleCenter, Color.white);
             StretchToFill(label.rectTransform, new Vector2(6f, 6f));
             int index = i;
             var choice = choices[i];
@@ -5623,6 +5749,8 @@ public class GameSession : MonoBehaviour
             _mapButtons[i] = button;
             _mapButtonTexts[i] = label;
         }
+
+        UpdateMapChoiceButtons();
     }
 
     private void BuildStartChoiceUI(Font fontToUse)
@@ -5780,13 +5908,41 @@ public class GameSession : MonoBehaviour
 
     private void BuildAutoButtonUI(Font fontToUse)
     {
-        _autoButtonRect = CreateButton(_uiRoot, "AutoPlayButton", new Vector2(140f, 40f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(12f, 12f), new Color(0.2f, 0.2f, 0.2f, 0.9f)).GetComponent<RectTransform>();
+        _devButtonsPanelRect = new GameObject("DevButtonsPanel", typeof(RectTransform)).GetComponent<RectTransform>();
+        _devButtonsPanelRect.SetParent(_uiRoot, false);
+        _devButtonsPanelRect.anchorMin = new Vector2(0f, 0f);
+        _devButtonsPanelRect.anchorMax = new Vector2(0f, 0f);
+        _devButtonsPanelRect.pivot = new Vector2(0f, 0f);
+        _devButtonsPanelRect.anchoredPosition = new Vector2(12f, 12f);
+        _devButtonsPanelRect.sizeDelta = new Vector2(288f, 84f);
+
+        Color buttonColor = new Color(0.2f, 0.2f, 0.2f, 0.9f);
+
+        _autoButtonRect = CreateButton(_devButtonsPanelRect, "AutoEnableButton", new Vector2(140f, 40f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 0f), buttonColor).GetComponent<RectTransform>();
         _autoButtonText = CreateText(_autoButtonRect, "Label", fontToUse, 12, TextAnchor.MiddleCenter, Color.white);
         StretchToFill(_autoButtonText.rectTransform, new Vector2(4f, 4f));
         _autoButtonRect.GetComponent<Button>().onClick.AddListener(() =>
         {
             SetAutoPlayEnabled(!_autoPlayEnabled);
         });
+
+        _testSpawnButtonRect = CreateButton(_devButtonsPanelRect, "TestSpawnButton", new Vector2(140f, 40f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(148f, 0f), buttonColor).GetComponent<RectTransform>();
+        var testSpawnText = CreateText(_testSpawnButtonRect, "Label", fontToUse, 12, TextAnchor.MiddleCenter, Color.white);
+        testSpawnText.text = "테스트 소환";
+        StretchToFill(testSpawnText.rectTransform, new Vector2(4f, 4f));
+        _testSpawnButtonRect.GetComponent<Button>().onClick.AddListener(SpawnTestEnemies);
+
+        _levelUpButtonRect = CreateButton(_devButtonsPanelRect, "LevelUpButton", new Vector2(140f, 40f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -44f), buttonColor).GetComponent<RectTransform>();
+        var levelUpText = CreateText(_levelUpButtonRect, "Label", fontToUse, 12, TextAnchor.MiddleCenter, Color.white);
+        levelUpText.text = "레벨업";
+        StretchToFill(levelUpText.rectTransform, new Vector2(4f, 4f));
+        _levelUpButtonRect.GetComponent<Button>().onClick.AddListener(LevelUpByOne);
+
+        _weaponUnlockButtonRect = CreateButton(_devButtonsPanelRect, "WeaponUnlockButton", new Vector2(140f, 40f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(148f, -44f), buttonColor).GetComponent<RectTransform>();
+        var weaponUnlockText = CreateText(_weaponUnlockButtonRect, "Label", fontToUse, 12, TextAnchor.MiddleCenter, Color.white);
+        weaponUnlockText.text = "무기해금";
+        StretchToFill(weaponUnlockText.rectTransform, new Vector2(4f, 4f));
+        _weaponUnlockButtonRect.GetComponent<Button>().onClick.AddListener(ToggleAdminWeaponUnlockCheat);
     }
 
     private void UpdateStartPreviewsFromUI()
@@ -6086,9 +6242,9 @@ public class GameSession : MonoBehaviour
             DrawUpgradeChoices();
         }
 
-        if (_showAutoButton)
+        if (_showAutoButton && _player != null && _gameStarted && !_waitingStartCharacterChoice && !_waitingMapChoice)
         {
-            DrawAutoPlayToggle();
+            DrawDevButtonsFallback();
         }
 
         DrawBossAlertFallback();
@@ -6199,7 +6355,7 @@ public class GameSession : MonoBehaviour
         GUI.enabled = true;
     }
 
-    private void DrawAutoPlayToggle()
+    private void DrawDevButtonsFallback()
     {
         if (_player == null)
         {
@@ -6208,13 +6364,29 @@ public class GameSession : MonoBehaviour
 
         const float width = 140f;
         const float height = 40f;
+        const float gap = 8f;
         float x = 12f;
-        float y = Screen.height - height - 12f;
+        float y = Screen.height - (height * 2f) - gap - 12f;
 
-        string label = _autoPlayEnabled ? "자동\n켜짐" : "자동\n꺼짐";
-        if (GUI.Button(new Rect(x, y, width, height), label))
+        string autoLabel = _autoPlayEnabled ? "자동 꺼짐" : "자동 켜짐";
+        if (GUI.Button(new Rect(x, y, width, height), autoLabel))
         {
             SetAutoPlayEnabled(!_autoPlayEnabled);
+        }
+
+        if (GUI.Button(new Rect(x + width + gap, y, width, height), "테스트 소환"))
+        {
+            SpawnTestEnemies();
+        }
+
+        if (GUI.Button(new Rect(x, y + height + gap, width, height), "레벨업"))
+        {
+            LevelUpByOne();
+        }
+
+        if (GUI.Button(new Rect(x + width + gap, y + height + gap, width, height), "무기해금"))
+        {
+            ToggleAdminWeaponUnlockCheat();
         }
     }
 
@@ -6364,20 +6536,20 @@ public class GameSession : MonoBehaviour
         }
 
         const float boxWidth = 520f;
-        const float boxHeight = 180f;
+        const float boxHeight = 210f;
         float x = (Screen.width - boxWidth) * 0.5f;
         float y = (Screen.height - boxHeight) * 0.5f;
 
         GUI.Box(new Rect(x, y, boxWidth, boxHeight), "1. 맵 선택");
-        GUI.Label(new Rect(x + 20f, y + 32f, boxWidth - 40f, 20f), requireStartCharacterChoice ? "맵을 선택하면 캐릭터 선택으로 진행합니다." : "맵을 선택하면 바로 시작됩니다.");
+        GUI.Label(new Rect(x + 20f, y + 32f, boxWidth - 40f, 40f), BuildMapChoiceSubtitleText());
 
         int count = Mathf.Min(3, choices.Length);
         float buttonWidth = 140f;
-        float buttonHeight = 70f;
+        float buttonHeight = 80f;
         float gap = 20f;
         float totalWidth = buttonWidth * count + gap * (count - 1);
         float bx = x + (boxWidth - totalWidth) * 0.5f;
-        float by = y + 70f;
+        float by = y + 88f;
 
         for (int i = 0; i < count; i++)
         {

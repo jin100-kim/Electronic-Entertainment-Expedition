@@ -554,20 +554,21 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
+        // Move in a tighter band so auto-play stays closer to enemies while collecting XP.
+        float engageMinDistance = Mathf.Max(0.4f, autoMinDistance * (hasXpTarget ? 0.65f : 0.8f));
+        float engageMaxDistance = Mathf.Max(engageMinDistance + 0.45f, autoMaxDistance * (hasXpTarget ? 0.8f : 0.9f));
+
         if (hasEnemy && enemyDist > 0.001f)
         {
             Vector2 dir = toEnemy / enemyDist;
-            float danger = Mathf.Clamp01((autoMinDistance - enemyDist) / Mathf.Max(0.01f, autoMinDistance));
-            if (enemyDist < autoMinDistance)
+            float danger = Mathf.Clamp01((engageMinDistance - enemyDist) / Mathf.Max(0.01f, engageMinDistance));
+            if (enemyDist < engageMinDistance)
             {
-                enemyDesire = -dir * Mathf.Lerp(autoKeepDistanceStrength * 0.5f, autoKeepDistanceStrength * 1.2f, danger);
+                enemyDesire = -dir * Mathf.Lerp(autoKeepDistanceStrength * 0.35f, autoKeepDistanceStrength * 0.9f, danger);
             }
-            else if (enemyDist > autoMaxDistance)
+            else if (enemyDist > engageMaxDistance)
             {
-                if (!hasXpTarget)
-                {
-                    enemyDesire = dir * autoKeepDistanceStrength * 0.65f;
-                }
+                enemyDesire = dir * autoKeepDistanceStrength * (hasXpTarget ? 1.05f : 0.75f);
             }
             else
             {
@@ -577,12 +578,16 @@ public class PlayerController : NetworkBehaviour
                     float orbitSign = Mathf.Sin(Time.time * 0.7f) >= 0f ? 1f : -1f;
                     enemyDesire = orbit * autoOrbitStrength * orbitSign;
                 }
+                else if (enemyDist > engageMinDistance * 1.1f)
+                {
+                    enemyDesire = dir * autoKeepDistanceStrength * 0.45f;
+                }
             }
         }
 
         if (hasEnemy && enemyDesire != Vector2.zero)
         {
-            bool shouldOverride = !hasTarget || !autoXpPriority || enemyDist < autoMinDistance * 0.9f;
+            bool shouldOverride = !hasTarget || !autoXpPriority || enemyDist < engageMinDistance * 0.9f;
             if (shouldOverride)
             {
                 desired = enemyDesire;

@@ -49,28 +49,10 @@ SpriteAtlas:
     bindAsDefault: 1
     isAtlasV2: 0
     cachedData: {fileID: 0}
-    packedSpriteRenderDataKeys:
-    - 80c3390111ab4bd45b7b809bba3366c9: -9065899470535126565
-    - 80c3390111ab4bd45b7b809bba3366c9: 1224695816421532188
-    - 80c3390111ab4bd45b7b809bba3366c9: 582972353896671776
-    - 80c3390111ab4bd45b7b809bba3366c9: 4393084673277465848
-    - 80c3390111ab4bd45b7b809bba3366c9: -9213328360715632891
-    - 80c3390111ab4bd45b7b809bba3366c9: 7224331343088170522
+    packedSpriteRenderDataKeys: []
   m_MasterAtlas: {fileID: 0}
-  m_PackedSprites:
-  - {fileID: -9065899470535126565, guid: 80c3390111ab4bd45b7b809bba3366c9, type: 3}
-  - {fileID: 1224695816421532188, guid: 80c3390111ab4bd45b7b809bba3366c9, type: 3}
-  - {fileID: 582972353896671776, guid: 80c3390111ab4bd45b7b809bba3366c9, type: 3}
-  - {fileID: 4393084673277465848, guid: 80c3390111ab4bd45b7b809bba3366c9, type: 3}
-  - {fileID: -9213328360715632891, guid: 80c3390111ab4bd45b7b809bba3366c9, type: 3}
-  - {fileID: 7224331343088170522, guid: 80c3390111ab4bd45b7b809bba3366c9, type: 3}
-  m_PackedSpriteNamesToIndex:
-  - Frame_3
-  - Frame_2
-  - Frame_1
-  - Frame_0
-  - Frame_5
-  - Frame_4
+  m_PackedSprites: []
+  m_PackedSpriteNamesToIndex: []
   m_RenderDataMap: {}
   m_Tag: Tilemaps
   m_IsVariant: 0

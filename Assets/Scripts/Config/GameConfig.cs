@@ -360,7 +360,7 @@ public class EnemySpawnerConfig
     public float eliteSpeedMult = 1.15f;
     public float eliteXpMult = 3f;
 
-    public float bossHealthMult = 4f;
+    public float bossHealthMult = 20f;
     public float bossDamageMult = 2f;
     public float bossSpeedMult = 1.2f;
     public float bossXpMult = 8f;

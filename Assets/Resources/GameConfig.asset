@@ -256,7 +256,7 @@ MonoBehaviour:
     eliteDamageMult: 1.4
     eliteSpeedMult: 1.15
     eliteXpMult: 3
-    bossHealthMult: 4
+    bossHealthMult: 20
     bossDamageMult: 2
     bossSpeedMult: 1.2
     bossXpMult: 8

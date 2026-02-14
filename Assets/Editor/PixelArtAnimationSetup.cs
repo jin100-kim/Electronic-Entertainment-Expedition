@@ -41,7 +41,7 @@ public static class PixelArtAnimationSetup
             new CharacterDef
             {
                 Id = "Player_Wizard",
-                Folder = "Assets/Art/characters/Characters/Wizard/Wizard",
+                Folder = "Assets/Art/characters/Characters/Wizard/Wizard with shadows",
                 ControllerPath = "Assets/Resources/Animations/Player_Wizard.controller",
                 Idle = new AnimDef { Name = "Idle", File = "Idle.png", Frames = 6, Fps = 12f, Loop = true },
                 Move = new AnimDef { Name = "Run", File = "Run.png", Frames = 8, Fps = 12f, Loop = true },
@@ -51,7 +51,7 @@ public static class PixelArtAnimationSetup
             new CharacterDef
             {
                 Id = "Player_Knight",
-                Folder = "Assets/Art/characters/Characters/Knight/Knight",
+                Folder = "Assets/Art/characters/Characters/Knight/Knight with shadows",
                 ControllerPath = "Assets/Resources/Animations/Player_Knight.controller",
                 Idle = new AnimDef { Name = "Idle", File = "Knight-Idle.png", Frames = 6, Fps = 12f, Loop = true },
                 Move = new AnimDef { Name = "Run", File = "Knight-Run.png", Frames = 8, Fps = 12f, Loop = true },
@@ -61,9 +61,9 @@ public static class PixelArtAnimationSetup
             new CharacterDef
             {
                 Id = "Player_DemonLord",
-                Folder = "Assets/Art/characters/Characters/boss/BOSS",
+                Folder = "Assets/Art/characters/Characters/boss/boss with shadows",
                 ControllerPath = "Assets/Resources/Animations/Player_DemonLord.controller",
-                Idle = new AnimDef { Name = "Idle", File = "boss-Idle.png", Frames = 7, Fps = 10f, Loop = true },
+                Idle = new AnimDef { Name = "Idle", File = "boss-idle.png", Frames = 7, Fps = 10f, Loop = true },
                 Move = new AnimDef { Name = "Fly", File = "boss-Fly.png", Frames = 6, Fps = 12f, Loop = true },
                 Hurt = new AnimDef { Name = "Hurt", File = "boss-Hurt.png", Frames = 6, Fps = 12f, Loop = false },
                 Death = new AnimDef { Name = "Death", File = "boss-Death.png", Frames = 8, Fps = 12f, Loop = false }
@@ -71,7 +71,7 @@ public static class PixelArtAnimationSetup
             new CharacterDef
             {
                 Id = "Enemy_Slime",
-                Folder = "Assets/Art/characters/Characters/Slime/Slime",
+                Folder = "Assets/Art/characters/Characters/Slime/Slime with shadows",
                 ControllerPath = "Assets/Resources/Animations/Enemy_Slime.controller",
                 Idle = new AnimDef { Name = "Idle", File = "Idle.png", Frames = 4, Fps = 8f, Loop = true },
                 Move = new AnimDef { Name = "Walk", File = "Walk.png", Frames = 4, Fps = 10f, Loop = true },
@@ -81,17 +81,17 @@ public static class PixelArtAnimationSetup
             new CharacterDef
             {
                 Id = "Enemy_Mushroom",
-                Folder = "Assets/Art/characters/Characters/mushroom/mushroom",
+                Folder = "Assets/Art/characters/Characters/mushroom/mushroom with shadows",
                 ControllerPath = "Assets/Resources/Animations/Enemy_Mushroom.controller",
-                Idle = new AnimDef { Name = "Idle", File = "Idle.png", Frames = 6, Fps = 10f, Loop = true },
-                Move = new AnimDef { Name = "Jump", File = "Jump.png", Frames = 7, Fps = 10f, Loop = true },
+                Idle = new AnimDef { Name = "Idle", File = "Idle.png", Frames = 4, Fps = 10f, Loop = true },
+                Move = new AnimDef { Name = "Jump", File = "Jump.png", Frames = 6, Fps = 10f, Loop = true },
                 Hurt = null,
                 Death = new AnimDef { Name = "Death", File = "Death.png", Frames = 5, Fps = 10f, Loop = false }
             },
             new CharacterDef
             {
                 Id = "Enemy_Skeleton",
-                Folder = "Assets/Art/characters/Characters/Skeleton/Skeleton",
+                Folder = "Assets/Art/characters/Characters/Skeleton/Skeleton with shadows",
                 ControllerPath = "Assets/Resources/Animations/Enemy_Skeleton.controller",
                 Idle = new AnimDef { Name = "Idle", File = "Idle.png", Frames = 10, Fps = 12f, Loop = true },
                 Move = new AnimDef { Name = "Walk", File = "Walk.png", Frames = 10, Fps = 12f, Loop = true },
